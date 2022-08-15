@@ -1,22 +1,33 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FindDuplicate", "FindDuplicate\FindDuplicate.csproj", "{CC282EA0-DBD9-4455-B48B-A232B97950EC}"
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32802.440
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FindDuplicate", "FindDuplicate\FindDuplicate.csproj", "{CC282EA0-DBD9-4455-B48B-A232B97950EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MergeToADirectory", "MergeToADirectory\MergeToADirectory.csproj", "{419C4AAF-9129-4BD4-9182-7A0D77A2FBA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MergeToADirectory", "MergeToADirectory\MergeToADirectory.csproj", "{419C4AAF-9129-4BD4-9182-7A0D77A2FBA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlattenDirectory", "FlattenDirectory\FlattenDirectory.csproj", "{A879BAE4-9E0E-40F7-B9CC-E4608700D018}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlattenDirectory", "FlattenDirectory\FlattenDirectory.csproj", "{A879BAE4-9E0E-40F7-B9CC-E4608700D018}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileCompare", "FileCompare\FileCompare.csproj", "{4909127B-8EED-4865-BF48-2AAF3A845AAB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileCompare", "FileCompare\FileCompare.csproj", "{4909127B-8EED-4865-BF48-2AAF3A845AAB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeleteIfElseAtOtherPlace", "DeleteIfElseAtOtherPlace\DeleteIfElseAtOtherPlace.csproj", "{E85E0E9C-B7A6-4CCB-96EE-59D0B19CC354}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeleteIfElseAtOtherPlace", "DeleteIfElseAtOtherPlace\DeleteIfElseAtOtherPlace.csproj", "{E85E0E9C-B7A6-4CCB-96EE-59D0B19CC354}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FindDupByHash", "FindDupByHash\FindDupByHash.csproj", "{7192EC13-9FC4-4387-983C-859199792E61}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FindDupByHash", "FindDupByHash\FindDupByHash.csproj", "{7192EC13-9FC4-4387-983C-859199792E61}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EliminateRenamed", "EliminateRenamed\EliminateRenamed.csproj", "{8B89BFA9-95CA-4FE9-94FE-73342BF25ADC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EliminateRenamed", "EliminateRenamed\EliminateRenamed.csproj", "{8B89BFA9-95CA-4FE9-94FE-73342BF25ADC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateAssistant", "DuplicateAssistant\DuplicateAssistant.csproj", "{D9BE469E-3405-47BE-A862-A03020A1BCC2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DuplicateAssistant", "DuplicateAssistant\DuplicateAssistant.csproj", "{D9BE469E-3405-47BE-A862-A03020A1BCC2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileCompare.Tests", "FileCompare.Tests\FileCompare.Tests.csproj", "{BDE63BB9-3E72-429B-9723-1DDE34888FB1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileCompare.Tests", "FileCompare.Tests\FileCompare.Tests.csproj", "{BDE63BB9-3E72-429B-9723-1DDE34888FB1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{564F8AD7-4515-4F15-856D-219A9A123AF8}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+		screenshot.png = screenshot.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,5 +71,11 @@ Global
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {19AB6FA4-9E85-4D5B-99EF-248955996A67}
 	EndGlobalSection
 EndGlobal
