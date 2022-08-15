@@ -7,5 +7,26 @@
         x:Class="DuplicateAssitant.MainWindow"
         Title="DuplicateAssitant"
         >
-    <duplicateAssitant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
+    <TabControl>
+        <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
+            <duplicateAssitant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
+        </TabItem>
+        <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
+            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </TabItem>
+        <TabItem Header="Remove renamed" VerticalContentAlignment="Center">
+            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </TabItem>
+        <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center">
+            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </TabItem>
+        <TabItem Header="Merge to destination" VerticalContentAlignment="Center">
+            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </TabItem>
+        <TabItem Header="Remove empty folder" VerticalContentAlignment="Center">
+            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </TabItem>
+    </TabControl>
+
+
 </Window>
