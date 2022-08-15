@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlattenDirectory", "Flatten
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileCompare", "FileCompare\FileCompare.csproj", "{4909127B-8EED-4865-BF48-2AAF3A845AAB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeleteIfElseAtOtherPlace", "DeleteIfElseAtOtherPlace\DeleteIfElseAtOtherPlace.csproj", "{E85E0E9C-B7A6-4CCB-96EE-59D0B19CC354}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeleteIfAtOtherPlace", "DeleteIfAtOtherPlace\DeleteIfAtOtherPlace.csproj", "{E85E0E9C-B7A6-4CCB-96EE-59D0B19CC354}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FindDupByHash", "FindDupByHash\FindDupByHash.csproj", "{7192EC13-9FC4-4387-983C-859199792E61}"
 EndProject
