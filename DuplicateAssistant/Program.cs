@@ -2,7 +2,6 @@
 using System;
 using System.IO;
 using Avalonia.ReactiveUI;
-using FileCompare;
 using Splat;
 using Microsoft.Extensions.Configuration;
 
@@ -37,24 +36,6 @@ namespace DuplicateAssitant
                 .LogToTrace();
          
             return appBuilder;
-        }
-    }
-
-    public class AppBootstrapper
-    {
-        public AppBootstrapper(Application app)
-        {
-            
-        }
-
-        public static void Register(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver,
-            IConfigurationRoot configurationRoot)
-        {
-            services
-                .RegisterConstant<IConfiguration>(configurationRoot);
-            services.RegisterLazySingleton<Trash>(() => new Trash(configurationRoot["trashFolder"]));
-            services.Register(() => new DuplicateInFolderViewModel(resolver.GetService<Trash>(), configurationRoot["searchPath"]));
-            services.Register(() => new MainWindowViewModel(resolver.GetService<DuplicateInFolderViewModel>()));
         }
     }
 }
