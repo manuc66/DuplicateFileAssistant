@@ -51,6 +51,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
     
     private bool _subFolder;
+
     public bool SubFolder
     {
         get => _subFolder;
@@ -60,8 +61,8 @@ public class DuplicateInFolderViewModel : ViewModelBase
     public DuplicateInFolderViewModel(Trash trash, string searchPath)
     {
         _trash = trash;
-        _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>() { };
         SearchPath = searchPath;
+        SubFolder = true;
         Search = ReactiveCommand.CreateFromObservable(
             () => Observable
                 .StartAsync(SearchDuplicate)
@@ -73,6 +74,9 @@ public class DuplicateInFolderViewModel : ViewModelBase
         StopSearch =  ReactiveCommand.Create(
             () => { },
             Search.IsExecuting);
+        
+        _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>();
+        
         RevealInFolder = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
         Open = ReactiveCommand.CreateFromTask<string>(OpenFile);
         Delete = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
