@@ -17,7 +17,7 @@ public class DupProvider
         }
 
         var hash = sb.ToString();
-        Console.WriteLine(hash);
+        textDisplayProgress.WriteLine(hash);
         return hash;
     }
     
