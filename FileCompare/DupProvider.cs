@@ -25,8 +25,6 @@ public class DupProvider
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<string, T> getHash,
         CancellationToken ct) where T : notnull
     {
-        Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates =
-            new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>();
         
         Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, ct);
         if (ct.IsCancellationRequested)
@@ -57,6 +55,8 @@ public class DupProvider
         int nbToCompare = toHash.Count;
         HashSet<string> hashed = new HashSet<string>(nbToCompare, StringComparer.OrdinalIgnoreCase);
         int i = 0;
+        Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates =
+            new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>();
         foreach ((long fileSize, HashSet<string> pathsA) in fileInA.TakeWhile(_ => !ct.IsCancellationRequested))
         {
             if (fileInB.TryGetValue(fileSize, out HashSet<string>? pathsB))
@@ -101,7 +101,6 @@ public class DupProvider
         Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress,
         CancellationToken ct) where T : notnull
     {
-        Dictionary<T, HashSet<string>> duplicates = new Dictionary<T, HashSet<string>>();
         Dictionary<long, HashSet<string>> fileBySize = GetElementByFileSize(inputPath, searchOption, ct);
 
         if (ct.IsCancellationRequested)
@@ -122,6 +121,7 @@ public class DupProvider
         
         HashSet<string> hashed = new HashSet<string>(totalToHash, StringComparer.OrdinalIgnoreCase) ;
         int i = 0;
+        Dictionary<T, HashSet<string>> duplicates = new Dictionary<T, HashSet<string>>(totalToHash);
         foreach ((_, HashSet<string> paths) in potentialDup
                      .TakeWhile(_ => !ct.IsCancellationRequested))
         {
