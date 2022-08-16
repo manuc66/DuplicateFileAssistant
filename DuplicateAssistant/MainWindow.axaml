@@ -8,6 +8,15 @@
         Title="DuplicateAssitant"
         >
     <TabControl>
+        <TabControl.Styles>
+            <Style Selector="TabItem">
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Height" Value="34"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0 0 0 0"/>
+                <Setter Property="Padding" Value="10 0"/>
+            </Style>
+        </TabControl.Styles>
         <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
             <duplicateAssitant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
         </TabItem>
