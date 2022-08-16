@@ -10,7 +10,7 @@ string from = @"c:\Deletre-from-here";
 string otherPlace = @"c:\If-present-here";
 
 Dictionary<string,(HashSet<string> inA, HashSet<string> inB)> findDuplicateByHash = 
-    DupProvider.FindDuplicateByHash(from, SearchOption.TopDirectoryOnly, otherPlace, SearchOption.AllDirectories, Console.Out);
+    DupProvider.FindDuplicateByHash(from, SearchOption.TopDirectoryOnly, otherPlace, SearchOption.AllDirectories, Console.Out, new CancellationToken());
 
 int deleted = 0;
 foreach ((_, (HashSet<string> inFrom, HashSet<string> inOther)) in findDuplicateByHash)

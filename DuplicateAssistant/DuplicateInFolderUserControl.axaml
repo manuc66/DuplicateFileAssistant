@@ -8,6 +8,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
@@ -15,12 +16,11 @@
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-        <TextBox Grid.Row="0" Grid.Column="0" Name="FolderPath" Text="{Binding Path=SearchPath}"></TextBox>
-        <Button Content="Search" Grid.Row="0" Grid.Column="1" Command="{Binding Search}" HorizontalAlignment="Right"></Button>
-        <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Minimum="0" Maximum="100"
-                     Value="{Binding ProgressValue}">
-        </ProgressBar>
-        <ListBox BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Name="DuplicateCases"
+        <TextBox Grid.Row="0" Grid.Column="0" Name="FolderPath" Text="{Binding Path=SearchPath}"/>
+        <Button Content="Search" Grid.Row="0" Grid.Column="1" Command="{Binding Search}" HorizontalAlignment="Right"/>
+        <Button Content="Stop" Grid.Row="0" Grid.Column="2" Command="{Binding StopSearch}" HorizontalAlignment="Right"/>
+        <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
+        <ListBox BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" Items="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
@@ -28,7 +28,7 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Name="DuplicateItems"
+        <ItemsControl BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Name="DuplicateItems"
                       Items="{Binding DuplicateCase.Files}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
