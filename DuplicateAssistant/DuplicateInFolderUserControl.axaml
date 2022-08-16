@@ -9,6 +9,7 @@
             <ColumnDefinition Width="*"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
@@ -16,11 +17,12 @@
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-        <TextBox Grid.Row="0" Grid.Column="0" Name="FolderPath" Text="{Binding Path=SearchPath}"/>
-        <Button Content="Search" Grid.Row="0" Grid.Column="1" Command="{Binding Search}" HorizontalAlignment="Right"/>
-        <Button Content="Stop" Grid.Row="0" Grid.Column="2" Command="{Binding StopSearch}" HorizontalAlignment="Right"/>
-        <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
-        <ListBox BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Name="DuplicateCases"
+        <TextBox Grid.Row="0" Grid.Column="0" Name="FolderPath" VerticalAlignment="Center" Text="{Binding Path=SearchPath}"/>
+        <ToggleSwitch Content="Subfolder" IsChecked="{Binding SubFolder}" Grid.Row="0" Grid.Column="1"></ToggleSwitch>
+        <Button Content="Search" Grid.Row="0" Grid.Column="2" Command="{Binding Search}" HorizontalAlignment="Right"/>
+        <Button Content="Stop" Grid.Row="0" Grid.Column="3" Command="{Binding StopSearch}" HorizontalAlignment="Right"/>
+        <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
+        <ListBox BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" Items="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate>

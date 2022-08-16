@@ -23,7 +23,6 @@ public class DuplicateInFolderViewModel : ViewModelBase
     public ReactiveCommand<string, Unit> Delete { get; }
 
     private string _searchPath;
-
     public string SearchPath
     {
         get => _searchPath;
@@ -31,7 +30,6 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private ObservableCollection<DuplicateCaseViewModel> _duplicateCaseItems;
-
     public ObservableCollection<DuplicateCaseViewModel> DuplicateCaseItems
     {
         get => _duplicateCaseItems;
@@ -39,7 +37,6 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private DuplicateCaseViewModel _duplicateCase;
-
     public DuplicateCaseViewModel DuplicateCase
     {
         get => _duplicateCase;
@@ -47,11 +44,17 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private int _progressValue;
-
     public int ProgressValue
     {
         get => _progressValue;
         set => this.RaiseAndSetIfChanged(ref _progressValue, value);
+    }
+    
+    private bool _subFolder;
+    public bool SubFolder
+    {
+        get => _subFolder;
+        set => this.RaiseAndSetIfChanged(ref _subFolder, value);
     }
 
     public DuplicateInFolderViewModel(Trash trash, string searchPath)
@@ -79,7 +82,8 @@ public class DuplicateInFolderViewModel : ViewModelBase
     {
         ProgressValue = 0;
         _duplicateCaseItems.Clear();
-        return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, SearchOption.AllDirectories, Console.Out, progress => { ProgressValue = progress; }, ct), ct);
+        SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, searchOption, Console.Out, progress => { ProgressValue = progress; }, ct), ct);
     }
 
     private async Task RevealFileInFolder(string path)
