@@ -6,8 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using FileCompare;
 using ReactiveUI;
 
@@ -51,18 +53,44 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
     
     private bool _subFolder;
-
     public bool SubFolder
     {
         get => _subFolder;
         set => this.RaiseAndSetIfChanged(ref _subFolder, value);
     }
+    
+    private bool _finished;
+    public bool Finished
+    {
+        get => _finished;
+        set
+        {
+            ShowLog = !Finished;
+            this.RaiseAndSetIfChanged(ref _finished, value);
+        }
+    }
+
+    private bool _showLog;
+    public bool ShowLog
+    {
+        get => _showLog;
+        set => this.RaiseAndSetIfChanged(ref _showLog, value);
+    }
+
+    private string _searchLog;
+    public string SearchLog
+    {
+        get => _searchLog;
+        set => this.RaiseAndSetIfChanged(ref _searchLog, value);
+    }
+
 
     public DuplicateInFolderViewModel(Trash trash, string searchPath)
     {
         _trash = trash;
         SearchPath = searchPath;
         SubFolder = true;
+        Finished = true;
         Search = ReactiveCommand.CreateFromObservable(
             () => Observable
                 .StartAsync(SearchDuplicate)
@@ -70,6 +98,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
         Search.Subscribe(x =>
         {
             DuplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>(x.Select(x => new DuplicateCaseViewModel(x.Value)));
+            Finished = true;
         });
         StopSearch =  ReactiveCommand.Create(
             () => { },
@@ -81,13 +110,43 @@ public class DuplicateInFolderViewModel : ViewModelBase
         Open = ReactiveCommand.CreateFromTask<string>(OpenFile);
         Delete = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
+    
+    public class ControlWriter : TextWriter
+    {
+        private StringBuilder content;
+        private readonly DuplicateInFolderViewModel _parent;
+
+        public ControlWriter(DuplicateInFolderViewModel parent )
+        {
+            _parent = parent;
+            content = new StringBuilder();
+        }
+
+        public override void Write(char value)
+        {
+            content.Append(value);
+            _parent.SearchLog = content.ToString(); 
+        }
+
+        public override void Write(string value)
+        {
+            content.Append(value);
+            _parent.SearchLog = content.ToString(); 
+        }
+        public override Encoding Encoding
+        {
+            get { return Encoding.UTF8; }
+        }
+    }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
     {
         ProgressValue = 0;
+        SearchLog = string.Empty;
+        Finished = false;
         _duplicateCaseItems.Clear();
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, searchOption, Console.Out, progress => { ProgressValue = progress; }, ct), ct);
+        return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, searchOption, new ControlWriter(this), progress => { ProgressValue = progress; }, ct), ct);
     }
 
     private async Task RevealFileInFolder(string path)

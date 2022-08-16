@@ -1,6 +1,8 @@
 ﻿using Avalonia;
 using System;
+using System.Diagnostics;
 using System.IO;
+using Avalonia.Dialogs;
 using Avalonia.ReactiveUI;
 using Splat;
 using Microsoft.Extensions.Configuration;
@@ -16,15 +18,23 @@ namespace DuplicateAssistant
         [STAThread]
         public static void Main(string[] args)
         {
-            var configBuilder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json"); 
-            var config = configBuilder.Build();
-			
+            try
+            {
 
-            AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
-            BuildAvaloniaApp()
-                .StartWithClassicDesktopLifetime(args);
+                var configBuilder = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("appsettings.json");
+                var config = configBuilder.Build();
+
+
+                AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
+                BuildAvaloniaApp()
+                    .StartWithClassicDesktopLifetime(args);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
         }
 
         // Avalonia configuration, don't remove; also used by visual designer.
@@ -33,6 +43,7 @@ namespace DuplicateAssistant
             var appBuilder = AppBuilder.Configure<App>()
                 .UseReactiveUI()
                 .UsePlatformDetect()
+                .UseManagedSystemDialogs()
                 .LogToTrace();
          
             return appBuilder;

@@ -22,7 +22,7 @@
         <Button Content="Search" Grid.Row="0" Grid.Column="2" Command="{Binding Search}" HorizontalAlignment="Right"/>
         <Button Content="Stop" Grid.Row="0" Grid.Column="3" Command="{Binding StopSearch}" HorizontalAlignment="Right"/>
         <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
-        <ListBox BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Name="DuplicateCases"
+        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" Items="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
@@ -30,8 +30,8 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Name="DuplicateItems"
-                      Items="{Binding DuplicateCase.Files}">
+        <ItemsControl IsVisible="{Binding Finished}"  BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4" Name="DuplicateItems"
+                       Items="{Binding DuplicateCase.Files}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Grid>
@@ -58,5 +58,8 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding ShowLog, Mode=TwoWay}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="4" Text="{Binding SearchLog}" >
+
+        </TextBox>
     </Grid>
 </UserControl>

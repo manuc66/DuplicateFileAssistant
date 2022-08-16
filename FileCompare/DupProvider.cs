@@ -7,7 +7,7 @@ public class DupProvider
 {
     static string Hash(HashAlgorithm hashAlgorithm, string path, TextWriter textDisplayProgress)
     {
-        Console.Write($"Hashing {path}... ");
+        textDisplayProgress.Write($"Hashing {path}... ");
         using FileStream fs = File.OpenRead(path);
         var retVal = hashAlgorithm.ComputeHash(fs);
         StringBuilder sb = new StringBuilder();
@@ -133,7 +133,6 @@ public class DupProvider
                 updateProgress(percent);
                 textDisplayProgress.Write($"{percent}/100 - {i}/{totalToHash} - ");
                 var hash = getHash(path);
-                textDisplayProgress.WriteLine(hash);
                 duplicates.AddOrUpdate(hash, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path },
                     tuple => tuple.Add(path));
                 hashed.Add(path);
