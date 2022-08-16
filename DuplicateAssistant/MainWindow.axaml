@@ -2,10 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:duplicateAssitant="clr-namespace:DuplicateAssitant"
+        xmlns:DuplicateAssistant="clr-namespace:DuplicateAssistant"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="DuplicateAssitant.MainWindow"
-        Title="DuplicateAssitant"
+        x:Class="DuplicateAssistant.MainWindow"
+        Title="DuplicateAssistant"
         >
     <TabControl>
         <TabControl.Styles>
@@ -18,7 +18,7 @@
             </Style>
         </TabControl.Styles>
         <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
-            <duplicateAssitant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
+            <DuplicateAssistant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
         </TabItem>
         <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>

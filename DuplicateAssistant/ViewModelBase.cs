@@ -1,6 +1,6 @@
 ﻿using ReactiveUI;
 
-namespace DuplicateAssitant;
+namespace DuplicateAssistant;
 
 public class ViewModelBase : ReactiveObject
 {

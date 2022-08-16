@@ -1,4 +1,4 @@
-﻿namespace DuplicateAssitant;
+﻿namespace DuplicateAssistant;
 
 public class MainWindowViewModel : ViewModelBase
 {

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using FileCompare;
 using ReactiveUI;
 
-namespace DuplicateAssitant;
+namespace DuplicateAssistant;
 
 public class DuplicateInFolderViewModel : ViewModelBase
 {

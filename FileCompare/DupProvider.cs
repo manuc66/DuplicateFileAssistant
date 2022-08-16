@@ -5,11 +5,11 @@ namespace FileCompare;
 
 public class DupProvider
 {
-    static string Hash(HashAlgorithm md6, string path, TextWriter textDisplayProgress)
+    static string Hash(HashAlgorithm hashAlgorithm, string path, TextWriter textDisplayProgress)
     {
         Console.Write($"Hashing {path}... ");
         using FileStream fs = File.OpenRead(path);
-        var retVal = md6.ComputeHash(fs);
+        var retVal = hashAlgorithm.ComputeHash(fs);
         StringBuilder sb = new StringBuilder();
         foreach (var val in retVal)
         {

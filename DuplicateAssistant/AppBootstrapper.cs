@@ -3,7 +3,7 @@ using FileCompare;
 using Microsoft.Extensions.Configuration;
 using Splat;
 
-namespace DuplicateAssitant;
+namespace DuplicateAssistant;
 
 public class AppBootstrapper
 {

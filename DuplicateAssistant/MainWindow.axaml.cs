@@ -3,7 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Splat;
 
-namespace DuplicateAssitant;
+namespace DuplicateAssistant;
 
 public partial class MainWindow : Window
 {

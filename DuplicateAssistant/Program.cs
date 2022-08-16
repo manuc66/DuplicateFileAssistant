@@ -5,7 +5,7 @@ using Avalonia.ReactiveUI;
 using Splat;
 using Microsoft.Extensions.Configuration;
 
-namespace DuplicateAssitant
+namespace DuplicateAssistant
 {
     class Program
     {

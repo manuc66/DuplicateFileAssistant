@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace DuplicateAssitant
+namespace DuplicateAssistant
 {
     public partial class DuplicateInFolderUserControl : UserControl
     {
