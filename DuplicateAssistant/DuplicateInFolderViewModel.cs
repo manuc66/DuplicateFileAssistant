@@ -15,6 +15,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
 {
     private readonly Trash _trash;
     public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> Search { get; }
+    public ReactiveCommand<string, Unit>  RevealInFolder{ get; }
     public ReactiveCommand<string, Unit> Open { get; }
     public ReactiveCommand<string, Unit> Delete { get; }
 
@@ -61,6 +62,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
             DuplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>(Enumerable.Select<KeyValuePair<string, HashSet<string>>, DuplicateCaseViewModel>(x, x =>
                 new DuplicateCaseViewModel(x.Value)));
         });
+        RevealInFolder = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
         Open = ReactiveCommand.CreateFromTask<string>(OpenFile);
         Delete = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
@@ -72,12 +74,21 @@ public class DuplicateInFolderViewModel : ViewModelBase
         return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, SearchOption.AllDirectories, Console.Out, progress => { ProgressValue = progress; }));
     }
 
-    private async Task OpenFile(string x)
+    private async Task RevealFileInFolder(string path)
+    {
+        using Process fileOpener = new Process();
+        fileOpener.StartInfo.FileName = "explorer";
+        fileOpener.StartInfo.Arguments = "/select," + path + "\"";
+        fileOpener.Start();
+        await fileOpener.WaitForExitAsync();
+    }
+
+    private async Task OpenFile(string path)
     {
         using Process fileOpener = new Process();
 
         fileOpener.StartInfo.FileName = "explorer";
-        fileOpener.StartInfo.Arguments = "\"" + x + "\"";
+        fileOpener.StartInfo.Arguments = "\"" + path + "\"";
         fileOpener.Start();
         await fileOpener.WaitForExitAsync();
     }
