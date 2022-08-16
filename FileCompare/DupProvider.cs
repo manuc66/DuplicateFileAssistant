@@ -20,18 +20,17 @@ public class DupProvider
         textDisplayProgress.WriteLine(hash);
         return hash;
     }
-    
+
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<string, T> getHash,
         CancellationToken ct) where T : notnull
     {
-        
         Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, ct);
         if (ct.IsCancellationRequested)
         {
             return new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>(0);
         }
-        
+
         Dictionary<long, HashSet<string>> fileInB = GetElementByFileSize(b, bSearchOption, ct);
         if (ct.IsCancellationRequested)
         {
@@ -51,7 +50,7 @@ public class DupProvider
                 toHash.Add(s);
             }
         }
-        
+
         int nbToCompare = toHash.Count;
         HashSet<string> hashed = new HashSet<string>(nbToCompare, StringComparer.OrdinalIgnoreCase);
         int i = 0;
@@ -118,8 +117,8 @@ public class DupProvider
 
             return set;
         }).Count;
-        
-        HashSet<string> hashed = new HashSet<string>(totalToHash, StringComparer.OrdinalIgnoreCase) ;
+
+        HashSet<string> hashed = new HashSet<string>(totalToHash, StringComparer.OrdinalIgnoreCase);
         int i = 0;
         Dictionary<T, HashSet<string>> duplicates = new Dictionary<T, HashSet<string>>(totalToHash);
         foreach ((_, HashSet<string> paths) in potentialDup
@@ -141,8 +140,13 @@ public class DupProvider
             }
         }
 
+        if (!ct.IsCancellationRequested)
+        {
+            updateProgress(100);
+        }
+
         return duplicates.Where(x => x.Value.Count > 1)
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);;
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
@@ -151,7 +155,8 @@ public class DupProvider
     {
         using MD5 md5 = MD5.Create();
 
-        return FindDuplicate(a, searchOption, b, bSearchOption, path => Hash(md5, path, textDisplayProgress), cancellationToken);
+        return FindDuplicate(a, searchOption, b, bSearchOption, path => Hash(md5, path, textDisplayProgress),
+            cancellationToken);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
@@ -160,7 +165,7 @@ public class DupProvider
         return FindDuplicate(a, searchOption, b, bSearchOption,
             path => Path.GetFileName(path) ?? throw new FileNotFoundException("No file name", path), cancellationToken);
     }
-    
+
     public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken ct)
     {
@@ -186,12 +191,12 @@ public class DupProvider
         foreach (string entryPath in Directory.EnumerateFileSystemEntries(a, "*",
                      aSearchOption).TakeWhile(_ => !ct.IsCancellationRequested))
         {
-
             FileAttributes entryAttribute = File.GetAttributes(entryPath);
             if (entryAttribute.HasFlag(FileAttributes.Directory))
             {
                 continue;
             }
+
             var fileSize = new FileInfo(entryPath).Length;
 
             afileWithSameSize.AddOrUpdate(fileSize, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { entryPath },
