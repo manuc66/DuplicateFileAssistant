@@ -10,7 +10,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Threading;
 using FileCompare;
 using ReactiveUI;
 
@@ -126,32 +125,28 @@ public class DuplicateInFolderViewModel : ViewModelBase
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
 
-    public class ControlWriter : TextWriter
+    private class ControlWriter : TextWriter
     {
-        private StringBuilder content;
+        private readonly StringBuilder _content = new();
         private readonly DuplicateInFolderViewModel _parent;
 
         public ControlWriter(DuplicateInFolderViewModel parent )
         {
             _parent = parent;
-            content = new StringBuilder();
         }
 
         public override void Write(char value)
         {
-            content.Append(value);
-            _parent.SearchLog = content.ToString(); 
+            _content.Append(value);
+            _parent.SearchLog = _content.ToString(); 
         }
 
-        public override void Write(string value)
+        public override void Write(string? value)
         {
-            content.Append(value);
-            _parent.SearchLog = content.ToString(); 
+            _content.Append(value);
+            _parent.SearchLog = _content.ToString(); 
         }
-        public override Encoding Encoding
-        {
-            get { return Encoding.UTF8; }
-        }
+        public override Encoding Encoding => Encoding.UTF8;
     }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
