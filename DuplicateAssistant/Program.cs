@@ -43,7 +43,6 @@ namespace DuplicateAssistant
             var appBuilder = AppBuilder.Configure<App>()
                 .UseReactiveUI()
                 .UsePlatformDetect()
-                .UseManagedSystemDialogs()
                 .LogToTrace();
          
             return appBuilder;
