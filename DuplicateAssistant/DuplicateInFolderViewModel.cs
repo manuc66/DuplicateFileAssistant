@@ -9,6 +9,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using FileCompare;
 using ReactiveUI;
@@ -18,11 +19,13 @@ namespace DuplicateAssistant;
 public class DuplicateInFolderViewModel : ViewModelBase
 {
     private readonly Trash _trash;
-    public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> Search { get; }
-    public ReactiveCommand<Unit, Unit> StopSearch { get; }
-    public ReactiveCommand<string, Unit>  RevealInFolder{ get; }
-    public ReactiveCommand<string, Unit> Open { get; }
-    public ReactiveCommand<string, Unit> Delete { get; }
+
+    public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
+    public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> SearchCommand { get; }
+    public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
+    public ReactiveCommand<string, Unit>  RevealInFolderCommand{ get; }
+    public ReactiveCommand<string, Unit> OpenCommand { get; }
+    public ReactiveCommand<string, Unit> DeleteCommand { get; }
 
     private string _searchPath;
     public string SearchPath
@@ -65,16 +68,8 @@ public class DuplicateInFolderViewModel : ViewModelBase
         get => _finished;
         set
         {
-            ShowLog = !Finished;
             this.RaiseAndSetIfChanged(ref _finished, value);
         }
-    }
-
-    private bool _showLog;
-    public bool ShowLog
-    {
-        get => _showLog;
-        set => this.RaiseAndSetIfChanged(ref _showLog, value);
     }
 
     private string _searchLog;
@@ -91,26 +86,46 @@ public class DuplicateInFolderViewModel : ViewModelBase
         SearchPath = searchPath;
         SubFolder = true;
         Finished = true;
-        Search = ReactiveCommand.CreateFromObservable(
+        SearchCommand = ReactiveCommand.CreateFromObservable(
             () => Observable
                 .StartAsync(SearchDuplicate)
-                .TakeUntil(StopSearch!));
-        Search.Subscribe(x =>
+                .TakeUntil(StopSearchCommand!));
+        SearchCommand.Subscribe(x =>
         {
             DuplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>(x.Select(x => new DuplicateCaseViewModel(x.Value)));
             Finished = true;
         });
-        StopSearch =  ReactiveCommand.Create(
+        SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            var ofg = new OpenFolderDialog
+            {
+                Directory = SearchPath
+            };
+
+            string? selectedPath = await ofg.ShowAsync(MainWindow.Instance);
+
+            if (selectedPath !=  null && Directory.Exists(selectedPath))
+            {
+                return selectedPath;
+            }
+            
+            return SearchPath;
+        }, SearchCommand.IsExecuting.Select(x => !x));
+        SelectFolderCommand.Subscribe(path =>
+        {
+            SearchPath = path;
+        });
+        StopSearchCommand =  ReactiveCommand.Create(
             () => { },
-            Search.IsExecuting);
+            SearchCommand.IsExecuting);
         
         _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>();
         
-        RevealInFolder = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
-        Open = ReactiveCommand.CreateFromTask<string>(OpenFile);
-        Delete = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
+        RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
+        OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
+        DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
-    
+
     public class ControlWriter : TextWriter
     {
         private StringBuilder content;
