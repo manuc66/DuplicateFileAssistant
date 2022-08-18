@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -161,11 +162,53 @@ public class DuplicateInFolderViewModel : ViewModelBase
 
     private async Task RevealFileInFolder(string path)
     {
-        using Process fileOpener = new Process();
-        fileOpener.StartInfo.FileName = "explorer";
-        fileOpener.StartInfo.Arguments = "/select," + path + "\"";
-        fileOpener.Start();
-        await fileOpener.WaitForExitAsync();
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            using Process fileOpener = new Process();
+            fileOpener.StartInfo.FileName = "explorer";
+            fileOpener.StartInfo.Arguments = "/select," + path + "\"";
+            fileOpener.Start();
+            await fileOpener.WaitForExitAsync();
+            return;
+        }
+       
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            // On linux, try to use dbus, see https://stackoverflow.com/questions/73409227/open-file-in-containing-folder-for-linux/73409251
+            using Process dbusShowItemsProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dbus-send",
+                    Arguments = "--print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://"+ path +"\" string:\"\"",
+                    UseShellExecute = true
+                }
+            };
+            dbusShowItemsProcess.Start();
+            await dbusShowItemsProcess.WaitForExitAsync();
+    
+            if (dbusShowItemsProcess.ExitCode == 0)
+            {            
+                // The dbus invocation can fail for a variety of reasons:
+                // - dbus is not available
+                // - no programs implement the service,
+                // - ...
+                return;
+            }
+        }
+        
+        // Just open the directory instead.
+        var processInfo =
+            new Process
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = Path.GetDirectoryName(path),
+                    UseShellExecute = true
+                }
+            };
+        processInfo.Start();
+        await processInfo.WaitForExitAsync();
     }
 
     private async Task OpenFile(string path)
