@@ -23,11 +23,12 @@ public class DuplicateInFolderViewModel : ViewModelBase
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
-    public ReactiveCommand<string, Unit>  RevealInFolderCommand{ get; }
+    public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
     public ReactiveCommand<string, Unit> DeleteCommand { get; }
 
     private string _searchPath;
+
     public string SearchPath
     {
         get => _searchPath;
@@ -35,6 +36,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private ObservableCollection<DuplicateCaseViewModel> _duplicateCaseItems;
+
     public ObservableCollection<DuplicateCaseViewModel> DuplicateCaseItems
     {
         get => _duplicateCaseItems;
@@ -42,6 +44,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private DuplicateCaseViewModel _duplicateCase;
+
     public DuplicateCaseViewModel DuplicateCase
     {
         get => _duplicateCase;
@@ -49,30 +52,31 @@ public class DuplicateInFolderViewModel : ViewModelBase
     }
 
     private int _progressValue;
+
     public int ProgressValue
     {
         get => _progressValue;
         set => this.RaiseAndSetIfChanged(ref _progressValue, value);
     }
-    
+
     private bool _subFolder;
+
     public bool SubFolder
     {
         get => _subFolder;
         set => this.RaiseAndSetIfChanged(ref _subFolder, value);
     }
-    
+
     private bool _finished;
+
     public bool Finished
     {
         get => _finished;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _finished, value);
-        }
+        set { this.RaiseAndSetIfChanged(ref _finished, value); }
     }
 
     private string _searchLog;
+
     public string SearchLog
     {
         get => _searchLog;
@@ -92,7 +96,8 @@ public class DuplicateInFolderViewModel : ViewModelBase
                 .TakeUntil(StopSearchCommand!));
         SearchCommand.Subscribe(x =>
         {
-            DuplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>(x.Select(x => new DuplicateCaseViewModel(x.Value)));
+            DuplicateCaseItems =
+                new ObservableCollection<DuplicateCaseViewModel>(x.Select(x => new DuplicateCaseViewModel(x.Value)));
             Finished = true;
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -104,23 +109,20 @@ public class DuplicateInFolderViewModel : ViewModelBase
 
             string? selectedPath = await ofg.ShowAsync(MainWindow.Instance);
 
-            if (selectedPath !=  null && Directory.Exists(selectedPath))
+            if (selectedPath != null && Directory.Exists(selectedPath))
             {
                 return selectedPath;
             }
-            
+
             return SearchPath;
         }, SearchCommand.IsExecuting.Select(x => !x));
-        SelectFolderCommand.Subscribe(path =>
-        {
-            SearchPath = path;
-        });
-        StopSearchCommand =  ReactiveCommand.Create(
+        SelectFolderCommand.Subscribe(path => { SearchPath = path; });
+        StopSearchCommand = ReactiveCommand.Create(
             () => { },
             SearchCommand.IsExecuting);
-        
+
         _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>();
-        
+
         RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
         OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
@@ -131,7 +133,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
         private readonly StringBuilder _content = new();
         private readonly DuplicateInFolderViewModel _parent;
 
-        public ControlWriter(DuplicateInFolderViewModel parent )
+        public ControlWriter(DuplicateInFolderViewModel parent)
         {
             _parent = parent;
         }
@@ -139,14 +141,15 @@ public class DuplicateInFolderViewModel : ViewModelBase
         public override void Write(char value)
         {
             _content.Append(value);
-            _parent.SearchLog = _content.ToString(); 
+            _parent.SearchLog = _content.ToString();
         }
 
         public override void Write(string? value)
         {
             _content.Append(value);
-            _parent.SearchLog = _content.ToString(); 
+            _parent.SearchLog = _content.ToString();
         }
+
         public override Encoding Encoding => Encoding.UTF8;
     }
 
@@ -157,7 +160,9 @@ public class DuplicateInFolderViewModel : ViewModelBase
         Finished = false;
         _duplicateCaseItems.Clear();
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        return await Task.Run(() => DupProvider.FindDuplicateByHash(SearchPath, searchOption, new ControlWriter(this), progress => { ProgressValue = progress; }, ct), ct);
+        return await Task.Run(
+            () => DupProvider.FindDuplicateByHash(SearchPath, searchOption, new ControlWriter(this),
+                progress => { ProgressValue = progress; }, ct), ct);
     }
 
     private async Task RevealFileInFolder(string path)
@@ -171,7 +176,17 @@ public class DuplicateInFolderViewModel : ViewModelBase
             await fileOpener.WaitForExitAsync();
             return;
         }
-       
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            using Process fileOpener = new Process();
+            fileOpener.StartInfo.FileName = "explorer";
+            fileOpener.StartInfo.Arguments = "-R " + path;
+            fileOpener.Start();
+            await fileOpener.WaitForExitAsync();
+            return;
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             // On linux, try to use dbus, see https://stackoverflow.com/questions/73409227/open-file-in-containing-folder-for-linux/73409251
@@ -180,15 +195,17 @@ public class DuplicateInFolderViewModel : ViewModelBase
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dbus-send",
-                    Arguments = "--print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://"+ path +"\" string:\"\"",
+                    Arguments =
+                        "--print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://" +
+                        path + "\" string:\"\"",
                     UseShellExecute = true
                 }
             };
             dbusShowItemsProcess.Start();
             await dbusShowItemsProcess.WaitForExitAsync();
-    
+
             if (dbusShowItemsProcess.ExitCode == 0)
-            {            
+            {
                 // The dbus invocation can fail for a variety of reasons:
                 // - dbus is not available
                 // - no programs implement the service,
@@ -196,19 +213,13 @@ public class DuplicateInFolderViewModel : ViewModelBase
                 return;
             }
         }
-        
-        // Just open the directory instead.
-        var processInfo =
-            new Process
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = Path.GetDirectoryName(path),
-                    UseShellExecute = true
-                }
-            };
-        processInfo.Start();
-        await processInfo.WaitForExitAsync();
+
+        // Just open the directory instead
+        using Process folderOpener = new Process();
+        folderOpener.StartInfo.FileName = Path.GetDirectoryName(path);
+        folderOpener.StartInfo.UseShellExecute = true;
+        folderOpener.Start();
+        await folderOpener.WaitForExitAsync();
     }
 
     private async Task OpenFile(string path)
