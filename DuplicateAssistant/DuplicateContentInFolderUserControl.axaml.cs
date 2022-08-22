@@ -7,9 +7,9 @@ using Avalonia.Media;
 
 namespace DuplicateAssistant
 {
-    public partial class DuplicateInFolderUserControl : UserControl
+    public partial class DuplicateContentInFolderUserControl : UserControl
     {
-        public DuplicateInFolderUserControl()
+        public DuplicateContentInFolderUserControl()
         {
             InitializeComponent();
             TextBox? searchLog = this.FindControl<TextBox>("SearchLog");

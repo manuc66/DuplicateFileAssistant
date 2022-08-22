@@ -2,12 +2,12 @@
 
 public class MainWindowViewModel : ViewModelBase
 {
-    public DuplicateInFolderViewModel DuplicateInFolderViewModel { get; }
+    public DuplicateContentInFolderViewModel DuplicateContentInFolderViewModel { get; }
     public DuplicateNameInFolderViewModel DuplicateNameInFolderViewModel { get; }
 
-    public MainWindowViewModel(DuplicateInFolderViewModel duplicateInFolderViewModel, DuplicateNameInFolderViewModel duplicateNameInFolderViewModel)
+    public MainWindowViewModel(DuplicateContentInFolderViewModel duplicateContentInFolderViewModel, DuplicateNameInFolderViewModel duplicateNameInFolderViewModel)
     {
-        DuplicateInFolderViewModel = duplicateInFolderViewModel;
+        DuplicateContentInFolderViewModel = duplicateContentInFolderViewModel;
         DuplicateNameInFolderViewModel = duplicateNameInFolderViewModel;
     }
 }

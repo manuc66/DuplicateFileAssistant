@@ -16,7 +16,7 @@ using ReactiveUI;
 
 namespace DuplicateAssistant;
 
-public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
+public class DuplicateContentInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
     private readonly Trash _trash;
 
@@ -84,7 +84,7 @@ public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
 
-    public DuplicateInFolderViewModel(Trash trash, string searchPath)
+    public DuplicateContentInFolderViewModel(Trash trash, string searchPath)
     {
         _trash = trash;
         SearchPath = searchPath;
@@ -131,9 +131,9 @@ public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private class ControlWriter : TextWriter
     {
         private readonly StringBuilder _content = new();
-        private readonly DuplicateInFolderViewModel _parent;
+        private readonly DuplicateContentInFolderViewModel _parent;
 
-        public ControlWriter(DuplicateInFolderViewModel parent)
+        public ControlWriter(DuplicateContentInFolderViewModel parent)
         {
             _parent = parent;
         }

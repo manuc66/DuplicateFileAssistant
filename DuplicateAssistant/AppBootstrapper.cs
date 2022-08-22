@@ -18,10 +18,10 @@ public class AppBootstrapper
         services
             .RegisterConstant<IConfiguration>(configurationRoot);
         services.RegisterLazySingleton<Trash>(() => new Trash(configurationRoot["trashFolder"]));
-        services.Register(() => new DuplicateInFolderViewModel(resolver.GetService<Trash>(), configurationRoot["searchPath"]));
+        services.Register(() => new DuplicateContentInFolderViewModel(resolver.GetService<Trash>(), configurationRoot["searchPath"]));
         services.Register(() => new DuplicateNameInFolderViewModel(resolver.GetService<Trash>(), configurationRoot["searchPath"]));
         services.Register(() => new MainWindowViewModel(
-            resolver.GetService<DuplicateInFolderViewModel>(),
+            resolver.GetService<DuplicateContentInFolderViewModel>(),
             resolver.GetService<DuplicateNameInFolderViewModel>()));
     }
 }

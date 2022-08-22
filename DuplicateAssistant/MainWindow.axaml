@@ -18,7 +18,7 @@
             </Style>
         </TabControl.Styles>
         <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
-            <DuplicateAssistant:DuplicateInFolderUserControl DataContext="{Binding DuplicateInFolderViewModel}" />
+            <DuplicateAssistant:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
         </TabItem>
         <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
             <DuplicateAssistant:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
