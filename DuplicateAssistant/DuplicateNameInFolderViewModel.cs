@@ -137,7 +137,7 @@ public class DuplicateNameInFolderViewModel : ViewModelBase, IHaveSearchLog
         _duplicateCaseItems.Clear();
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         return await Task.Run(
-            () => DupProvider.FindDuplicateByHash(SearchPath, searchOption, new ControlWriter(this),
+            () => DupProvider.FindDuplicateByFileName(SearchPath, searchOption, new ControlWriter(this),
                 progress => { ProgressValue = progress; }, ct), ct);
     }
 
