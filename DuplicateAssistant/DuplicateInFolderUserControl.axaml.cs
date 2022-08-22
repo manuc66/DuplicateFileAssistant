@@ -16,7 +16,7 @@ namespace DuplicateAssistant
             searchLog!.PropertyChanged += (_, _) =>
             {
                 // https://github.com/AvaloniaUI/Avalonia/issues/3036
-                var lastIndexOf = searchLog.Text?.LastIndexOf(Environment.NewLine);
+                int? lastIndexOf = searchLog.Text?.LastIndexOf(Environment.NewLine);
                 searchLog.CaretIndex = lastIndexOf.HasValue ? lastIndexOf.Value + 1: 0;
             };
 

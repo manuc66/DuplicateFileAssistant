@@ -8,14 +8,14 @@ string Hash(HashAlgorithm md6, string path)
 {
     Console.Write($"Hashing {path}... ");
     using FileStream fs = File.OpenRead(path);
-    var retVal = md6.ComputeHash(fs);
+    byte[] retVal = md6.ComputeHash(fs);
     StringBuilder sb = new StringBuilder();
-    foreach (var val in retVal)
+    foreach (byte val in retVal)
     {
         sb.Append(val.ToString("x2"));
     }
 
-    var hash = sb.ToString();
+    string hash = sb.ToString();
     Console.WriteLine(hash);
     return hash;
 }
@@ -32,7 +32,7 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", 
         continue;
     }
 
-    var fileSize = new FileInfo(entryPath).Length;
+    long fileSize = new FileInfo(entryPath).Length;
 
     if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string> sameName))
     {
@@ -55,7 +55,7 @@ foreach ((long size, HashSet<string> paths) in fileWithSameSize.OrderBy(x => x.V
         Console.WriteLine($"{size} has potential {paths.Count} duplicate");
 
 
-        var dupWith = paths.Select(Path.GetDirectoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        HashSet<string?> dupWith = paths.Select(Path.GetDirectoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
         
         foreach (string path in paths)
         {
@@ -73,10 +73,10 @@ foreach ((long size, HashSet<string> paths) in fileWithSameSize.OrderBy(x => x.V
     }
 }
 
-var potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
-var totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+List<KeyValuePair<long, HashSet<string>>> potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
+int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
 {
-    foreach (var path in pair.Value)
+    foreach (string path in pair.Value)
     {
         set.Add(path);
     }
@@ -92,7 +92,7 @@ foreach ((long size, HashSet<string> paths) in potentialDup)
     if (paths.Count > 1)
     {
         string md5Hash;
-        foreach (var path in paths)
+        foreach (string path in paths)
         {
             md5Hash = Hash(md5, path);
             
@@ -117,7 +117,7 @@ foreach ( (string hash, HashSet<string> paths) in hashToPath)
     if (paths.Count > 1)
     {
         Console.WriteLine(hash + " -> ");
-        foreach (var path in paths)
+        foreach (string path in paths)
         {
             Console.WriteLine($"\t{path}");
         }

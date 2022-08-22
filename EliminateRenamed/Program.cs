@@ -8,7 +8,7 @@ using FileCompare;
 Trash trash = new Trash(@"C:\PhotoTrash");
 
 
-var cleanIn = @"c:\ToClean";
+string cleanIn = @"c:\ToClean";
 
 HashSet<string> pathToTreat = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -23,7 +23,7 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(cleanIn, "*", 
 }
 
 int deleted = 0;
-foreach (var path in pathToTreat)
+foreach (string path in pathToTreat)
 {
     EliminateDuplicateIn(path, ref deleted);
 }
@@ -36,14 +36,14 @@ string Hash(HashAlgorithm md6, string path)
 {
     Console.Write($"Hashing {path}... ");
     using FileStream fs = File.OpenRead(path);
-    var retVal = md6.ComputeHash(fs);
+    byte[] retVal = md6.ComputeHash(fs);
     StringBuilder sb = new StringBuilder();
-    foreach (var val in retVal)
+    foreach (byte val in retVal)
     {
         sb.Append(val.ToString("x2"));
     }
 
-    var hash = sb.ToString();
+    string hash = sb.ToString();
     Console.WriteLine(hash);
     return hash;
 }
@@ -64,7 +64,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
                 continue;
             }
 
-            var fileSize = new FileInfo(entryPath).Length;
+            long fileSize = new FileInfo(entryPath).Length;
 
             if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string> sameName))
             {
@@ -76,10 +76,10 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
             }
         }
 
-        var potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
-        var totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
+        int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
         {
-            foreach (var path in pair.Value)
+            foreach (string path in pair.Value)
             {
                 set.Add(path);
             }
@@ -95,7 +95,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
             if (paths.Count > 1)
             {
                 string md5Hash;
-                foreach (var path in paths)
+                foreach (string path in paths)
                 {
                     md5Hash = Hash(md5, path);
 
@@ -119,9 +119,9 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
         {
             Console.WriteLine(hash + " -> ");
 
-            var toKeep = paths.OrderByDescending(x => x.Length).Last();
+            string toKeep = paths.OrderByDescending(x => x.Length).Last();
 
-            foreach (var path in paths)
+            foreach (string path in paths)
             {
                 if (path != toKeep)
                 {

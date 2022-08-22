@@ -21,10 +21,10 @@ namespace DuplicateAssistant
             try
             {
 
-                var configBuilder = new ConfigurationBuilder()
+                IConfigurationBuilder? configBuilder = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json");
-                var config = configBuilder.Build();
+                IConfigurationRoot? config = configBuilder.Build();
 
 
                 AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
@@ -40,7 +40,7 @@ namespace DuplicateAssistant
         // Avalonia configuration, don't remove; also used by visual designer.
         public static AppBuilder BuildAvaloniaApp()
         {
-            var appBuilder = AppBuilder.Configure<App>()
+            AppBuilder? appBuilder = AppBuilder.Configure<App>()
                 .UseReactiveUI()
                 .UsePlatformDetect()
                 .LogToTrace();

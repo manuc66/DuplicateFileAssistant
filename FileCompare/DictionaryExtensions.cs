@@ -7,7 +7,7 @@ public static class DictionaryExtensions {
         TValue addValue,
         Func<TKey, TValue, TValue> updateValueFactory)
     {
-        if (dict.TryGetValue(key, out var existing))
+        if (dict.TryGetValue(key, out TValue? existing))
         {
             addValue = updateValueFactory(key, existing);
             dict[key] = addValue;
@@ -26,7 +26,7 @@ public static class DictionaryExtensions {
         TValue addValue,
         Action<TValue> updateValueFactory)
     {
-        if (dict.TryGetValue(key, out var existing))
+        if (dict.TryGetValue(key, out TValue? existing))
         {
             updateValueFactory(existing);
         }
@@ -45,7 +45,7 @@ public static class DictionaryExtensions {
         Func<TKey, TValue> addValueFactory,
         Func<TKey, TValue, TValue> updateValueFactory)
     {
-        if (dict.TryGetValue(key, out var existing))
+        if (dict.TryGetValue(key, out TValue? existing))
         {
             existing = updateValueFactory(key, existing);
             dict[key] = existing;

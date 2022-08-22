@@ -9,14 +9,14 @@ public class FindDupByHash
     {
         display.Write($"Hashing {path}... ");
         using FileStream fs = File.OpenRead(path);
-        var retVal = md6.ComputeHash(fs);
+        byte[] retVal = md6.ComputeHash(fs);
         StringBuilder sb = new StringBuilder();
-        foreach (var val in retVal)
+        foreach (byte val in retVal)
         {
             sb.Append(val.ToString("x2"));
         }
 
-        var hash = sb.ToString();
+        string hash = sb.ToString();
         display.WriteLine(hash);
         return hash;
     }
@@ -35,7 +35,7 @@ public class FindDupByHash
                 continue;
             }
 
-            var fileSize = new FileInfo(entryPath).Length;
+            long fileSize = new FileInfo(entryPath).Length;
 
             if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string> sameName))
             {
@@ -59,7 +59,7 @@ public class FindDupByHash
                 display.WriteLine($"{size} has potential {paths.Count} duplicate");
 
 
-                var dupWith = paths.Select(Path.GetDirectoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                HashSet<string?> dupWith = paths.Select(Path.GetDirectoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                 foreach (string path in paths)
                 {
@@ -77,10 +77,10 @@ public class FindDupByHash
             }
         }
 
-        var potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
-        var totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
+        int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
         {
-            foreach (var path in pair.Value)
+            foreach (string path in pair.Value)
             {
                 set.Add(path);
             }
@@ -96,7 +96,7 @@ public class FindDupByHash
             if (paths.Count > 1)
             {
                 string md5Hash;
-                foreach (var path in paths)
+                foreach (string path in paths)
                 {
                     md5Hash = Hash(md5, path, display);
 

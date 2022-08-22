@@ -15,11 +15,11 @@ Dictionary<string,(HashSet<string> inA, HashSet<string> inB)> findDuplicateByHas
 int deleted = 0;
 foreach ((_, (HashSet<string> inFrom, HashSet<string> inOther)) in findDuplicateByHash)
 {
-    foreach (var pathFrom in inFrom)
+    foreach (string pathFrom in inFrom)
     {
         bool sameFound = false;
         string? dupPath = null;
-        foreach (var pathOther in inOther)
+        foreach (string pathOther in inOther)
         {
             if (pathFrom != pathOther && FastFileCompare.AreFilesEqual(new FileInfo(pathFrom), new FileInfo(pathOther)))
             {
