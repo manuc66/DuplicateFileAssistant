@@ -128,31 +128,6 @@ public class DuplicateContentInFolderViewModel : ViewModelBase, IHaveSearchLog
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
 
-    private class ControlWriter : TextWriter
-    {
-        private readonly StringBuilder _content = new();
-        private readonly DuplicateContentInFolderViewModel _parent;
-
-        public ControlWriter(DuplicateContentInFolderViewModel parent)
-        {
-            _parent = parent;
-        }
-
-        public override void Write(char value)
-        {
-            _content.Append(value);
-            _parent.SearchLog = _content.ToString();
-        }
-
-        public override void Write(string? value)
-        {
-            _content.Append(value);
-            _parent.SearchLog = _content.ToString();
-        }
-
-        public override Encoding Encoding => Encoding.UTF8;
-    }
-
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
     {
         ProgressValue = 0;
