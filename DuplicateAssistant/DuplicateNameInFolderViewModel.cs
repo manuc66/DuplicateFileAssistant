@@ -16,7 +16,7 @@ using ReactiveUI;
 
 namespace DuplicateAssistant;
 
-public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
+public class DuplicateNameInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
     private readonly Trash _trash;
 
@@ -84,7 +84,7 @@ public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
 
-    public DuplicateInFolderViewModel(Trash trash, string searchPath)
+    public DuplicateNameInFolderViewModel(Trash trash, string searchPath)
     {
         _trash = trash;
         SearchPath = searchPath;
@@ -128,30 +128,6 @@ public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
 
-    private class ControlWriter : TextWriter
-    {
-        private readonly StringBuilder _content = new();
-        private readonly DuplicateInFolderViewModel _parent;
-
-        public ControlWriter(DuplicateInFolderViewModel parent)
-        {
-            _parent = parent;
-        }
-
-        public override void Write(char value)
-        {
-            _content.Append(value);
-            _parent.SearchLog = _content.ToString();
-        }
-
-        public override void Write(string? value)
-        {
-            _content.Append(value);
-            _parent.SearchLog = _content.ToString();
-        }
-
-        public override Encoding Encoding => Encoding.UTF8;
-    }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
     {
@@ -242,4 +218,29 @@ public class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             DuplicateCase = DuplicateCaseItems[Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1)];
         }
     }
+}
+
+internal class ControlWriter : TextWriter
+{
+    private readonly StringBuilder _content = new();
+    private readonly IHaveSearchLog _searchLogHolder;
+
+    public ControlWriter(IHaveSearchLog searchLogHolder)
+    {
+        _searchLogHolder = searchLogHolder;
+    }
+
+    public override void Write(char value)
+    {
+        _content.Append(value);
+        _searchLogHolder.SearchLog = _content.ToString();
+    }
+
+    public override void Write(string? value)
+    {
+        _content.Append(value);
+        _searchLogHolder.SearchLog = _content.ToString();
+    }
+
+    public override Encoding Encoding => Encoding.UTF8;
 }

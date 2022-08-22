@@ -34,4 +34,10 @@
     <ItemGroup>
       <ProjectReference Include="..\FileCompare\FileCompare.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <Compile Update="DuplicateNameInFolderUserControl.axaml.cs">
+        <DependentUpon>DuplicateNameInFolderUserControl.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+    </ItemGroup>
 </Project>
