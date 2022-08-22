@@ -102,7 +102,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            var ofg = new OpenFolderDialog
+            OpenFolderDialog ofg = new OpenFolderDialog
             {
                 Directory = SearchPath
             };
@@ -196,8 +196,7 @@ public class DuplicateInFolderViewModel : ViewModelBase
                 {
                     FileName = "dbus-send",
                     Arguments =
-                        "--print-reply --dest=org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:\"file://" +
-                        path + "\" string:\"\"",
+                        $@"--print-reply --dest=org.freedesktop.FileManager1 --type=method_call /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:""file://{path}"" string:""""",
                     UseShellExecute = true
                 }
             };
