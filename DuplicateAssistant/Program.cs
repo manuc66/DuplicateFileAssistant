@@ -2,7 +2,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using Avalonia.Dialogs;
 using Avalonia.ReactiveUI;
 using Splat;
 using Microsoft.Extensions.Configuration;

@@ -1,28 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
-using Avalonia.Controls;
 using FileCompare;
-using ReactiveUI;
 
 namespace DuplicateAssistant;
 
 public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
 {
-   
-
-    public DuplicateNameInFolderViewModel(Trash trash, string searchPath): base(trash, searchPath)
+    public DuplicateNameInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) : base(
+        trash, searchPath, fileManagerHandler)
     {
     }
-    
+
     protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;

@@ -113,6 +113,7 @@ public class DupProvider
         List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
         int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
         {
+            textDisplayProgress.WriteLine(pair.Key);
             foreach (string path in pair.Value)
             {
                 set.Add(path);
@@ -210,6 +211,7 @@ public class DupProvider
                 val => val.Add(entryPath));
             itemCrawled++;
         }
+
         textDisplayProgress.WriteLine($"Total files to analyze: {itemCrawled}");
 
         return afileWithSameSize;

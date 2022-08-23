@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -83,7 +82,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
 
-    public DuplicateInFolderViewModel(Trash trash, string searchPath)
+    public DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
         _trash = trash;
         SearchPath = searchPath;
@@ -122,7 +121,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
         _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>();
 
-        RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(RevealFileInFolder);
+        RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(fileManagerHandler.RevealFileInFolder);
         OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
@@ -138,61 +137,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected abstract Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct);
 
-    private async Task RevealFileInFolder(string path)
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            using Process fileOpener = new Process();
-            fileOpener.StartInfo.FileName = "explorer";
-            fileOpener.StartInfo.Arguments = "/select," + path + "\"";
-            fileOpener.Start();
-            await fileOpener.WaitForExitAsync();
-            return;
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            using Process fileOpener = new Process();
-            fileOpener.StartInfo.FileName = "explorer";
-            fileOpener.StartInfo.Arguments = "-R " + path;
-            fileOpener.Start();
-            await fileOpener.WaitForExitAsync();
-            return;
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            // On linux, try to use dbus, see https://stackoverflow.com/questions/73409227/open-file-in-containing-folder-for-linux/73409251
-            using Process dbusShowItemsProcess = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "dbus-send",
-                    Arguments =
-                        $@"--print-reply --dest=org.freedesktop.FileManager1 --type=method_call /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowItems array:string:""file://{path}"" string:""""",
-                    UseShellExecute = true
-                }
-            };
-            dbusShowItemsProcess.Start();
-            await dbusShowItemsProcess.WaitForExitAsync();
-
-            if (dbusShowItemsProcess.ExitCode == 0)
-            {
-                // The dbus invocation can fail for a variety of reasons:
-                // - dbus is not available
-                // - no programs implement the service,
-                // - ...
-                return;
-            }
-        }
-
-        // Just open the directory instead
-        using Process folderOpener = new Process();
-        folderOpener.StartInfo.FileName = Path.GetDirectoryName(path);
-        folderOpener.StartInfo.UseShellExecute = true;
-        folderOpener.Start();
-        await folderOpener.WaitForExitAsync();
-    }
+   
 
     private async Task OpenFile(string path)
     {

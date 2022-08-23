@@ -7,7 +7,8 @@ namespace DuplicateAssistant;
 
 public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 {
-    public DuplicateContentInFolderViewModel(Trash trash, string searchPath) : base(trash, searchPath)
+    public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) :
+        base(trash, searchPath, fileManagerHandler)
     {
     }
 
