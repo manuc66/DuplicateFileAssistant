@@ -6,22 +6,6 @@ namespace FileCompare;
 
 public class DupProvider
 {
-    static string Hash(HashAlgorithm hashAlgorithm, string path, TextWriter textDisplayProgress)
-    {
-        textDisplayProgress.Write($"Hashing {path}... ");
-        using FileStream fs = File.OpenRead(path);
-        byte[] retVal = hashAlgorithm.ComputeHash(fs);
-        StringBuilder sb = new();
-        foreach (byte val in retVal)
-        {
-            sb.Append(val.ToString("x2"));
-        }
-
-        string hash = sb.ToString();
-        textDisplayProgress.WriteLine(hash);
-        return hash;
-    }
-
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<string, T> getHash,
         TextWriter textDisplayProgress,
@@ -112,7 +96,6 @@ public class DupProvider
         List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
         int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
         {
-            textDisplayProgress.WriteLine(pair.Key);
             foreach (string path in pair.Value)
             {
                 set.Add(path);
@@ -152,12 +135,10 @@ public class DupProvider
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress,
+        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress, Func<string,string> hash,
         CancellationToken cancellationToken)
     {
-        using MD5 md5 = MD5.Create();
-
-        return FindDuplicate(a, searchOption, b, bSearchOption, path => Hash(md5, path, textDisplayProgress),
+        return FindDuplicate(a, searchOption, b, bSearchOption, hash,
             textDisplayProgress, cancellationToken);
     }
 
@@ -171,11 +152,8 @@ public class DupProvider
     }
 
     public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption,
-        TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken ct)
+        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string,string> hash, CancellationToken ct)
     {
-        using MD5 md5 = MD5.Create();
-
-        Func<string, string> hash = p => Hash(md5, p, textDisplayProgress);
         return FindDuplicate(path, searchOption, hash, textDisplayProgress, updateProgress, ct);
     }
 
