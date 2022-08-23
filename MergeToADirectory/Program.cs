@@ -3,7 +3,7 @@
 
 using FileCompare;
 
-Trash trash = new Trash(@"C:\PhotoTrash");
+Trash trash = new(@"C:\PhotoTrash");
 
 string from = @"c:\Remove-from-here";
 
@@ -21,10 +21,10 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(from, "*", Sea
     string fileName = Path.GetFileName(entryPath);
     string targetFilePath = Path.Combine(to, entryPath.Substring(from.Length + 1));
 
-    FileInfo targetFileInfo = new FileInfo(targetFilePath);
+    FileInfo targetFileInfo = new(targetFilePath);
     if (targetFileInfo.Exists)
     {
-        if (FastFileCompare.AreFilesEqual(targetFileInfo, new FileInfo(entryPath)))
+        if (FastFileCompare.AreFilesEqual(targetFileInfo, new(entryPath)))
         {
             trash.Delete(entryPath);
             Console.WriteLine($"File deleted {entryPath}");

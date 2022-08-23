@@ -22,7 +22,7 @@ namespace DuplicateAssistant
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 //https://github.com/AvaloniaUI/Avalonia/issues/6671
-                searchLog.FontFamily = new FontFamily("Courier New");
+                searchLog.FontFamily = new("Courier New");
             }
         }
 

@@ -5,12 +5,12 @@ using System.Text;
 using FileCompare;
 
 
-Trash trash = new Trash(@"C:\PhotoTrash");
+Trash trash = new(@"C:\PhotoTrash");
 
 
 string cleanIn = @"c:\ToClean";
 
-HashSet<string> pathToTreat = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+HashSet<string> pathToTreat = new(StringComparer.OrdinalIgnoreCase);
 
 foreach (string entryPath in Directory.EnumerateFileSystemEntries(cleanIn, "*", SearchOption.AllDirectories))
 {
@@ -37,7 +37,7 @@ string Hash(HashAlgorithm md6, string path)
     Console.Write($"Hashing {path}... ");
     using FileStream fs = File.OpenRead(path);
     byte[] retVal = md6.ComputeHash(fs);
-    StringBuilder sb = new StringBuilder();
+    StringBuilder sb = new();
     foreach (byte val in retVal)
     {
         sb.Append(val.ToString("x2"));
@@ -53,8 +53,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
     
 
   
-        Dictionary<long, HashSet<string>> fileWithSameSize =
-            new Dictionary<long, HashSet<string>>();
+        Dictionary<long, HashSet<string>> fileWithSameSize = new();
 
         foreach (string entryPath in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly))
         {
@@ -72,7 +71,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
             }
             else
             {
-                fileWithSameSize[fileSize] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { entryPath };
+                fileWithSameSize[fileSize] = new(StringComparer.OrdinalIgnoreCase) { entryPath };
             }
         }
 
@@ -89,7 +88,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
 
         int i = 1;
         MD5 md5 = MD5.Create();
-        Dictionary<string, HashSet<string>> hashToPath = new Dictionary<string, HashSet<string>>();
+        Dictionary<string, HashSet<string>> hashToPath = new();
         foreach ((long size, HashSet<string> paths) in potentialDup)
         {
             if (paths.Count > 1)
@@ -107,7 +106,7 @@ void EliminateDuplicateIn(string folder, ref int nbDeleted)
                     }
                     else
                     {
-                        hashToPath[md5Hash] = new HashSet<string>() { path };
+                        hashToPath[md5Hash] = new() { path };
                     }
 
                     i++;

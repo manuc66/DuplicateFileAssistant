@@ -3,9 +3,8 @@
 
 using FileCompare;
 
-Dictionary<string, HashSet<string>> fileWithSameName =
-    new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-Dictionary<string, int> extensionFound = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+Dictionary<string, HashSet<string>> fileWithSameName = new(StringComparer.OrdinalIgnoreCase);
+Dictionary<string, int> extensionFound = new(StringComparer.OrdinalIgnoreCase);
 
 foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", "*",
              SearchOption.AllDirectories))
@@ -34,12 +33,12 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", 
     }
     else
     {
-        fileWithSameName[fileName] = new HashSet<string>() { entryPath };
+        fileWithSameName[fileName] = new() { entryPath };
     }
 }
 
 
-Dictionary<string, int> duplicateFolderHit = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+Dictionary<string, int> duplicateFolderHit = new(StringComparer.OrdinalIgnoreCase);
 int duplicateCase = 0;
 foreach ((string fileName, HashSet<string> paths) in fileWithSameName.OrderBy(x => x.Value.Count))
 {
@@ -69,7 +68,7 @@ duplicateFolderHit.OrderBy(x => x.Value).ToList()
     .ForEach(x => Console.WriteLine($"\t{x.Key} - {x.Value}"));
 
 int trueSimilarFount = 0;
-Dictionary<string, int> folderHit = new Dictionary<string, int>();
+Dictionary<string, int> folderHit = new();
 string folderWithMostDuplicate = duplicateFolderHit.OrderBy(x => x.Value).Last().Key;
 foreach ((string fileName, HashSet<string> paths) in fileWithSameName)
 {
@@ -78,12 +77,12 @@ foreach ((string fileName, HashSet<string> paths) in fileWithSameName)
 
     if (match)
     {
-        FileInfo source = new FileInfo(expectedPath);
+        FileInfo source = new(expectedPath);
         foreach (string path in paths)
         {
             if (!path.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
             {
-                FileInfo dest = new FileInfo(path);
+                FileInfo dest = new(path);
 
                 //if (FileExt.FilesAreEqual(source, dest))
                 if (FastFileCompare.AreFilesEqual(source, dest))

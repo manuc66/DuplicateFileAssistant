@@ -11,7 +11,7 @@ public class DupProvider
         textDisplayProgress.Write($"Hashing {path}... ");
         using FileStream fs = File.OpenRead(path);
         byte[] retVal = hashAlgorithm.ComputeHash(fs);
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         foreach (byte val in retVal)
         {
             sb.Append(val.ToString("x2"));
@@ -30,16 +30,16 @@ public class DupProvider
         Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, textDisplayProgress, ct);
         if (ct.IsCancellationRequested)
         {
-            return new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>(0);
+            return new(0);
         }
 
         Dictionary<long, HashSet<string>> fileInB = GetElementByFileSize(b, bSearchOption, textDisplayProgress, ct);
         if (ct.IsCancellationRequested)
         {
-            return new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>(0);
+            return new(0);
         }
 
-        HashSet<string> toHash = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> toHash = new(StringComparer.OrdinalIgnoreCase);
         foreach (long commonSize in fileInA.Keys.Intersect(fileInB.Keys))
         {
             foreach (string s in fileInA[commonSize])
@@ -54,10 +54,9 @@ public class DupProvider
         }
 
         int nbToCompare = toHash.Count;
-        HashSet<string> hashed = new HashSet<string>(nbToCompare, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> hashed = new(nbToCompare, StringComparer.OrdinalIgnoreCase);
         int i = 0;
-        Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates =
-            new Dictionary<T, (HashSet<string> inA, HashSet<string> inB)>();
+        Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates = new();
         foreach ((long fileSize, HashSet<string> pathsA) in fileInA.TakeWhile(_ => !ct.IsCancellationRequested))
         {
             if (fileInB.TryGetValue(fileSize, out HashSet<string>? pathsB))
@@ -107,7 +106,7 @@ public class DupProvider
 
         if (ct.IsCancellationRequested)
         {
-            return new Dictionary<T, HashSet<string>>();
+            return new();
         }
 
         List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
@@ -122,9 +121,9 @@ public class DupProvider
             return set;
         }).Count;
 
-        HashSet<string> hashed = new HashSet<string>(totalToHash, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> hashed = new(totalToHash, StringComparer.OrdinalIgnoreCase);
         int i = 0;
-        Dictionary<T, HashSet<string>> duplicates = new Dictionary<T, HashSet<string>>(totalToHash);
+        Dictionary<T, HashSet<string>> duplicates = new(totalToHash);
         foreach ((_, HashSet<string> paths) in potentialDup
                      .TakeWhile(_ => !ct.IsCancellationRequested))
         {
@@ -137,7 +136,7 @@ public class DupProvider
                 updateProgress(percent);
                 textDisplayProgress.Write($"{percent}/100 - {i}/{totalToHash} - ");
                 T hash = getHash(path);
-                duplicates.AddOrUpdate(hash, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path },
+                duplicates.AddOrUpdate(hash, new(StringComparer.OrdinalIgnoreCase) { path },
                     tuple => tuple.Add(path));
                 hashed.Add(path);
             }
@@ -191,8 +190,7 @@ public class DupProvider
         TextWriter textDisplayProgress,
         CancellationToken ct)
     {
-        Dictionary<long, HashSet<string>> afileWithSameSize =
-            new Dictionary<long, HashSet<string>>();
+        Dictionary<long, HashSet<string>> afileWithSameSize = new();
 
         int itemCrawled = 0;
         Stopwatch estimateElapsedTime = Stopwatch.StartNew();
@@ -207,7 +205,7 @@ public class DupProvider
 
             long fileSize = new FileInfo(entryPath).Length;
 
-            afileWithSameSize.AddOrUpdate(fileSize, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { entryPath },
+            afileWithSameSize.AddOrUpdate(fileSize, new(StringComparer.OrdinalIgnoreCase) { entryPath },
                 val => val.Add(entryPath));
             itemCrawled++;
         }

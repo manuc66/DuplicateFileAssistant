@@ -95,12 +95,12 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand.Subscribe(x =>
         {
             DuplicateCaseItems =
-                new ObservableCollection<DuplicateCaseViewModel>(x.Select(x => new DuplicateCaseViewModel(x.Value)));
+                new(x.Select(x => new DuplicateCaseViewModel(x.Value)));
             Finished = true;
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            OpenFolderDialog ofg = new OpenFolderDialog
+            OpenFolderDialog ofg = new()
             {
                 Directory = SearchPath
             };
@@ -119,7 +119,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             () => { },
             SearchCommand.IsExecuting);
 
-        _duplicateCaseItems = new ObservableCollection<DuplicateCaseViewModel>();
+        _duplicateCaseItems = new();
 
         RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(fileManagerHandler.RevealFileInFolder);
         OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
@@ -141,7 +141,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     private async Task OpenFile(string path)
     {
-        using Process fileOpener = new Process();
+        using Process fileOpener = new();
 
         fileOpener.StartInfo.FileName = "explorer";
         fileOpener.StartInfo.Arguments = "\"" + path + "\"";

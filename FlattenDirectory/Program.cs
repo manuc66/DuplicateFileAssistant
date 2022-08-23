@@ -13,12 +13,12 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(from, "*", Sea
     FileAttributes entryAttribute = File.GetAttributes(entryPath);
     if (!entryAttribute.HasFlag(FileAttributes.Directory))
     {
-        FileInfo targetFileInfo = new FileInfo(targetFilePath);
+        FileInfo targetFileInfo = new(targetFilePath);
         if (targetFileInfo.Exists)
         {
             if (!targetFilePath.Equals(entryPath, StringComparison.OrdinalIgnoreCase))
             {
-                if (FileExt.FilesAreEqual(targetFileInfo, new FileInfo(entryPath)))
+                if (FileExt.FilesAreEqual(targetFileInfo, new(entryPath)))
                 {
                     File.Delete(entryPath);
                     Console.WriteLine($"File deleted {entryPath}");

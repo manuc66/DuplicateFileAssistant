@@ -27,6 +27,6 @@ public class DuplicateCaseViewModel : ViewModelBase
     {
 
         _name = String.Join(" - ", argValue.Select(Path.GetFileName).Distinct(StringComparer.OrdinalIgnoreCase));
-        _files = new ObservableCollection<string>(argValue);
+        _files = new(argValue);
     }
 }

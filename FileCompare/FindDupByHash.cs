@@ -10,7 +10,7 @@ public class FindDupByHash
         display.Write($"Hashing {path}... ");
         using FileStream fs = File.OpenRead(path);
         byte[] retVal = md6.ComputeHash(fs);
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         foreach (byte val in retVal)
         {
             sb.Append(val.ToString("x2"));
@@ -23,8 +23,7 @@ public class FindDupByHash
 
     public void GetDuplicate(string inputPath, TextWriter display)
     {
-        Dictionary<long, HashSet<string>> fileWithSameSize =
-            new Dictionary<long, HashSet<string>>();
+        Dictionary<long, HashSet<string>> fileWithSameSize = new();
 
         foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"H:\Backup_DISK_1To\Photo", "*",
                      SearchOption.AllDirectories))
@@ -43,13 +42,12 @@ public class FindDupByHash
             }
             else
             {
-                fileWithSameSize[fileSize] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { entryPath };
+                fileWithSameSize[fileSize] = new(StringComparer.OrdinalIgnoreCase) { entryPath };
             }
         }
 
-        Dictionary<string, HashSet<string>> duplicateFolderWith =
-            new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, int> duplicateFolderHit = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, HashSet<string>> duplicateFolderWith = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> duplicateFolderHit = new(StringComparer.OrdinalIgnoreCase);
         int duplicateCase = 0;
         foreach ((long size, HashSet<string> paths) in fileWithSameSize.OrderBy(x => x.Value.Count))
         {
@@ -90,7 +88,7 @@ public class FindDupByHash
 
         int i = 1;
         MD5 md5 = MD5.Create();
-        Dictionary<string, HashSet<string>> hashToPath = new Dictionary<string, HashSet<string>>();
+        Dictionary<string, HashSet<string>> hashToPath = new();
         foreach ((long size, HashSet<string> paths) in potentialDup)
         {
             if (paths.Count > 1)
@@ -108,7 +106,7 @@ public class FindDupByHash
                     }
                     else
                     {
-                        hashToPath[md5Hash] = new HashSet<string>() { path };
+                        hashToPath[md5Hash] = new() { path };
                     }
 
                     i++;

@@ -9,7 +9,7 @@ string Hash(HashAlgorithm md6, string path)
     Console.Write($"Hashing {path}... ");
     using FileStream fs = File.OpenRead(path);
     byte[] retVal = md6.ComputeHash(fs);
-    StringBuilder sb = new StringBuilder();
+    StringBuilder sb = new();
     foreach (byte val in retVal)
     {
         sb.Append(val.ToString("x2"));
@@ -20,8 +20,7 @@ string Hash(HashAlgorithm md6, string path)
     return hash;
 }
 
-Dictionary<long, HashSet<string>> fileWithSameSize =
-    new Dictionary<long, HashSet<string>>();
+Dictionary<long, HashSet<string>> fileWithSameSize = new();
 
 foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", "*",
              SearchOption.AllDirectories))
@@ -40,12 +39,12 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", 
     }
     else
     {
-        fileWithSameSize[fileSize] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { entryPath };
+        fileWithSameSize[fileSize] = new(StringComparer.OrdinalIgnoreCase) { entryPath };
     }
 }
 
-Dictionary<string, HashSet<string>> duplicateFolderWith = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-Dictionary<string, int> duplicateFolderHit = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+Dictionary<string, HashSet<string>> duplicateFolderWith = new(StringComparer.OrdinalIgnoreCase);
+Dictionary<string, int> duplicateFolderHit = new(StringComparer.OrdinalIgnoreCase);
 int duplicateCase = 0;
 foreach ((long size, HashSet<string> paths) in fileWithSameSize.OrderBy(x => x.Value.Count))
 {
@@ -86,7 +85,7 @@ int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
 
 int i = 1;
 MD5 md5 = MD5.Create();
-Dictionary<string, HashSet<string>> hashToPath = new Dictionary<string, HashSet<string>>();
+Dictionary<string, HashSet<string>> hashToPath = new();
 foreach ((long size, HashSet<string> paths) in potentialDup)
 {
     if (paths.Count > 1)
@@ -104,7 +103,7 @@ foreach ((long size, HashSet<string> paths) in potentialDup)
             }
             else
             {
-                hashToPath[md5Hash] = new HashSet<string>() { path };
+                hashToPath[md5Hash] = new() { path };
             }
 
             i++;

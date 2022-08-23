@@ -10,7 +10,7 @@ public class FileManagerHandler
     public async Task OpenParentFolder(string path)
     {
         // Just open the directory instead
-        using Process folderOpener = new Process();
+        using Process folderOpener = new();
         folderOpener.StartInfo.FileName = Path.GetDirectoryName(path);
         folderOpener.StartInfo.UseShellExecute = true;
         folderOpener.Start();
@@ -20,7 +20,7 @@ public class FileManagerHandler
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            using Process fileOpener = new Process();
+            using Process fileOpener = new ();
             fileOpener.StartInfo.FileName = "explorer";
             fileOpener.StartInfo.Arguments = "/select," + path + "\"";
             fileOpener.Start();
@@ -30,7 +30,7 @@ public class FileManagerHandler
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            using Process fileOpener = new Process();
+            using Process fileOpener = new();
             fileOpener.StartInfo.FileName = "explorer";
             fileOpener.StartInfo.Arguments = "-R " + path;
             fileOpener.Start();
@@ -41,9 +41,9 @@ public class FileManagerHandler
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             // On linux, try to use dbus, see https://stackoverflow.com/questions/73409227/open-file-in-containing-folder-for-linux/73409251
-            using Process dbusShowItemsProcess = new Process
+            using Process dbusShowItemsProcess = new()
             {
-                StartInfo = new ProcessStartInfo
+                StartInfo = new()
                 {
                     FileName = "dbus-send",
                     Arguments =

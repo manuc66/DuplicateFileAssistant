@@ -41,7 +41,7 @@ public class ReadFileInChunksAndCompareVector : ReadIntoByteBufferInChunks
             int totalProcessed = 0;
             while (totalProcessed < buffer1.Length)
             {
-                if (Vector.EqualsAll(new Vector<byte>(buffer1, totalProcessed),
+                if (Vector.EqualsAll(new(buffer1, totalProcessed),
                         new Vector<byte>(buffer2, totalProcessed)) == false)
                 {
                     return false;

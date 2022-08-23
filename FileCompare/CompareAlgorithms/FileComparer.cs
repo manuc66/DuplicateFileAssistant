@@ -15,7 +15,7 @@
     /// </summary>
     /// <param name="filePath01">Absolute path to source file</param>
     /// <param name="filePath02">Absolute path to target file</param>
-    protected FileComparer(string filePath01, string filePath02) : this(new FileInfo(filePath01),
+    protected FileComparer(string filePath01, string filePath02) : this(new(filePath01),
         new FileInfo(filePath02))
     {
     }
