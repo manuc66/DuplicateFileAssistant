@@ -18,6 +18,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="100"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -25,15 +26,23 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
             </Grid.RowDefinitions>
-            <TextBox Grid.Row="0" Grid.Column="0" Name="FolderPath" VerticalAlignment="Center" Text="{Binding Path=SearchPath}"/>
-            <Button Content="Browse" Grid.Row="0" Grid.Column="1" Command="{Binding SelectFolderCommand}" HorizontalAlignment="Right"/>
-            <ToggleSwitch Content="Subfolder" IsChecked="{Binding SubFolder}" Grid.Row="0" Grid.Column="2"></ToggleSwitch>
-            <Button Content="Search" Grid.Row="0" Grid.Column="3" Command="{Binding SearchCommand}" HorizontalAlignment="Right"/>
-            <Button Content="Stop" Grid.Row="0" Grid.Column="4" Command="{Binding StopSearchCommand}" HorizontalAlignment="Right"/>
+            <TextBox Grid.Column="0" Name="FolderPath" VerticalAlignment="Center" Text="{Binding Path=SearchPath}" />
+            <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}"
+                    HorizontalAlignment="Right" />
+            <ComboBox Grid.Column="2" Items="{Binding HashAlgorithms}" SelectedItem="{Binding HashAlgorithm }" Width="100" VerticalAlignment="Center">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding .}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <ToggleSwitch Grid.Column="3" Content="Subfolder" IsChecked="{Binding SubFolder}"></ToggleSwitch>
+            <Button Grid.Column="4" Content="Search" Command="{Binding SearchCommand}" HorizontalAlignment="Right" />
+            <Button Grid.Column="5" Content="Stop" Command="{Binding StopSearchCommand}" HorizontalAlignment="Right" />
         </Grid>
-        
-        <ProgressBar Grid.Row="1" Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
-        
+
+        <ProgressBar Grid.Row="1" Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+
         <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" Items="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
@@ -42,8 +51,9 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl IsVisible="{Binding Finished}"  BorderThickness="1" Grid.Row="3" Grid.Column="0" Name="DuplicateItems"
-                       Items="{Binding DuplicateCase.Files}">
+        <ItemsControl IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0"
+                      Name="DuplicateItems"
+                      Items="{Binding DuplicateCase.Files}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Grid>
@@ -70,7 +80,9 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" Text="{Binding SearchLog}" >
+        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace"
+                 IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
+                 Text="{Binding SearchLog}">
 
         </TextBox>
     </Grid>
