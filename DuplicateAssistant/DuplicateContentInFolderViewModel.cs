@@ -11,21 +11,22 @@ namespace DuplicateAssistant;
 
 public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 {
-        
-    private List<string> _hashAlgorithms;
+    private List<string> _hashAlgorithms = null!;
 
     public List<string> HashAlgorithms
     {
         get => _hashAlgorithms;
         set => this.RaiseAndSetIfChanged(ref _hashAlgorithms, value);
     }
-    private string _hashAlgorithm;
+
+    private string _hashAlgorithm = null!;
+
     public string HashAlgorithm
     {
         get => _hashAlgorithm;
         set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
     }
-    
+
     public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) :
         base(trash, searchPath, fileManagerHandler)
     {

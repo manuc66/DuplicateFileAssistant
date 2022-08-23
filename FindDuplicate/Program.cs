@@ -27,7 +27,7 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(@"C:\Folder", 
 
     string fileName = Path.GetFileName(entryPath);
 
-    if (fileWithSameName.TryGetValue(fileName, out HashSet<string> sameName))
+    if (fileWithSameName.TryGetValue(fileName, out HashSet<string>? sameName))
     {
         sameName.Add(entryPath);
     }
@@ -49,7 +49,7 @@ foreach ((string fileName, HashSet<string> paths) in fileWithSameName.OrderBy(x 
 
         foreach (string path in paths)
         {
-            String directoryPath = Path.GetDirectoryName(path);
+            String directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException($"No folder for: {path}");
             if (duplicateFolderHit.TryGetValue(directoryPath, out int count))
             {
                 duplicateFolderHit[directoryPath] = ++count;
@@ -67,10 +67,9 @@ Console.WriteLine($"Directories which contains lots of duplicate:");
 duplicateFolderHit.OrderBy(x => x.Value).ToList()
     .ForEach(x => Console.WriteLine($"\t{x.Key} - {x.Value}"));
 
-int trueSimilarFount = 0;
-Dictionary<string, int> folderHit = new();
+
 string folderWithMostDuplicate = duplicateFolderHit.OrderBy(x => x.Value).Last().Key;
-foreach ((string fileName, HashSet<string> paths) in fileWithSameName)
+foreach ((string fileName, HashSet<string>? paths) in fileWithSameName)
 {
     string expectedPath = Path.Combine(folderWithMostDuplicate, fileName);
     bool match = paths.Any(path => path.Equals(expectedPath, StringComparison.OrdinalIgnoreCase));
@@ -87,7 +86,6 @@ foreach ((string fileName, HashSet<string> paths) in fileWithSameName)
                 //if (FileExt.FilesAreEqual(source, dest))
                 if (FastFileCompare.AreFilesEqual(source, dest))
                 {
-                    trueSimilarFount++;
                     Console.WriteLine($"{source.FullName} is same as {dest.FullName}");
                 }
                 else
@@ -100,10 +98,6 @@ foreach ((string fileName, HashSet<string> paths) in fileWithSameName)
 }
 
 Console.WriteLine($@"Folder the most similar to {folderWithMostDuplicate} :");
-
-
-Console.WriteLine($@"Folder the most similar to {folderWithMostDuplicate} :");
-folderHit.OrderBy(x => x.Value).ToList().ForEach(x => Console.WriteLine($"\t{x.Key} - {x.Value}"));
 
 Console.WriteLine($"There is {duplicateCase} duplicate case to investigate");
 // Console.WriteLine($"Found exentions:");
