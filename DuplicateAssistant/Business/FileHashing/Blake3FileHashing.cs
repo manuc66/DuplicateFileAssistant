@@ -3,7 +3,7 @@ using System.Buffers;
 using System.IO;
 using Blake3;
 
-namespace DuplicateAssistant.FileHashing;
+namespace DuplicateAssistant.Business.FileHashing;
 
 public class Blake3FileHashing : IHashFile
 {

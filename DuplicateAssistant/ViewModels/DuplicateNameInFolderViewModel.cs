@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using DuplicateAssistant.Business;
 using FileCompare;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
 {

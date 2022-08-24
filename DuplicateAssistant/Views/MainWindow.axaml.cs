@@ -1,7 +1,8 @@
 using Avalonia.Controls;
+using DuplicateAssistant.ViewModels;
 using Splat;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.Views;
 
 public partial class MainWindow : Window
 {

@@ -1,4 +1,6 @@
 ﻿using Avalonia;
+using DuplicateAssistant.Business;
+using DuplicateAssistant.ViewModels;
 using FileCompare;
 using Microsoft.Extensions.Configuration;
 using Splat;

@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using ReactiveUI;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateCaseViewModel : ViewModelBase
 {

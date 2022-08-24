@@ -1,10 +1,9 @@
 using System;
-using System.Buffers;
 using System.IO;
 using Blake3;
 using HashDepot;
 
-namespace DuplicateAssistant.FileHashing;
+namespace DuplicateAssistant.Business.FileHashing;
 
 public class XXHashFileHashing : IHashFile
 {

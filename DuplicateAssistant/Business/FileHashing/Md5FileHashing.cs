@@ -1,10 +1,7 @@
 using System.IO;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
-using System.Text;
 
-namespace DuplicateAssistant.FileHashing;
+namespace DuplicateAssistant.Business.FileHashing;
 
 public class Md5FileHashing : IHashFile
 {

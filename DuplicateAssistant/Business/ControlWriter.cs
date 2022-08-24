@@ -1,7 +1,8 @@
 using System.IO;
 using System.Text;
+using DuplicateAssistant.ViewModels;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.Business;
 
 internal class ControlWriter : TextWriter
 {

@@ -3,8 +3,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:DuplicateAssistant="clr-namespace:DuplicateAssistant"
+        xmlns:views="clr-namespace:DuplicateAssistant.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="DuplicateAssistant.MainWindow"
+        x:Class="DuplicateAssistant.Views.MainWindow"
         Title="DuplicateAssistant"
         >
     <TabControl>
@@ -18,10 +19,10 @@
             </Style>
         </TabControl.Styles>
         <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
-            <DuplicateAssistant:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
+            <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
         </TabItem>
         <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
-            <DuplicateAssistant:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
+            <views:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
         </TabItem>
         <TabItem Header="Remove renamed" VerticalContentAlignment="Center">
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>

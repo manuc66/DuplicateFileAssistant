@@ -37,8 +37,16 @@
       <ProjectReference Include="..\FileCompare\FileCompare.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <Compile Update="DuplicateNameInFolderUserControl.axaml.cs">
+      <Compile Update="Views\DuplicateContentInFolderUserControl.axaml.cs">
+        <DependentUpon>DuplicateContentInFolderUserControl.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\DuplicateNameInFolderUserControl.axaml.cs">
         <DependentUpon>DuplicateNameInFolderUserControl.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\MainWindow.axaml.cs">
+        <DependentUpon>MainWindow.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>

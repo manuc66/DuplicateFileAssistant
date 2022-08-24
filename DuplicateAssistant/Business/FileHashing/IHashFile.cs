@@ -1,6 +1,4 @@
-using System;
-
-namespace DuplicateAssistant.FileHashing;
+namespace DuplicateAssistant.Business.FileHashing;
 
 public interface IHashFile
 {

@@ -2,9 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 
-namespace DuplicateAssistant
+namespace DuplicateAssistant.Views
 {
     public partial class DuplicateContentInFolderUserControl : UserControl
     {

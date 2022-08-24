@@ -1,4 +1,4 @@
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.ViewModels;
 
 public interface IHaveSearchLog
 {

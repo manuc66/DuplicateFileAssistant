@@ -9,10 +9,11 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using DuplicateAssistant.Business;
 using FileCompare;
 using ReactiveUI;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.ViewModels;
 
 public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
@@ -105,7 +106,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
                 Directory = SearchPath
             };
 
-            string? selectedPath = await ofg.ShowAsync(MainWindow.Instance);
+            string? selectedPath = await ofg.ShowAsync(Views.MainWindow.Instance);
 
             if (selectedPath != null && Directory.Exists(selectedPath))
             {

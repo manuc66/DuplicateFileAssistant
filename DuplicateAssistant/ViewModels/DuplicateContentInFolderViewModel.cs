@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
-using DuplicateAssistant.FileHashing;
+using DuplicateAssistant.Business;
+using DuplicateAssistant.Business.FileHashing;
 using FileCompare;
 using ReactiveUI;
 
-namespace DuplicateAssistant;
+namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 {
