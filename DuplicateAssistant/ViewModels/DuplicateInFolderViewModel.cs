@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -16,6 +17,8 @@ using ReactiveUI;
 
 namespace DuplicateAssistant.ViewModels;
 
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
     private readonly Trash _trash;
@@ -72,7 +75,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     public bool Finished
     {
         get => _finished;
-        set { this.RaiseAndSetIfChanged(ref _finished, value); }
+        set => this.RaiseAndSetIfChanged(ref _finished, value);
     }
 
     private string _searchLog;
@@ -84,7 +87,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
 
-    public DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
+    protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
         _trash = trash;
         SearchPath = searchPath;
