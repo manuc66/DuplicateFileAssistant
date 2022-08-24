@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using DuplicateAssistant.ViewModels;
+using Splat;
 
 namespace DuplicateAssistant
 {
@@ -15,7 +17,10 @@ namespace DuplicateAssistant
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new Views.MainWindow();
+                desktop.MainWindow = new Views.MainWindow
+                {
+                    DataContext = Locator.Current.GetService<MainWindowViewModel>()
+                };
             }
 
             base.OnFrameworkInitializationCompleted();

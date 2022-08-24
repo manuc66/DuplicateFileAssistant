@@ -9,6 +9,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ReactiveUI;
@@ -106,7 +107,9 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
                 Directory = SearchPath
             };
 
-            string? selectedPath = await ofg.ShowAsync(Views.MainWindow.Instance);
+            Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow 
+                                ?? throw new InvalidCastException("MainWindow not found!");
+            string? selectedPath = await ofg.ShowAsync(mainWindow);
 
             if (selectedPath != null && Directory.Exists(selectedPath))
             {
@@ -138,7 +141,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected abstract Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct);
 
-   
 
     private async Task OpenFile(string path)
     {
