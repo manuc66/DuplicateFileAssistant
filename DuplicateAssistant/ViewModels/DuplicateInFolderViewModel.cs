@@ -21,14 +21,10 @@ namespace DuplicateAssistant.ViewModels;
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
-    private readonly Trash _trash;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
-    public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
-    public ReactiveCommand<string, Unit> OpenCommand { get; }
-    public ReactiveCommand<string, Unit> DeleteCommand { get; }
 
     private string _searchPath;
 
@@ -89,7 +85,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
-        _trash = trash;
         SearchPath = searchPath;
         SubFolder = true;
         Finished = true;
@@ -100,7 +95,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand.Subscribe(x =>
         {
             DuplicateCaseItems =
-                new(x.Select(x => new DuplicateCaseViewModel(x.Value)));
+                new(x.Select(x => new DuplicateCaseViewModel(this, x.Value, trash, fileManagerHandler)));
             Finished = true;
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -128,9 +123,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
         _duplicateCaseItems = new();
 
-        RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(fileManagerHandler.RevealFileInFolder);
-        OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
-        DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
@@ -144,26 +136,10 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected abstract Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct);
 
-
-    private async Task OpenFile(string path)
+    public void Remove(DuplicateCaseViewModel duplicateCaseViewModel)
     {
-        using Process fileOpener = new();
-
-        fileOpener.StartInfo.FileName = "explorer";
-        fileOpener.StartInfo.Arguments = "\"" + path + "\"";
-        fileOpener.Start();
-        await fileOpener.WaitForExitAsync();
-    }
-
-    private async Task DeleteDuplicateItem(string x)
-    {
-        _trash.Delete(x);
-        DuplicateCase.Files.Remove(x);
-        if (DuplicateCase.Files.Count == 1)
-        {
-            int currentSelectedIndex = DuplicateCaseItems.IndexOf(DuplicateCase);
-            DuplicateCaseItems.Remove(DuplicateCase);
-            DuplicateCase = DuplicateCaseItems[Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1)];
-        }
+        int currentSelectedIndex = DuplicateCaseItems.IndexOf(duplicateCaseViewModel);
+        DuplicateCaseItems.Remove(duplicateCaseViewModel);
+        DuplicateCase = DuplicateCaseItems[Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1)];
     }
 }
