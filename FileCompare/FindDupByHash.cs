@@ -36,7 +36,7 @@ public class FindDupByHash
 
             long fileSize = new FileInfo(entryPath).Length;
 
-            if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string> sameName))
+            if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string>? sameName))
             {
                 sameName.Add(entryPath);
             }
@@ -57,11 +57,19 @@ public class FindDupByHash
                 display.WriteLine($"{size} has potential {paths.Count} duplicate");
 
 
-                HashSet<string?> dupWith = paths.Select(Path.GetDirectoryName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                HashSet<string> dupWith = paths.Select(Path.GetDirectoryName)
+                    .Where(e => e != null).Select(e => e!)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                 foreach (string path in paths)
                 {
-                    String directoryPath = Path.GetDirectoryName(path);
+                    String? directoryPath = Path.GetDirectoryName(path);
+
+                    if (directoryPath == null)
+                    {
+                        continue;
+                    }
+
                     if (duplicateFolderHit.TryGetValue(directoryPath, out int count))
                     {
                         duplicateFolderWith[directoryPath] = dupWith;
@@ -100,7 +108,7 @@ public class FindDupByHash
 
                     display.Write($"{(int)(i / ((decimal)totalToHash) * 100)}/100 - {i}/{totalToHash} - ");
 
-                    if (hashToPath.TryGetValue(md5Hash, out HashSet<string> sameHashPaths))
+                    if (hashToPath.TryGetValue(md5Hash, out HashSet<string>? sameHashPaths))
                     {
                         sameHashPaths.Add(path);
                     }

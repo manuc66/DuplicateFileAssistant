@@ -44,6 +44,6 @@ public class DuplicateCaseItemViewModel:ViewModelBase
     {
         _trash.Delete(x);
         _duplicateCase.Remove(this);
-
+        await Task.CompletedTask;
     }
 }

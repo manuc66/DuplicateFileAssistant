@@ -33,7 +33,7 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(from, "*", Sea
     else
     {
         string? destDirectory = Path.GetDirectoryName(targetFilePath);
-        if (!Directory.Exists(destDirectory))
+        if (destDirectory != null && !Directory.Exists(destDirectory))
         {
             Directory.CreateDirectory(destDirectory);
         }
