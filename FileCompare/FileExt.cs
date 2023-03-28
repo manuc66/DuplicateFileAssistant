@@ -5,7 +5,7 @@ public class FileExt
     public static bool FilesAreEqual(FileInfo first, FileInfo second)
     {
         return new
-           // ReadFileInChunksAndCompareVector      
+            // ReadFileInChunksAndCompareVector      
             ReadFileInChunksAndCompareAvx2
             (first, second).Compare();
     }

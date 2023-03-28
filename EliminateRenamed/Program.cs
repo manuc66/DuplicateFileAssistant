@@ -50,89 +50,89 @@ string Hash(HashAlgorithm md6, string path)
 
 void EliminateDuplicateIn(string folder, ref int nbDeleted)
 {
-    
 
-  
-        Dictionary<long, HashSet<string>> fileWithSameSize = new();
 
-        foreach (string entryPath in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly))
+
+    Dictionary<long, HashSet<string>> fileWithSameSize = new();
+
+    foreach (string entryPath in Directory.EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly))
+    {
+        FileAttributes entryAttribute = File.GetAttributes(entryPath);
+        if (entryAttribute.HasFlag(FileAttributes.Directory))
         {
-            FileAttributes entryAttribute = File.GetAttributes(entryPath);
-            if (entryAttribute.HasFlag(FileAttributes.Directory))
-            {
-                continue;
-            }
-
-            long fileSize = new FileInfo(entryPath).Length;
-
-            if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string> sameName))
-            {
-                sameName.Add(entryPath);
-            }
-            else
-            {
-                fileWithSameSize[fileSize] = new(StringComparer.OrdinalIgnoreCase) { entryPath };
-            }
+            continue;
         }
 
-        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
-        int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+        long fileSize = new FileInfo(entryPath).Length;
+
+        if (fileWithSameSize.TryGetValue(fileSize, out HashSet<string>? sameName))
         {
-            foreach (string path in pair.Value)
-            {
-                set.Add(path);
-            }
-
-            return set;
-        }).Count;
-
-        int i = 1;
-        MD5 md5 = MD5.Create();
-        Dictionary<string, HashSet<string>> hashToPath = new();
-        foreach ((long size, HashSet<string> paths) in potentialDup)
+            sameName.Add(entryPath);
+        }
+        else
         {
-            if (paths.Count > 1)
-            {
-                string md5Hash;
-                foreach (string path in paths)
-                {
-                    md5Hash = Hash(md5, path);
+            fileWithSameSize[fileSize] = new(StringComparer.OrdinalIgnoreCase) { entryPath };
+        }
+    }
 
-                    Console.Write($"{(int)((decimal)i / ((decimal)totalToHash) * 100)}/100 - {i}/{totalToHash} - ");
-
-                    if (hashToPath.TryGetValue(md5Hash, out HashSet<string> sameHashPaths))
-                    {
-                        sameHashPaths.Add(path);
-                    }
-                    else
-                    {
-                        hashToPath[md5Hash] = new() { path };
-                    }
-
-                    i++;
-                }
-            }
+    List<KeyValuePair<long, HashSet<string>>> potentialDup = fileWithSameSize.Where(x => x.Value.Count > 1).ToList();
+    int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+    {
+        foreach (string path in pair.Value)
+        {
+            set.Add(path);
         }
 
-        foreach ((string hash, HashSet<string> paths) in hashToPath.Where(x => x.Value.Count > 1))
+        return set;
+    }).Count;
+
+    int i = 1;
+    MD5 md5 = MD5.Create();
+    Dictionary<string, HashSet<string>> hashToPath = new();
+    foreach ((long size, HashSet<string> paths) in potentialDup)
+    {
+        if (paths.Count > 1)
         {
-            Console.WriteLine(hash + " -> ");
-
-            string toKeep = paths.OrderByDescending(x => x.Length).Last();
-
+            string md5Hash;
             foreach (string path in paths)
             {
-                if (path != toKeep)
-                {
-                    trash.Delete(path);
-                    nbDeleted++;
-                }
-                // Console.WriteLine($"\t{path}");
-            }
+                md5Hash = Hash(md5, path);
 
-            Console.WriteLine($"\t->{toKeep}");
+                Console.Write($"{(int)((decimal)i / ((decimal)totalToHash) * 100)}/100 - {i}/{totalToHash} - ");
+
+                if (hashToPath.TryGetValue(md5Hash, out HashSet<string>? sameHashPaths))
+                {
+                    sameHashPaths.Add(path);
+                }
+                else
+                {
+                    hashToPath[md5Hash] = new() { path };
+                }
+
+                i++;
+            }
         }
-    
+    }
+
+    foreach ((string hash, HashSet<string> paths) in hashToPath.Where(x => x.Value.Count > 1))
+    {
+        Console.WriteLine(hash + " -> ");
+
+        string toKeep = paths.OrderByDescending(x => x.Length).Last();
+
+        foreach (string path in paths)
+        {
+            if (path != toKeep)
+            {
+                trash.Delete(path);
+                nbDeleted++;
+            }
+            // Console.WriteLine($"\t{path}");
+        }
+
+        Console.WriteLine($"\t->{toKeep}");
+    }
+
 }
 
 

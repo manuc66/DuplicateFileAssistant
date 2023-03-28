@@ -45,9 +45,11 @@ public class ReadFileInChunksAndCompareAvx2 : ReadIntoByteBufferInChunks
                 fixed (byte* oh2 = buffer2)
                 {
                     int totalProcessed = 0;
-                    while (totalProcessed < count1) {
-                        Vector256<byte> result = Avx2.CompareEqual(Avx.LoadVector256(oh1+ totalProcessed), Avx.LoadVector256(oh2+totalProcessed));
-                        if (Avx2.MoveMask(result) != -1) {
+                    while (totalProcessed < count1)
+                    {
+                        Vector256<byte> result = Avx2.CompareEqual(Avx.LoadVector256(oh1 + totalProcessed), Avx.LoadVector256(oh2 + totalProcessed));
+                        if (Avx2.MoveMask(result) != -1)
+                        {
                             return false;
                         }
                         totalProcessed += Vector256<byte>.Count;

@@ -18,7 +18,7 @@ public class XXHashFileHashing : IHashFile
     {
         using Hasher hasher = Hasher.New();
         using FileStream fs = File.OpenRead(path);
-       
+
         return BitConverter.GetBytes(XXHash.Hash64(fs));
     }
 }

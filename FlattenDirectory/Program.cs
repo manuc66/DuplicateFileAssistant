@@ -29,7 +29,7 @@ foreach (string entryPath in Directory.EnumerateFileSystemEntries(from, "*", Sea
         {
             File.Move(entryPath, targetFilePath);
             string? currentDir = Path.GetDirectoryName(entryPath);
-            if (!Directory.EnumerateFileSystemEntries(currentDir).Any())
+            if (currentDir != null && !Directory.EnumerateFileSystemEntries(currentDir).Any())
             {
                 Directory.Delete(currentDir);
             }

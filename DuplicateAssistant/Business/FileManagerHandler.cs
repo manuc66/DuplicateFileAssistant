@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace DuplicateAssistant.Business;
 
-public class FileManagerHandler 
+public class FileManagerHandler
 {
     public async Task OpenParentFolder(string path)
     {
@@ -20,7 +20,7 @@ public class FileManagerHandler
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            using Process fileOpener = new ();
+            using Process fileOpener = new();
             fileOpener.StartInfo.FileName = "explorer";
             fileOpener.StartInfo.Arguments = "/select," + path + "\"";
             fileOpener.Start();

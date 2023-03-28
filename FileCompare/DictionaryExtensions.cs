@@ -1,6 +1,7 @@
 ﻿namespace FileCompare;
 
-public static class DictionaryExtensions {
+public static class DictionaryExtensions
+{
     public static TValue AddOrUpdate<TKey, TValue>(
         this IDictionary<TKey, TValue> dict,
         TKey key,
@@ -19,7 +20,7 @@ public static class DictionaryExtensions {
 
         return addValue;
     }
-    
+
     public static TValue AddOrUpdate<TKey, TValue>(
         this IDictionary<TKey, TValue> dict,
         TKey key,

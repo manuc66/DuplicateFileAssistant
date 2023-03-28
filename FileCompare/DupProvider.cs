@@ -135,7 +135,7 @@ public class DupProvider
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress, Func<string,string> hash,
+        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress, Func<string, string> hash,
         CancellationToken cancellationToken)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, hash,
@@ -152,7 +152,7 @@ public class DupProvider
     }
 
     public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption,
-        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string,string> hash, CancellationToken ct)
+        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
     {
         return FindDuplicate(path, searchOption, hash, textDisplayProgress, updateProgress, ct);
     }

@@ -57,7 +57,7 @@ foreach ((long size, HashSet<string> paths) in fileWithSameSize.OrderBy(x => x.V
         HashSet<string> dupWith = paths.Select(Path.GetDirectoryName)
             .Where(e => e != null).Select(e => e!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        
+
         foreach (string path in paths)
         {
             String? directoryPath = Path.GetDirectoryName(path);
@@ -101,8 +101,8 @@ foreach ((long size, HashSet<string> paths) in potentialDup)
         foreach (string path in paths)
         {
             md5Hash = Hash(md5, path);
-            
-            Console.Write($"{(int)((decimal)i/((decimal)totalToHash) * 100)}/100 - {i}/{totalToHash} - ");
+
+            Console.Write($"{(int)((decimal)i / ((decimal)totalToHash) * 100)}/100 - {i}/{totalToHash} - ");
 
             if (hashToPath.TryGetValue(md5Hash, out HashSet<string>? sameHashPaths))
             {
@@ -118,7 +118,7 @@ foreach ((long size, HashSet<string> paths) in potentialDup)
     }
 }
 
-foreach ( (string hash, HashSet<string> paths) in hashToPath)
+foreach ((string hash, HashSet<string> paths) in hashToPath)
 {
     if (paths.Count > 1)
     {

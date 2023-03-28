@@ -4,7 +4,7 @@ public class Md5Comparer : FileComparer
 {
     public Md5Comparer(string filePath01, string filePath02) : base(filePath01, filePath02)
     {
-    } 
+    }
     public Md5Comparer(FileInfo filePath01, FileInfo filePath02) : base(filePath01, filePath02)
     {
     }

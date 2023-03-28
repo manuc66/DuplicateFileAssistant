@@ -43,7 +43,7 @@ namespace DuplicateAssistant
                 .UseReactiveUI()
                 .UsePlatformDetect()
                 .LogToTrace();
-         
+
             return appBuilder;
         }
     }

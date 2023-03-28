@@ -27,7 +27,7 @@ public static class FastFileCompare
         {
             return true;
         }
- 
+
         using FileStream fileStream01 = fileInfo1.OpenRead();
         using FileStream fileStream02 = fileInfo2.OpenRead();
         ArrayPool<byte> sharedArrayPool = ArrayPool<byte>.Shared;

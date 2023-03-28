@@ -8,7 +8,7 @@ using ReactiveUI;
 
 namespace DuplicateAssistant.ViewModels;
 
-public class DuplicateCaseItemViewModel:ViewModelBase
+public class DuplicateCaseItemViewModel : ViewModelBase
 {
     private readonly Trash _trash;
     private readonly DuplicateCaseViewModel _duplicateCase;
@@ -27,8 +27,8 @@ public class DuplicateCaseItemViewModel:ViewModelBase
         OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
     }
-    
-    
+
+
 
     private async Task OpenFile(string path)
     {

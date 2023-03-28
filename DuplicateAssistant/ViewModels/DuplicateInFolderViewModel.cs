@@ -105,7 +105,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
                 Directory = SearchPath
             };
 
-            Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow 
+            Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
                                 ?? throw new InvalidCastException("MainWindow not found!");
             string? selectedPath = await ofg.ShowAsync(mainWindow);
 

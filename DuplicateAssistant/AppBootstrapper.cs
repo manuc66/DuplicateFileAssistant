@@ -11,7 +11,7 @@ public class AppBootstrapper
 {
     public AppBootstrapper(Application app)
     {
-            
+
     }
 
     public static void Register(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver,

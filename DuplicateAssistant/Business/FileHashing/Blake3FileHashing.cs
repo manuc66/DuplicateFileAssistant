@@ -27,7 +27,7 @@ public class Blake3FileHashing : IHashFile
             {
                 hasher.Update(buffer.AsSpan(start: 0, read));
             }
-            
+
             Hash finalize = hasher.Finalize();
             return finalize.AsSpanUnsafe().ToArray();
         }

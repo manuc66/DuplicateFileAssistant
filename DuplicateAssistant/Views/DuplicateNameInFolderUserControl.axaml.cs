@@ -15,7 +15,7 @@ namespace DuplicateAssistant.Views
             {
                 // https://github.com/AvaloniaUI/Avalonia/issues/3036
                 int? lastIndexOf = searchLog.Text?.LastIndexOf(Environment.NewLine);
-                searchLog.CaretIndex = lastIndexOf.HasValue ? lastIndexOf.Value + 1: 0;
+                searchLog.CaretIndex = lastIndexOf.HasValue ? lastIndexOf.Value + 1 : 0;
             };
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
