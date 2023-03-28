@@ -29,8 +29,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		screenshot.png = screenshot.png
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Avalonia.NETCoreMVVMApp1", "Avalonia.NETCoreMVVMApp1\Avalonia.NETCoreMVVMApp1.csproj", "{43D79013-4082-499A-A58A-27DF1D36D279}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,10 +71,6 @@ Global
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BDE63BB9-3E72-429B-9723-1DDE34888FB1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{43D79013-4082-499A-A58A-27DF1D36D279}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{43D79013-4082-499A-A58A-27DF1D36D279}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{43D79013-4082-499A-A58A-27DF1D36D279}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{43D79013-4082-499A-A58A-27DF1D36D279}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
