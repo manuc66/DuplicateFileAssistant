@@ -38,33 +38,9 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl IsVisible="{Binding Finished}"  BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" Name="DuplicateItems"
-                       Items="{Binding DuplicateCase.Files}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                            <ColumnDefinition Width="Auto"></ColumnDefinition>
-                            <ColumnDefinition Width="Auto"></ColumnDefinition>
-                            <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Path=.}"></TextBlock>
-                        <Button Grid.Column="1" Content="Reveal in folder"
-                                Command="{Binding Path=DataContext.RevealInFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                CommandParameter="{Binding}">
-                        </Button>
-                        <Button Grid.Column="2" Content="Open"
-                                Command="{Binding Path=DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                CommandParameter="{Binding}">
-                        </Button>
-                        <Button Grid.Column="3" Content="Delete"
-                                Command="{Binding Path=DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                CommandParameter="{Binding}">
-                        </Button>
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
+        <ItemsControl IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5"
+                      Name="DuplicateItems"
+                      Items="{Binding DuplicateCase.Files}">
         </ItemsControl>
         <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="5" Text="{Binding SearchLog}" >
 
