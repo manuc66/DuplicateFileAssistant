@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -42,9 +41,9 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _duplicateCaseItems, value);
     }
 
-    private DuplicateCaseViewModel _duplicateCase;
+    private DuplicateCaseViewModel? _duplicateCase;
 
-    public DuplicateCaseViewModel DuplicateCase
+    public DuplicateCaseViewModel? DuplicateCase
     {
         get => _duplicateCase;
         set => this.RaiseAndSetIfChanged(ref _duplicateCase, value);
@@ -85,7 +84,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
-        SearchPath = searchPath;
+        _searchPath = searchPath;
+        _searchLog = string.Empty;
         SubFolder = true;
         Finished = true;
         SearchCommand = ReactiveCommand.CreateFromObservable(
@@ -95,7 +95,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand.Subscribe(x =>
         {
             DuplicateCaseItems =
-                new(x.Select(x => new DuplicateCaseViewModel(this, x.Value, trash, fileManagerHandler)));
+                new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => new DuplicateCaseViewModel(this, y.Value, trash, fileManagerHandler)));
             Finished = true;
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>

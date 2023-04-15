@@ -20,10 +20,10 @@ namespace DuplicateAssistant
             try
             {
 
-                IConfigurationBuilder? configBuilder = new ConfigurationBuilder()
+                IConfigurationBuilder configBuilder = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json");
-                IConfigurationRoot? config = configBuilder.Build();
+                IConfigurationRoot config = configBuilder.Build();
 
 
                 AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
