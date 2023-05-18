@@ -7,17 +7,17 @@ namespace FileCompare;
 public class DupProvider
 {
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<string, T> getHash,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, Func<string, T> getHash,
         TextWriter textDisplayProgress,
         CancellationToken ct) where T : notnull
     {
-        Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, textDisplayProgress, ct);
+        Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct);
         if (ct.IsCancellationRequested)
         {
             return new(0);
         }
 
-        Dictionary<long, HashSet<string>> fileInB = GetElementByFileSize(b, bSearchOption, textDisplayProgress, ct);
+        Dictionary<long, HashSet<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct);
         if (ct.IsCancellationRequested)
         {
             return new(0);
@@ -81,12 +81,12 @@ public class DupProvider
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption,
-        Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress,
+    private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption, Func<FileInfo, bool> filter,
+        Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress, 
         CancellationToken ct) where T : notnull
     {
         Dictionary<long, HashSet<string>> fileBySize =
-            GetElementByFileSize(inputPath, searchOption, textDisplayProgress, ct);
+            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct);
 
         if (ct.IsCancellationRequested)
         {
@@ -135,37 +135,37 @@ public class DupProvider
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress, Func<string, string> hash,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
         CancellationToken cancellationToken)
     {
-        return FindDuplicate(a, searchOption, b, bSearchOption, hash,
+        return FindDuplicate(a, searchOption, b, bSearchOption, filter, hash,
             textDisplayProgress, cancellationToken);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, TextWriter textDisplayProgress,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, TextWriter textDisplayProgress,
         CancellationToken cancellationToken)
     {
-        return FindDuplicate(a, searchOption, b, bSearchOption,
-            path => Path.GetFileName(path) ?? throw new FileNotFoundException("No file name", path),
-            textDisplayProgress, cancellationToken);
+        return FindDuplicate(a, searchOption, b, bSearchOption, filter,
+            path => Path.GetFileName(path) ?? throw new FileNotFoundException("No file name", path)
+            ,textDisplayProgress, cancellationToken);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption,
+    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<FileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
     {
-        return FindDuplicate(path, searchOption, hash, textDisplayProgress, updateProgress, ct);
+        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption,
+    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<FileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
         Func<string, string> hash = p => Path.GetFileName(p) ?? throw new FileNotFoundException("No file name", path);
-        return FindDuplicate(path, searchOption, hash, textDisplayProgress, updateProgress, cancellationToken);
+        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, cancellationToken);
     }
 
     private static Dictionary<long, HashSet<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
-        TextWriter textDisplayProgress,
+        Func<FileInfo, bool> filter,TextWriter textDisplayProgress,
         CancellationToken ct)
     {
         Dictionary<long, HashSet<string>> afileWithSameSize = new();
@@ -180,11 +180,16 @@ public class DupProvider
                 estimateElapsedTime = Stopwatch.StartNew();
                 textDisplayProgress.WriteLine($"Discovered files so far: {itemCrawled}");
             }
+            
+            FileInfo fileInfo = new FileInfo(entryPath);
+            if (filter(fileInfo))
+            {
+                long fileSize = fileInfo.Length;
 
-            long fileSize = new FileInfo(entryPath).Length;
+                afileWithSameSize.AddOrUpdate(fileSize, new(StringComparer.OrdinalIgnoreCase) { entryPath },
+                    val => val.Add(entryPath));
+            }
 
-            afileWithSameSize.AddOrUpdate(fileSize, new(StringComparer.OrdinalIgnoreCase) { entryPath },
-                val => val.Add(entryPath));
             itemCrawled++;
         }
 

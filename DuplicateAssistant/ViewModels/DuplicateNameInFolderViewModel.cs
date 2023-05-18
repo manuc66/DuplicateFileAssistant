@@ -16,7 +16,7 @@ public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
     protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        return DupProvider.FindDuplicateByFileName(SearchPath, searchOption, new ControlWriter(this),
+        return DupProvider.FindDuplicateByFileName(SearchPath, searchOption, _ => true, new ControlWriter(this),
             progress => { ProgressValue = progress; }, ct);
     }
 }

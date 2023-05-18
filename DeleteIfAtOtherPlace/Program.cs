@@ -28,7 +28,7 @@ static string Hash(string path)
     return hash;
 }
 Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> findDuplicateByHash =
-    DupProvider.FindDuplicateByHash(from, SearchOption.TopDirectoryOnly, otherPlace, SearchOption.AllDirectories, Console.Out, Hash, new());
+    DupProvider.FindDuplicateByHash(from, SearchOption.TopDirectoryOnly, otherPlace, SearchOption.AllDirectories, _ => true, Console.Out, Hash, new());
 
 int deleted = 0;
 foreach ((_, (HashSet<string> inFrom, HashSet<string> inOther)) in findDuplicateByHash)
