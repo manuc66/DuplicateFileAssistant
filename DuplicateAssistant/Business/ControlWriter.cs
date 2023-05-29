@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text;
 using DuplicateAssistant.ViewModels;
@@ -23,6 +24,26 @@ internal class ControlWriter : TextWriter
     public override void Write(string? value)
     {
         _content.Append(value);
+        _searchLogHolder.SearchLog = _content.ToString();
+    }
+
+    public override void WriteLine()
+    {
+        _content.Append(Environment.NewLine);
+        _searchLogHolder.SearchLog = _content.ToString();
+    }
+
+    public override void WriteLine(string? value)
+    {
+        _content.Append(value);
+        _content.Append(Environment.NewLine);
+        _searchLogHolder.SearchLog = _content.ToString();
+    }
+
+    public override void WriteLine(object? value)
+    {
+        _content.Append(value);
+        _content.Append(Environment.NewLine);
         _searchLogHolder.SearchLog = _content.ToString();
     }
 

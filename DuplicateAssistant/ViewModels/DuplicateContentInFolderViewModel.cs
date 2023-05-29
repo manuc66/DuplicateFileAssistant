@@ -44,7 +44,7 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 
         Func<string, string> hash = p => Hash(p, fileHashing, textDisplayProgress);
 
-        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => fi.LinkTarget == null, textDisplayProgress,
+        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => !fi.IsLink() && !fi.IsFifoFile(), textDisplayProgress,
             progress => { ProgressValue = progress; }, hash, ct);
     }
 

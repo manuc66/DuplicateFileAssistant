@@ -7,7 +7,7 @@ namespace FileCompare;
 public class DupProvider
 {
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, Func<string, T> getHash,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, Func<string, T> getHash,
         TextWriter textDisplayProgress,
         CancellationToken ct) where T : notnull
     {
@@ -50,9 +50,9 @@ public class DupProvider
                              .Where(path1 => !hashed.Contains(path1)))
                 {
                     i++;
-                    Console.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
+                    textDisplayProgress.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
                     T hash = getHash(path1);
-                    Console.WriteLine(hash);
+                    textDisplayProgress.WriteLine(hash);
                     duplicates.AddOrUpdate(hash,
                         (new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path1 },
                             new HashSet<string>(StringComparer.OrdinalIgnoreCase)),
@@ -65,9 +65,9 @@ public class DupProvider
                              .Where(path2 => !hashed.Contains(path2)))
                 {
                     i++;
-                    Console.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
+                    textDisplayProgress.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
                     T hash = getHash(path2);
-                    Console.WriteLine(hash);
+                    textDisplayProgress.WriteLine(hash);
                     duplicates.AddOrUpdate(hash,
                         (new HashSet<string>(StringComparer.OrdinalIgnoreCase),
                             new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path2 }),
@@ -81,28 +81,16 @@ public class DupProvider
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption, Func<FileInfo, bool> filter,
+    private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption, Func<IFileInfo, bool> filter,
         Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress, 
         CancellationToken ct) where T : notnull
     {
-        Dictionary<long, HashSet<string>> fileBySize =
-            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct);
+        List<KeyValuePair<long, HashSet<string>>> potentialDup = GetFileGroupThatHaveSameSize<T>(inputPath, searchOption, filter, textDisplayProgress, ct, out int totalToHash);
 
         if (ct.IsCancellationRequested)
         {
             return new();
         }
-
-        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
-        int totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
-        {
-            foreach (string path in pair.Value)
-            {
-                set.Add(path);
-            }
-
-            return set;
-        }).Count;
 
         HashSet<string> hashed = new(totalToHash, StringComparer.OrdinalIgnoreCase);
         int i = 0;
@@ -118,10 +106,17 @@ public class DupProvider
                 int percent = (int)(i / (decimal)totalToHash * 100);
                 updateProgress(percent);
                 textDisplayProgress.Write($"{percent}/100 - {i}/{totalToHash} - ");
-                T hash = getHash(path);
-                duplicates.AddOrUpdate(hash, new(StringComparer.OrdinalIgnoreCase) { path },
-                    tuple => tuple.Add(path));
-                hashed.Add(path);
+                try
+                {
+                    T hash = getHash(path);
+                    duplicates.AddOrUpdate(hash, new(StringComparer.OrdinalIgnoreCase) { path },
+                        tuple => tuple.Add(path));
+                    hashed.Add(path);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
         }
 
@@ -134,8 +129,41 @@ public class DupProvider
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
+    private static List<KeyValuePair<long, HashSet<string>>> GetFileGroupThatHaveSameSize<T>(string inputPath, SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct, out int totalToHash)
+        where T : notnull
+    {
+        Dictionary<long, HashSet<string>> fileBySize =
+            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct);
+        
+        if (ct.IsCancellationRequested)
+        {
+            totalToHash = 0;
+            return new();
+        }
+
+        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
+        
+        if (ct.IsCancellationRequested)
+        {
+            totalToHash = 0;
+            return new();
+        }
+        
+        totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
+        {
+            foreach (string path in pair.Value)
+            {
+                set.Add(path);
+            }
+
+            return set;
+        }).Count;
+        
+        return potentialDup;
+    }
+
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
         CancellationToken cancellationToken)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, filter, hash,
@@ -143,7 +171,7 @@ public class DupProvider
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<FileInfo, bool> filter, TextWriter textDisplayProgress,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
         CancellationToken cancellationToken)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, filter,
@@ -151,13 +179,13 @@ public class DupProvider
             ,textDisplayProgress, cancellationToken);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<FileInfo, bool> filter,
+    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
     {
         return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<FileInfo, bool> filter,
+    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
         Func<string, string> hash = p => Path.GetFileName(p) ?? throw new FileNotFoundException("No file name", path);
@@ -165,7 +193,7 @@ public class DupProvider
     }
 
     private static Dictionary<long, HashSet<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
-        Func<FileInfo, bool> filter,TextWriter textDisplayProgress,
+        Func<IFileInfo, bool> filter,TextWriter textDisplayProgress,
         CancellationToken ct)
     {
         Dictionary<long, HashSet<string>> afileWithSameSize = new();
@@ -181,7 +209,7 @@ public class DupProvider
                 textDisplayProgress.WriteLine($"Discovered files so far: {itemCrawled}");
             }
             
-            FileInfo fileInfo = new FileInfo(entryPath);
+            IFileInfo fileInfo = CustomFileInfo.Create(entryPath);
             if (filter(fileInfo))
             {
                 long fileSize = fileInfo.Length;

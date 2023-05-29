@@ -20,7 +20,6 @@ namespace DuplicateAssistant.ViewModels;
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
-
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
@@ -81,6 +80,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _searchLog, value);
     }
 
+    public string NewLine { get; }
+
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
@@ -122,7 +123,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             SearchCommand.IsExecuting);
 
         _duplicateCaseItems = new();
-
     }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
