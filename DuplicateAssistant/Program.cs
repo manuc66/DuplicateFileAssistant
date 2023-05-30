@@ -1,10 +1,14 @@
 ﻿using Avalonia;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reactive.Concurrency;
+using System.Threading.Tasks;
 using Avalonia.ReactiveUI;
 using Splat;
 using Microsoft.Extensions.Configuration;
+using ReactiveUI;
 
 namespace DuplicateAssistant
 {
@@ -24,6 +28,9 @@ namespace DuplicateAssistant
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json");
                 IConfigurationRoot config = configBuilder.Build();
+                
+                TaskScheduler.UnobservedTaskException +=  (sender, eventArgs) => Console.WriteLine(eventArgs.Exception.ToString());
+                RxApp.DefaultExceptionHandler = new MyCoolObservableExceptionHandler();
 
 
                 AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
@@ -32,7 +39,7 @@ namespace DuplicateAssistant
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                Console.WriteLine(ex.ToString());
             }
         }
 
@@ -46,5 +53,32 @@ namespace DuplicateAssistant
 
             return appBuilder;
         }
+    }
+}
+
+public class MyCoolObservableExceptionHandler : IObserver<Exception>
+{
+    public void OnNext(Exception value)
+    {
+        if (Debugger.IsAttached) Debugger.Break();
+        
+        Console.WriteLine(value.ToString());
+
+        RxApp.MainThreadScheduler.Schedule(() => { throw value; }) ;
+    }
+
+    public void OnError(Exception error)
+    {
+        if (Debugger.IsAttached) Debugger.Break();
+
+        Console.WriteLine(error.ToString());
+
+        RxApp.MainThreadScheduler.Schedule(() => { throw error; });
+    }
+
+    public void OnCompleted()
+    {
+        if (Debugger.IsAttached) Debugger.Break();
+        RxApp.MainThreadScheduler.Schedule(() => { throw new NotImplementedException(); });
     }
 }
