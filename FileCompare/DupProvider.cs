@@ -1,6 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.IO;
+using Directory = System.IO.Directory;
+using MatchType = Microsoft.IO.MatchType;
+using Path = System.IO.Path;
+using SearchOption = System.IO.SearchOption;
 
 namespace FileCompare;
 
@@ -200,8 +206,7 @@ public class DupProvider
 
         int itemCrawled = 0;
         Stopwatch estimateElapsedTime = Stopwatch.StartNew();
-        foreach (string entryPath in Directory.EnumerateFiles(a, "*",
-                     aSearchOption).TakeWhile(_ => !ct.IsCancellationRequested))
+        foreach (string entryPath in EnumeratePath(a, aSearchOption, ct))
         {
             if (estimateElapsedTime.ElapsedMilliseconds > 1000)
             {
@@ -224,5 +229,23 @@ public class DupProvider
         textDisplayProgress.WriteLine($"Total files to analyze: {itemCrawled}");
 
         return afileWithSameSize;
+    }
+
+    private static IEnumerable<string> EnumeratePath(string a, SearchOption aSearchOption, CancellationToken ct)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            
+           return Microsoft.IO.Directory.EnumerateFiles(a, "*", new  Microsoft.IO.EnumerationOptions()
+               {
+                   RecurseSubdirectories = aSearchOption ==  SearchOption.AllDirectories,
+                   IgnoreInaccessible = true,
+                   MatchType = MatchType.Win32,
+                   ReturnSpecialDirectories = false,
+               })
+               .TakeWhile(_ => !ct.IsCancellationRequested);
+        }
+        return Directory.EnumerateFiles(a, "*",
+            aSearchOption).TakeWhile(_ => !ct.IsCancellationRequested);
     }
 }
