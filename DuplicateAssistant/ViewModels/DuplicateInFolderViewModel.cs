@@ -80,9 +80,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _searchLog, value);
     }
 
-    public string NewLine { get; }
-
-
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
     {
         _searchPath = searchPath;
