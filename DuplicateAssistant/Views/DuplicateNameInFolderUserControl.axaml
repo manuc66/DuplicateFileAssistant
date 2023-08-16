@@ -31,7 +31,7 @@
         <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
         
         <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Name="DuplicateCases"
-                 x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" Items="{Binding DuplicateCaseItems}">
+                 x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Path=Name}"></TextBlock>
@@ -40,7 +40,7 @@
         </ListBox>
         <ItemsControl IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5"
                       Name="DuplicateItems"
-                      Items="{Binding DuplicateCase.Files}">
+                      ItemsSource="{Binding DuplicateCase.Files}">
         </ItemsControl>
         <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="5" Text="{Binding SearchLog}" >
 
