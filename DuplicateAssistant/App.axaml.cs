@@ -4,6 +4,8 @@ using Avalonia.Markup.Xaml;
 using DuplicateAssistant.ViewModels;
 using Splat;
 
+//using Splat;
+
 namespace DuplicateAssistant
 {
     public partial class App : Application

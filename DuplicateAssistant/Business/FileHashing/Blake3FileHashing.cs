@@ -29,7 +29,7 @@ public class Blake3FileHashing : IHashFile
             }
 
             Hash finalize = hasher.Finalize();
-            return finalize.AsSpanUnsafe().ToArray();
+            return finalize.AsSpan().ToArray();
         }
         finally
         {
