@@ -10,6 +10,6 @@ public class FastFileCompareTests
     [Test]
     public void Test1()
     {
-        Assert.IsTrue(true);
+        Assert.That(true);
     }
 }
