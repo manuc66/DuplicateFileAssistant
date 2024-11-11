@@ -7,20 +7,22 @@ namespace DuplicateAssistant;
 
 public class ViewLocator : IDataTemplate
 {
-    public Control Build(object data)
+    public Control Build(object? data)
     {
-        string name = data.GetType().FullName!.Replace("ViewModel", "View");
-        Type? type = Type.GetType(name);
-
-        if (type != null)
+        string? name = data?.GetType().FullName!.Replace("ViewModel", "View");
+        if (name != null)
         {
-            return (Control)Activator.CreateInstance(type)!;
-        }
+            Type? type = Type.GetType(name);
 
+            if (type != null)
+            {
+                return (Control)Activator.CreateInstance(type)!;
+            }
+        }
         return new TextBlock { Text = "Not Found: " + name };
     }
 
-    public bool Match(object data)
+    public bool Match(object? data)
     {
         return data is ViewModelBase;
     }
