@@ -42,7 +42,7 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 
         IHashFile fileHashing = GetFileHashing();
 
-        Func<string, string> hash = p => Hash(p, fileHashing, textDisplayProgress);
+        Func<string, string> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
 
         return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => !fi.IsLink() && !fi.IsFifoFile(), textDisplayProgress,
             UpdateProgress, hash, ct);
@@ -70,12 +70,13 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         return fileHashing;
     }
 
-    static string Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress)
+    static string Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
     {
         textDisplayProgress.Write($"Hashing {path}... ");
-        byte[] retVal = hashFile.Hash(path);
-        textDisplayProgress.WriteLine(FormatHash(retVal));
-        return FormatHash(retVal);
+        byte[] retVal = hashFile.Hash(path, cancellationToken);
+        string hash = FormatHash(retVal);
+        textDisplayProgress.WriteLine(hash);
+        return hash;
     }
 
     private static string FormatHash(byte[] retVal)

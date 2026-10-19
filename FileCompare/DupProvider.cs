@@ -122,7 +122,7 @@ public class DupProvider
                         tuple => tuple.Add(path));
                     hashed.Add(path);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not OperationCanceledException)
                 {
                     Console.WriteLine(e);
                 }

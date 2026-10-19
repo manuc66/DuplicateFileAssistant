@@ -86,6 +86,29 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_PropagatesCancellation()
+    {
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+        using CancellationTokenSource cancellation = new();
+
+        Assert.That(
+            () => DupProvider.FindDuplicateByHash(
+                _temp.Root,
+                SearchOption.TopDirectoryOnly,
+                _ => true,
+                TextWriter.Null,
+                _ => { },
+                _ =>
+                {
+                    cancellation.Cancel();
+                    throw new OperationCanceledException(cancellation.Token);
+                },
+                cancellation.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
     public void FindDuplicateByHash_TwoFolders_DoesNotTrustHashCollisions()
     {
         string firstFolder = Path.Combine(_temp.Root, "first");
