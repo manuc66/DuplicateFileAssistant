@@ -37,6 +37,36 @@ public class TrashTests
     }
 
     [Test]
+    public void Delete_RejectsAFileChangedSinceAnalysis()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        FileInfo before = new(source);
+        long expectedLength = before.Length;
+        DateTime expectedLastWriteTimeUtc = before.LastWriteTimeUtc;
+
+        _temp.CreateFile("photo.jpg", "much longer content");
+
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+
+        Assert.That(
+            () => trash.Delete(source, expectedLength, expectedLastWriteTimeUtc),
+            Throws.InvalidOperationException);
+        Assert.That(File.Exists(source), Is.True);
+    }
+
+    [Test]
+    public void Delete_MovesAFileWhoseMetadataDidNotChange()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        FileInfo before = new(source);
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+
+        trash.Delete(source, before.Length, before.LastWriteTimeUtc);
+
+        Assert.That(File.Exists(source), Is.False);
+    }
+
+    [Test]
     public void Constructor_ExpandsTildeAndCreatesFolder()
     {
         string folderName = "DuplicateAssistantTests-" + Guid.NewGuid().ToString("N");

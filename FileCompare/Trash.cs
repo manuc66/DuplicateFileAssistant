@@ -10,6 +10,19 @@ public class Trash
         Directory.CreateDirectory(TrashFolder);
     }
 
+    public void Delete(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc)
+    {
+        FileInfo fileInfo = new(filePath);
+
+        if (fileInfo.Exists &&
+            (fileInfo.Length != expectedLength || fileInfo.LastWriteTimeUtc != expectedLastWriteTimeUtc))
+        {
+            throw new InvalidOperationException($"File changed since it was analyzed: {filePath}");
+        }
+
+        Delete(filePath);
+    }
+
     public void Delete(string filePath)
     {
         Directory.CreateDirectory(TrashFolder);
