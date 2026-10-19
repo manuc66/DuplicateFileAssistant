@@ -38,7 +38,7 @@ public class DuplicateCaseViewModel : ViewModelBase
     public void Remove(DuplicateCaseItemViewModel duplicateCaseItem)
     {
         Files.Remove(duplicateCaseItem);
-        if (Files.Count == 1)
+        if (Files.Count <= 1)
         {
             _duplicateInFolderViewModel.Remove(this);
         }

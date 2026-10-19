@@ -6,11 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ReactiveUI.Reactive;
@@ -21,6 +23,12 @@ namespace DuplicateAssistant.ViewModels;
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
+    private readonly Subject<Unit> _stopSearch = new();
+    private readonly BehaviorSubject<bool> _isSearching = new(false);
+    private readonly object _progressLock = new();
+    private int _pendingProgress;
+    private bool _progressUpdateScheduled;
+
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<string, HashSet<string>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
@@ -90,13 +98,15 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand = ReactiveCommand.CreateFromObservable(
             () => Observable
                 .StartAsync(SearchDuplicate)
-                .TakeUntil(StopSearchCommand!));
-        SearchCommand.Subscribe(x =>
+                .TakeUntil(_stopSearch),
+            _isSearching.Select(x => !x));
+        SearchCommand.Subscribe(x => OnUiThread(() =>
         {
             DuplicateCaseItems =
                 new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => new DuplicateCaseViewModel(this, y.Value, trash, fileManagerHandler)));
+            DuplicateCase = DuplicateCaseItems.FirstOrDefault();
             Finished = true;
-        });
+        }));
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
@@ -125,27 +135,108 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }, SearchCommand.IsExecuting.Select(x => !x));
         SelectFolderCommand.Subscribe(path => { SearchPath = path; });
         StopSearchCommand = ReactiveCommand.Create(
-            () => { },
-            SearchCommand.IsExecuting);
+            () => _stopSearch.OnNext(Unit.Default),
+            _isSearching);
 
         _duplicateCaseItems = new();
     }
 
     private async Task<Dictionary<string, HashSet<string>>> SearchDuplicate(CancellationToken ct)
     {
-        ProgressValue = 0;
-        SearchLog = string.Empty;
-        Finished = false;
-        _duplicateCaseItems.Clear();
-        return await Task.Run(() => SearchFunction(ct), ct);
+        _isSearching.OnNext(true);
+
+        try
+        {
+            OnUiThread(() =>
+            {
+                ProgressValue = 0;
+                SearchLog = string.Empty;
+                Finished = false;
+                DuplicateCase = null;
+                _duplicateCaseItems.Clear();
+            });
+
+            return await Task.Run(() => SearchFunction(ct), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return new Dictionary<string, HashSet<string>>();
+        }
+        catch (Exception ex)
+        {
+            OnUiThread(() => SearchLog = $"{SearchLog}{Environment.NewLine}{ex}");
+            return new Dictionary<string, HashSet<string>>();
+        }
+        finally
+        {
+            OnUiThread(() => Finished = true);
+            _isSearching.OnNext(false);
+        }
     }
 
     protected abstract Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct);
 
+    protected void UpdateProgress(int progress)
+    {
+        lock (_progressLock)
+        {
+            _pendingProgress = progress;
+
+            if (_progressUpdateScheduled)
+            {
+                return;
+            }
+
+            _progressUpdateScheduled = true;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            int value;
+
+            lock (_progressLock)
+            {
+                value = _pendingProgress;
+                _progressUpdateScheduled = false;
+            }
+
+            ProgressValue = value;
+        });
+    }
+
     public void Remove(DuplicateCaseViewModel duplicateCaseViewModel)
     {
+        DuplicateCaseViewModel? currentSelection = DuplicateCase;
         int currentSelectedIndex = DuplicateCaseItems.IndexOf(duplicateCaseViewModel);
         DuplicateCaseItems.Remove(duplicateCaseViewModel);
-        DuplicateCase = DuplicateCaseItems[Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1)];
+
+        if (DuplicateCaseItems.Count == 0)
+        {
+            DuplicateCase = null;
+            return;
+        }
+
+        if (currentSelection != null && DuplicateCaseItems.Contains(currentSelection))
+        {
+            return;
+        }
+
+        int selectedIndex = currentSelectedIndex < 0
+            ? 0
+            : Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1);
+
+        DuplicateCase = DuplicateCaseItems[selectedIndex];
+    }
+
+    private static void OnUiThread(Action action)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(action);
+        }
     }
 }

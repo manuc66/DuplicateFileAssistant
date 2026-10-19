@@ -1,5 +1,3 @@
-using System;
-using System.Diagnostics;
 using System.Reactive;
 using System.Threading.Tasks;
 using DuplicateAssistant.Business;
@@ -12,6 +10,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
 {
     private readonly Trash _trash;
     private readonly DuplicateCaseViewModel _duplicateCase;
+    private readonly FileManagerHandler _fileManagerHandler;
     public string FilePath { get; }
     public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
@@ -22,22 +21,11 @@ public class DuplicateCaseItemViewModel : ViewModelBase
         _duplicateCase = duplicateCase;
         FilePath = filePath;
         _trash = trash;
+        _fileManagerHandler = fileManagerHandler;
 
         RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(fileManagerHandler.RevealFileInFolder);
-        OpenCommand = ReactiveCommand.CreateFromTask<string>(OpenFile);
+        OpenCommand = ReactiveCommand.CreateFromTask<string>(_fileManagerHandler.OpenFile);
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
-    }
-
-
-
-    private async Task OpenFile(string path)
-    {
-        using Process fileOpener = new();
-
-        fileOpener.StartInfo.FileName = "explorer";
-        fileOpener.StartInfo.Arguments = "\"" + path + "\"";
-        fileOpener.Start();
-        await fileOpener.WaitForExitAsync();
     }
 
     private async Task DeleteDuplicateItem(string x)

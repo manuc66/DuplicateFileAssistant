@@ -39,7 +39,7 @@ public class ReadFileInChunksAndCompareVector : ReadIntoByteBufferInChunks
             }
 
             int totalProcessed = 0;
-            while (totalProcessed < buffer1.Length)
+            while (totalProcessed + Vector<byte>.Count <= count1)
             {
                 if (Vector.EqualsAll(new(buffer1, totalProcessed),
                         new Vector<byte>(buffer2, totalProcessed)) == false)
@@ -48,6 +48,12 @@ public class ReadFileInChunksAndCompareVector : ReadIntoByteBufferInChunks
                 }
 
                 totalProcessed += Vector<byte>.Count;
+            }
+
+            if (!buffer1.AsSpan(totalProcessed, count1 - totalProcessed)
+                    .SequenceEqual(buffer2.AsSpan(totalProcessed, count1 - totalProcessed)))
+            {
+                return false;
             }
         }
     }

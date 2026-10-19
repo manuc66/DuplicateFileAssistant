@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Directory = System.IO.Directory;
@@ -11,6 +10,11 @@ namespace FileCompare;
 
 public class DupProvider
 {
+    private static readonly StringComparer PathComparer =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, Func<string, T> getHash,
         TextWriter textDisplayProgress,
@@ -28,7 +32,7 @@ public class DupProvider
             return new(0);
         }
 
-        HashSet<string> toHash = new(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> toHash = new(PathComparer);
         foreach (long commonSize in fileInA.Keys.Intersect(fileInB.Keys))
         {
             foreach (string s in fileInA[commonSize])
@@ -43,7 +47,7 @@ public class DupProvider
         }
 
         int nbToCompare = toHash.Count;
-        HashSet<string> hashed = new(nbToCompare, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> hashed = new(nbToCompare, PathComparer);
         int i = 0;
         Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates = new();
         foreach ((long fileSize, HashSet<string> pathsA) in fileInA.TakeWhile(_ => !ct.IsCancellationRequested))
@@ -59,8 +63,8 @@ public class DupProvider
                     T hash = getHash(path1);
                     textDisplayProgress.WriteLine(hash);
                     duplicates.AddOrUpdate(hash,
-                        (new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path1 },
-                            new HashSet<string>(StringComparer.OrdinalIgnoreCase)),
+                        (new HashSet<string>(PathComparer) { path1 },
+                            new HashSet<string>(PathComparer)),
                         tuple => tuple.Item1.Add(path1));
                     hashed.Add(path1);
                 }
@@ -74,8 +78,8 @@ public class DupProvider
                     T hash = getHash(path2);
                     textDisplayProgress.WriteLine(hash);
                     duplicates.AddOrUpdate(hash,
-                        (new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path2 }),
+                        (new HashSet<string>(PathComparer),
+                            new HashSet<string>(PathComparer) { path2 }),
                         tuple => tuple.Item2.Add(path2));
                     hashed.Add(path2);
                 }
@@ -97,7 +101,7 @@ public class DupProvider
             return new();
         }
 
-        HashSet<string> hashed = new(totalToHash, StringComparer.OrdinalIgnoreCase);
+        HashSet<string> hashed = new(totalToHash, PathComparer);
         int i = 0;
         Dictionary<T, HashSet<string>> duplicates = new(totalToHash);
         foreach ((_, HashSet<string> paths) in potentialDup
@@ -114,7 +118,7 @@ public class DupProvider
                 try
                 {
                     T hash = getHash(path);
-                    duplicates.AddOrUpdate(hash, new(StringComparer.OrdinalIgnoreCase) { path },
+                    duplicates.AddOrUpdate(hash, new(PathComparer) { path },
                         tuple => tuple.Add(path));
                     hashed.Add(path);
                 }
@@ -180,8 +184,7 @@ public class DupProvider
         CancellationToken cancellationToken)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, filter,
-            path => Path.GetFileName(path) ?? throw new FileNotFoundException("No file name", path)
-            ,textDisplayProgress, cancellationToken);
+            NormalizeFileName, textDisplayProgress, cancellationToken);
     }
 
     public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
@@ -193,8 +196,20 @@ public class DupProvider
     public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
-        Func<string, string> hash = p => Path.GetFileName(p) ?? throw new FileNotFoundException("No file name", path);
-        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, cancellationToken);
+        return FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+    }
+
+    private static string NormalizeFileName(string path)
+    {
+        string fileName = Path.GetFileName(path);
+        if (string.IsNullOrEmpty(fileName))
+        {
+            throw new FileNotFoundException("No file name", path);
+        }
+
+        return OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? fileName.ToUpperInvariant()
+            : fileName;
     }
 
     private static Dictionary<long, HashSet<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
@@ -218,7 +233,7 @@ public class DupProvider
             {
                 long fileSize = fileInfo.Length;
 
-                afileWithSameSize.AddOrUpdate(fileSize, new(StringComparer.OrdinalIgnoreCase) { entryPath },
+                afileWithSameSize.AddOrUpdate(fileSize, new(PathComparer) { entryPath },
                     val => val.Add(entryPath));
             }
 
@@ -232,19 +247,13 @@ public class DupProvider
 
     private static IEnumerable<string> EnumeratePath(string a, SearchOption aSearchOption, CancellationToken ct)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            
-           return Directory.EnumerateFiles(a, "*", new EnumerationOptions
-               {
-                   RecurseSubdirectories = aSearchOption ==  SearchOption.AllDirectories,
-                   IgnoreInaccessible = true,
-                   MatchType = MatchType.Win32,
-                   ReturnSpecialDirectories = false,
-               })
-               .TakeWhile(_ => !ct.IsCancellationRequested);
-        }
-        return Directory.EnumerateFiles(a, "*",
-            aSearchOption).TakeWhile(_ => !ct.IsCancellationRequested);
+        return Directory.EnumerateFiles(a, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = aSearchOption == SearchOption.AllDirectories,
+                IgnoreInaccessible = true,
+                MatchType = OperatingSystem.IsWindows() ? MatchType.Win32 : MatchType.Simple,
+                ReturnSpecialDirectories = false,
+            })
+            .TakeWhile(_ => !ct.IsCancellationRequested);
     }
 }

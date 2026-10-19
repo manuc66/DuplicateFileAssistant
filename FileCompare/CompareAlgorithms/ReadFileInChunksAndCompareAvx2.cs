@@ -20,7 +20,37 @@ public class ReadFileInChunksAndCompareAvx2 : ReadIntoByteBufferInChunks
         return StreamAreEqual(fileStream, openRead);
     }
 
-    private unsafe bool StreamAreEqual(in Stream stream1, in Stream stream2)
+    private static unsafe bool BuffersAreEqual(byte[] buffer1, byte[] buffer2, int length)
+    {
+        if (!Avx2.IsSupported)
+        {
+            return buffer1.AsSpan(0, length).SequenceEqual(buffer2.AsSpan(0, length));
+        }
+
+        fixed (byte* oh1 = buffer1)
+        fixed (byte* oh2 = buffer2)
+        {
+            int vectorSize = Vector256<byte>.Count;
+            int totalProcessed = 0;
+
+            for (; totalProcessed + vectorSize <= length; totalProcessed += vectorSize)
+            {
+                Vector256<byte> result = Avx2.CompareEqual(
+                    Avx.LoadVector256(oh1 + totalProcessed),
+                    Avx.LoadVector256(oh2 + totalProcessed));
+
+                if (Avx2.MoveMask(result) != -1)
+                {
+                    return false;
+                }
+            }
+
+            return buffer1.AsSpan(totalProcessed, length - totalProcessed)
+                .SequenceEqual(buffer2.AsSpan(totalProcessed, length - totalProcessed));
+        }
+    }
+
+    private bool StreamAreEqual(in Stream stream1, in Stream stream2)
     {
         byte[] buffer1 = new byte[ChunkSize];
         byte[] buffer2 = new byte[ChunkSize];
@@ -40,21 +70,9 @@ public class ReadFileInChunksAndCompareAvx2 : ReadIntoByteBufferInChunks
                 return true;
             }
 
-            fixed (byte* oh1 = buffer1)
+            if (!BuffersAreEqual(buffer1, buffer2, count1))
             {
-                fixed (byte* oh2 = buffer2)
-                {
-                    int totalProcessed = 0;
-                    while (totalProcessed < count1)
-                    {
-                        Vector256<byte> result = Avx2.CompareEqual(Avx.LoadVector256(oh1 + totalProcessed), Avx.LoadVector256(oh2 + totalProcessed));
-                        if (Avx2.MoveMask(result) != -1)
-                        {
-                            return false;
-                        }
-                        totalProcessed += Vector256<byte>.Count;
-                    }
-                }
+                return false;
             }
         }
     }

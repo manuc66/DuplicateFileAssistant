@@ -1,5 +1,8 @@
 ﻿public abstract class FileComparer
 {
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     /// <summary>
     /// Fileinfo for source file
     /// </summary>
@@ -55,7 +58,7 @@
 
     private bool IsSameFile()
     {
-        return string.Equals(FileInfo1.FullName, FileInfo2.FullName, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(FileInfo1.FullName, FileInfo2.FullName, PathComparison);
     }
 
     /// <summary>
