@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using DuplicateAssistant.Business;
 using DuplicateAssistant.Business.FileHashing;
@@ -74,20 +73,8 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
     {
         textDisplayProgress.Write($"Hashing {path}... ");
         byte[] retVal = hashFile.Hash(path, cancellationToken);
-        string hash = FormatHash(retVal);
+        string hash = HashFormatter.Format(retVal);
         textDisplayProgress.WriteLine(hash);
-        return hash;
-    }
-
-    private static string FormatHash(byte[] retVal)
-    {
-        StringBuilder sb = new();
-        foreach (byte val in retVal)
-        {
-            sb.Append(val.ToString("x2"));
-        }
-
-        string hash = sb.ToString();
         return hash;
     }
 }
