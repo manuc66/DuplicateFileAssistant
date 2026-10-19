@@ -15,6 +15,7 @@ internal class ControlWriter : TextWriter
     private readonly BoundedTextBuffer _content = new(MaxLogLength);
     private readonly IHaveSearchLog _searchLogHolder;
     private int _updateScheduled;
+    private bool _disposed;
 
     public ControlWriter(IHaveSearchLog searchLogHolder)
     {
@@ -54,6 +55,11 @@ internal class ControlWriter : TextWriter
 
         lock (_sync)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _content.Append(value);
             scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
         }
@@ -70,6 +76,11 @@ internal class ControlWriter : TextWriter
 
         lock (_sync)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _content.Append(value);
             scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
         }
@@ -86,6 +97,11 @@ internal class ControlWriter : TextWriter
 
         lock (_sync)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _content.AppendLine(value);
             scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
         }
@@ -102,6 +118,12 @@ internal class ControlWriter : TextWriter
 
         lock (_sync)
         {
+            if (_disposed)
+            {
+                Volatile.Write(ref _updateScheduled, 0);
+                return;
+            }
+
             content = _content.ToString();
             Volatile.Write(ref _updateScheduled, 0);
         }
@@ -113,6 +135,11 @@ internal class ControlWriter : TextWriter
     {
         if (disposing)
         {
+            lock (_sync)
+            {
+                _disposed = true;
+            }
+
             _content.Dispose();
         }
 
