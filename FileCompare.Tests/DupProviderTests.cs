@@ -109,6 +109,45 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_HashesCandidatesInParallel()
+    {
+        if (Environment.ProcessorCount < 2)
+        {
+            Assert.Ignore("Parallel hashing requires at least two logical processors.");
+        }
+
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+
+        using Barrier barrier = new(2);
+        int calls = 0;
+
+        string Hash(string path)
+        {
+            if (Interlocked.Increment(ref calls) <= 2)
+            {
+                Assert.That(
+                    barrier.SignalAndWait(TimeSpan.FromSeconds(5)),
+                    Is.True,
+                    "Hashing must run in parallel.");
+            }
+
+            return File.ReadAllText(path);
+        }
+
+        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            Hash,
+            CancellationToken.None);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void FindDuplicateByHash_TwoFolders_DoesNotTrustHashCollisions()
     {
         string firstFolder = Path.Combine(_temp.Root, "first");
