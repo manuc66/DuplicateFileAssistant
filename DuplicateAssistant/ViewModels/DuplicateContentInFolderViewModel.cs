@@ -6,7 +6,7 @@ using System.Threading;
 using DuplicateAssistant.Business;
 using DuplicateAssistant.Business.FileHashing;
 using FileCompare;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
 

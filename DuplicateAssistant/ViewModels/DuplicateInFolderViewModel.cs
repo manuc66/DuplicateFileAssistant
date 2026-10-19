@@ -10,9 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using DuplicateAssistant.Business;
 using FileCompare;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
 
@@ -98,14 +99,22 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         });
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            OpenFolderDialog ofg = new()
-            {
-                Directory = SearchPath
-            };
-
             Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
                                 ?? throw new InvalidCastException("MainWindow not found!");
-            string? selectedPath = await ofg.ShowAsync(mainWindow);
+
+            IStorageFolder? suggestedStartLocation = Directory.Exists(SearchPath)
+                ? await mainWindow.StorageProvider.TryGetFolderFromPathAsync(SearchPath)
+                : null;
+
+            IReadOnlyList<IStorageFolder> folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions
+                {
+                    Title = "Select a folder",
+                    AllowMultiple = false,
+                    SuggestedStartLocation = suggestedStartLocation
+                });
+
+            string? selectedPath = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
 
             if (selectedPath != null && Directory.Exists(selectedPath))
             {

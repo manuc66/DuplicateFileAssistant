@@ -14,24 +14,31 @@ public class NaiveFileComparer : FileComparer
 
     protected override bool OnCompare()
     {
-        int iterations = (int)Math.Ceiling((double)FileInfo1.Length / BYTES_TO_READ);
+        using FileStream fs1 = FileInfo1.OpenRead();
+        using FileStream fs2 = FileInfo2.OpenRead();
 
-        using (FileStream fs1 = FileInfo1.OpenRead())
-        using (FileStream fs2 = FileInfo1.OpenRead())
+        byte[] one = new byte[BYTES_TO_READ];
+        byte[] two = new byte[BYTES_TO_READ];
+
+        while (true)
         {
-            byte[] one = new byte[BYTES_TO_READ];
-            byte[] two = new byte[BYTES_TO_READ];
+            int read1 = fs1.Read(one, 0, one.Length);
+            int read2 = fs2.Read(two, 0, two.Length);
 
-            for (int i = 0; i < iterations; i++)
+            if (read1 != read2)
             {
-                fs1.Read(one, 0, BYTES_TO_READ);
-                fs2.Read(two, 0, BYTES_TO_READ);
+                return false;
+            }
 
-                if (BitConverter.ToInt64(one, 0) != BitConverter.ToInt64(two, 0))
-                    return false;
+            if (read1 == 0)
+            {
+                return true;
+            }
+
+            if (!one.AsSpan(0, read1).SequenceEqual(two.AsSpan(0, read2)))
+            {
+                return false;
             }
         }
-
-        return true;
     }
 }

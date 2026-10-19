@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:DuplicateAssistant.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="DuplicateAssistant.Views.DuplicateCaseItemView">
+             x:Class="DuplicateAssistant.Views.DuplicateCaseItemView"
+             x:DataType="viewModels:DuplicateCaseItemViewModel">
     <Design.DataContext>
         <viewModels:DuplicateCaseItemViewModel/>
     </Design.DataContext>

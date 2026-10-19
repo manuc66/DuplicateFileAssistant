@@ -6,6 +6,7 @@
         xmlns:vm="using:DuplicateAssistant.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="DuplicateAssistant.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="DuplicateAssistant"
         >
     <Design.DataContext>

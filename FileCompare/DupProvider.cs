@@ -2,9 +2,8 @@
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.IO;
 using Directory = System.IO.Directory;
-using MatchType = Microsoft.IO.MatchType;
+using MatchType = System.IO.MatchType;
 using Path = System.IO.Path;
 using SearchOption = System.IO.SearchOption;
 
@@ -236,7 +235,7 @@ public class DupProvider
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             
-           return Microsoft.IO.Directory.EnumerateFiles(a, "*", new  Microsoft.IO.EnumerationOptions()
+           return Directory.EnumerateFiles(a, "*", new EnumerationOptions
                {
                    RecurseSubdirectories = aSearchOption ==  SearchOption.AllDirectories,
                    IgnoreInaccessible = true,

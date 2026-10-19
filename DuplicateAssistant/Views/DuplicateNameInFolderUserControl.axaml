@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="DuplicateAssistant.Views.DuplicateNameInFolderUserControl">
+             x:Class="DuplicateAssistant.Views.DuplicateNameInFolderUserControl"
+             x:DataType="vm:DuplicateNameInFolderViewModel">
     <Design.DataContext>
         <vm:DuplicateNameInFolderViewModel/>
     </Design.DataContext>
@@ -33,7 +34,7 @@
         <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
                     <TextBlock Text="{Binding Path=Name}"></TextBlock>
                 </DataTemplate>
             </ListBox.ItemTemplate>

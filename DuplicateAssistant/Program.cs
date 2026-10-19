@@ -5,10 +5,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Reactive.Concurrency;
 using System.Threading.Tasks;
-using Avalonia.ReactiveUI;
+using ReactiveUI.Avalonia.Reactive;
 using Splat;
 using Microsoft.Extensions.Configuration;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant
 {
@@ -30,7 +30,6 @@ namespace DuplicateAssistant
                 IConfigurationRoot config = configBuilder.Build();
                 
                 TaskScheduler.UnobservedTaskException +=  (sender, eventArgs) => Console.WriteLine(eventArgs.Exception.ToString());
-                RxApp.DefaultExceptionHandler = new MyCoolObservableExceptionHandler();
 
 
                 AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
@@ -47,7 +46,7 @@ namespace DuplicateAssistant
         public static AppBuilder BuildAvaloniaApp()
         {
             AppBuilder? appBuilder = AppBuilder.Configure<App>()
-                .UseReactiveUI()
+                .UseReactiveUI(rxui => rxui.WithExceptionHandler(new MyCoolObservableExceptionHandler()))
                 .UsePlatformDetect()
                 .LogToTrace();
 
@@ -64,7 +63,7 @@ public class MyCoolObservableExceptionHandler : IObserver<Exception>
         
         Console.WriteLine(value.ToString());
 
-        RxApp.MainThreadScheduler.Schedule(() => { throw value; }) ;
+        RxSchedulers.MainThreadScheduler.Schedule(() => { throw value; }) ;
     }
 
     public void OnError(Exception error)
@@ -73,12 +72,12 @@ public class MyCoolObservableExceptionHandler : IObserver<Exception>
 
         Console.WriteLine(error.ToString());
 
-        RxApp.MainThreadScheduler.Schedule(() => { throw error; });
+        RxSchedulers.MainThreadScheduler.Schedule(() => { throw error; });
     }
 
     public void OnCompleted()
     {
         if (Debugger.IsAttached) Debugger.Break();
-        RxApp.MainThreadScheduler.Schedule(() => { throw new NotImplementedException(); });
+        RxSchedulers.MainThreadScheduler.Schedule(() => { throw new NotImplementedException(); });
     }
 }

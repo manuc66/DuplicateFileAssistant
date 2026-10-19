@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using DuplicateAssistant.Business;
 using FileCompare;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
 

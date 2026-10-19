@@ -1,4 +1,5 @@
-﻿using Avalonia;
+﻿using System;
+using Avalonia;
 using DuplicateAssistant.Business;
 using DuplicateAssistant.ViewModels;
 using FileCompare;
@@ -28,10 +29,13 @@ public class AppBootstrapper
         services.RegisterLazySingleton(() => new Trash(trashFolder));
         services.RegisterLazySingleton(() => new FileManagerHandler());
 
-        services.Register(() => new DuplicateContentInFolderViewModel(resolver.GetService<Trash>(), searchPath, resolver.GetService<FileManagerHandler>()));
-        services.Register(() => new DuplicateNameInFolderViewModel(resolver.GetService<Trash>(), searchPath, resolver.GetService<FileManagerHandler>()));
+        Trash trash = resolver.GetService<Trash>() ?? throw new InvalidOperationException("Trash service is not registered.");
+        FileManagerHandler fileManagerHandler = resolver.GetService<FileManagerHandler>() ?? throw new InvalidOperationException("FileManagerHandler service is not registered.");
+
+        services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler));
+        services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler));
         services.Register(() => new MainWindowViewModel(
-            resolver.GetService<DuplicateContentInFolderViewModel>(),
-            resolver.GetService<DuplicateNameInFolderViewModel>()));
+            resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
+            resolver.GetService<DuplicateNameInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateNameInFolderViewModel service is not registered.")));
     }
 }

@@ -4,7 +4,7 @@ using System.Reactive;
 using System.Threading.Tasks;
 using DuplicateAssistant.Business;
 using FileCompare;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
 
