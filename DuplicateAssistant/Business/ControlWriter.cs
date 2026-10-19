@@ -9,8 +9,10 @@ namespace DuplicateAssistant.Business;
 
 internal class ControlWriter : TextWriter
 {
+    private const int MaxLogLength = 100_000;
+
     private readonly object _sync = new();
-    private readonly StringBuilder _content = new();
+    private readonly BoundedTextBuffer _content = new(MaxLogLength);
     private readonly IHaveSearchLog _searchLogHolder;
     private int _updateScheduled;
 
@@ -21,7 +23,7 @@ internal class ControlWriter : TextWriter
 
     public override void Write(char value)
     {
-        Append(value.ToString());
+        Append(value);
     }
 
     public override void Write(string? value)
@@ -31,20 +33,36 @@ internal class ControlWriter : TextWriter
 
     public override void WriteLine()
     {
-        Append(Environment.NewLine);
+        AppendLine(null);
     }
 
     public override void WriteLine(string? value)
     {
-        Append($"{value}{Environment.NewLine}");
+        AppendLine(value);
     }
 
     public override void WriteLine(object? value)
     {
-        Append($"{value}{Environment.NewLine}");
+        AppendLine(value?.ToString());
     }
 
     public override Encoding Encoding => Encoding.UTF8;
+
+    private void Append(char value)
+    {
+        bool scheduleUpdate;
+
+        lock (_sync)
+        {
+            _content.Append(value);
+            scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
+        }
+
+        if (scheduleUpdate)
+        {
+            Dispatcher.UIThread.Post(FlushToUi);
+        }
+    }
 
     private void Append(string? value)
     {
@@ -53,6 +71,22 @@ internal class ControlWriter : TextWriter
         lock (_sync)
         {
             _content.Append(value);
+            scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
+        }
+
+        if (scheduleUpdate)
+        {
+            Dispatcher.UIThread.Post(FlushToUi);
+        }
+    }
+
+    private void AppendLine(string? value)
+    {
+        bool scheduleUpdate;
+
+        lock (_sync)
+        {
+            _content.AppendLine(value);
             scheduleUpdate = Interlocked.Exchange(ref _updateScheduled, 1) == 0;
         }
 
@@ -73,5 +107,15 @@ internal class ControlWriter : TextWriter
         }
 
         _searchLogHolder.SearchLog = content;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _content.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 }

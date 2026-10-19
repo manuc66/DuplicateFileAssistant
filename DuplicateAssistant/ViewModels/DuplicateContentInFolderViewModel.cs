@@ -37,7 +37,7 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
     protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        ControlWriter textDisplayProgress = new(this);
+        using ControlWriter textDisplayProgress = new(this);
 
         IHashFile fileHashing = GetFileHashing();
 

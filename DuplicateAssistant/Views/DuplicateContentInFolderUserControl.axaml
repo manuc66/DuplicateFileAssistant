@@ -56,10 +56,10 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0"
-                      Name="DuplicateItems"
-                      ItemsSource="{Binding DuplicateCase.Files}">
-        </ItemsControl>
+        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0"
+                 Name="DuplicateItems"
+                 ItemsSource="{Binding DuplicateCase.Files}">
+        </ListBox>
         <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace"
                  IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
                  Text="{Binding SearchLog}">
