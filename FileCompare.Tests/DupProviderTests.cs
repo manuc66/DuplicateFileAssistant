@@ -173,6 +173,36 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_ContinuesWhenAFileCannotBeInspected()
+    {
+        _temp.CreateFile("a.txt", "1234567");
+        _temp.CreateFile("b.txt", "1234567");
+        bool failureInjected = false;
+
+        bool Filter(IFileInfo fileInfo)
+        {
+            if (!failureInjected && fileInfo.Length == 7)
+            {
+                failureInjected = true;
+                throw new IOException("File disappeared during the scan.");
+            }
+
+            return true;
+        }
+
+        Assert.That(
+            () => DupProvider.FindDuplicateByHash(
+                _temp.Root,
+                SearchOption.TopDirectoryOnly,
+                Filter,
+                TextWriter.Null,
+                _ => { },
+                File.ReadAllText,
+                CancellationToken.None),
+            Throws.Nothing);
+    }
+
+    [Test]
     public void FindDuplicateByHash_HashesCandidatesInParallel()
     {
         if (Environment.ProcessorCount < 2)
