@@ -175,8 +175,10 @@ public class DupProvider
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
         CancellationToken cancellationToken)
     {
-        return FindDuplicate(a, searchOption, b, bSearchOption, filter, hash,
-            textDisplayProgress, cancellationToken);
+        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> candidates = FindDuplicate(a, searchOption, b, bSearchOption,
+            filter, hash, textDisplayProgress, cancellationToken);
+
+        return VerifyCrossContentGroups(candidates);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
@@ -190,13 +192,131 @@ public class DupProvider
     public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
     {
-        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
+        Dictionary<string, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
+
+        return VerifyContentGroups(candidates);
     }
 
     public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
         return FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+    }
+
+    private static Dictionary<string, HashSet<string>> VerifyContentGroups(
+        Dictionary<string, HashSet<string>> candidates)
+    {
+        Dictionary<string, HashSet<string>> verified = new(StringComparer.Ordinal);
+
+        foreach ((string hash, HashSet<string> paths) in candidates)
+        {
+            int index = 0;
+
+            foreach (HashSet<string> group in PartitionByContent(paths).Where(group => group.Count > 1))
+            {
+                string key = index == 0 ? hash : $"{hash}:{index}";
+                verified[key] = group;
+                index++;
+            }
+        }
+
+        return verified;
+    }
+
+    private static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> VerifyCrossContentGroups(
+        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> candidates)
+    {
+        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> verified = new(StringComparer.Ordinal);
+
+        foreach ((string hash, (HashSet<string> inA, HashSet<string> inB) paths) in candidates)
+        {
+            List<(string Representative, List<string> InA, List<string> InB)> groups = new();
+
+            foreach (string path in paths.inA)
+            {
+                AddToContentGroup(groups, path, isInA: true);
+            }
+
+            foreach (string path in paths.inB.Where(path => !paths.inA.Contains(path)))
+            {
+                AddToContentGroup(groups, path, isInA: false);
+            }
+
+            int index = 0;
+
+            foreach ((string representative, List<string> groupInA, List<string> groupInB) in groups
+                         .Where(group => group.InA.Count > 0 && group.InB.Count > 0))
+            {
+                _ = representative;
+                string key = index == 0 ? hash : $"{hash}:{index}";
+                verified[key] = (
+                    new HashSet<string>(groupInA, PathComparer),
+                    new HashSet<string>(groupInB, PathComparer));
+                index++;
+            }
+        }
+
+        return verified;
+    }
+
+    private static void AddToContentGroup(
+        List<(string Representative, List<string> InA, List<string> InB)> groups,
+        string path,
+        bool isInA)
+    {
+        foreach ((string representative, List<string> inA, List<string> inB) in groups)
+        {
+            if (FilesAreEqual(representative, path))
+            {
+                (isInA ? inA : inB).Add(path);
+                return;
+            }
+        }
+
+        List<string> newInA = new();
+        List<string> newInB = new();
+        (isInA ? newInA : newInB).Add(path);
+        groups.Add((path, newInA, newInB));
+    }
+
+    private static List<HashSet<string>> PartitionByContent(IEnumerable<string> paths)
+    {
+        List<(string Representative, HashSet<string> Paths)> groups = new();
+
+        foreach (string path in paths)
+        {
+            bool added = false;
+
+            foreach ((string representative, HashSet<string> groupPaths) in groups)
+            {
+                if (FilesAreEqual(representative, path))
+                {
+                    groupPaths.Add(path);
+                    added = true;
+                    break;
+                }
+            }
+
+            if (!added)
+            {
+                groups.Add((path, new HashSet<string>(PathComparer) { path }));
+            }
+        }
+
+        return groups.Select(group => group.Paths).ToList();
+    }
+
+    private static bool FilesAreEqual(string first, string second)
+    {
+        try
+        {
+            return FastFileCompare.AreFilesEqual(new FileInfo(first), new FileInfo(second));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     private static string NormalizeFileName(string path)

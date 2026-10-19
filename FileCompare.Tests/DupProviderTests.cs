@@ -43,4 +43,67 @@ public class DupProviderTests
             Assert.That(result.Values.Single(), Has.Count.EqualTo(2));
         });
     }
+
+    [Test]
+    public void FindDuplicateByHash_DoesNotTrustHashCollisions()
+    {
+        string first = _temp.CreateFile("a.txt", "aaaa");
+        string second = _temp.CreateFile("b.txt", "bbbb");
+
+        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ => "forced-collision",
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty, $"Files must be byte-identical: {first}, {second}");
+    }
+
+    [Test]
+    public void FindDuplicateByHash_KeepsOnlyByteIdenticalFilesInACollisionGroup()
+    {
+        string first = _temp.CreateFile("a.txt", "same");
+        string second = _temp.CreateFile("b.txt", "same");
+        _temp.CreateFile("c.txt", "diff");
+
+        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ => "forced-collision",
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result.Values.Single(), Is.EquivalentTo(new[] { first, second }));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_TwoFolders_DoesNotTrustHashCollisions()
+    {
+        string firstFolder = Path.Combine(_temp.Root, "first");
+        string secondFolder = Path.Combine(_temp.Root, "second");
+        _temp.CreateFile(Path.Combine("first", "a.txt"), "aaaa");
+        _temp.CreateFile(Path.Combine("second", "b.txt"), "bbbb");
+
+        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> result =
+            DupProvider.FindDuplicateByHash(
+                firstFolder,
+                SearchOption.TopDirectoryOnly,
+                secondFolder,
+                SearchOption.TopDirectoryOnly,
+                _ => true,
+                TextWriter.Null,
+                _ => "forced-collision",
+                CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
+    }
 }
