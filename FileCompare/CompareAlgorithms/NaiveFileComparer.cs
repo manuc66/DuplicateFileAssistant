@@ -17,13 +17,13 @@ public class NaiveFileComparer : FileComparer
         using FileStream fs1 = FileInfo1.OpenRead();
         using FileStream fs2 = FileInfo2.OpenRead();
 
-        byte[] one = new byte[BYTES_TO_READ];
-        byte[] two = new byte[BYTES_TO_READ];
+        Span<byte> one = stackalloc byte[BYTES_TO_READ];
+        Span<byte> two = stackalloc byte[BYTES_TO_READ];
 
         while (true)
         {
-            int read1 = fs1.Read(one, 0, one.Length);
-            int read2 = fs2.Read(two, 0, two.Length);
+            int read1 = fs1.Read(one);
+            int read2 = fs2.Read(two);
 
             if (read1 != read2)
             {
@@ -35,7 +35,7 @@ public class NaiveFileComparer : FileComparer
                 return true;
             }
 
-            if (!one.AsSpan(0, read1).SequenceEqual(two.AsSpan(0, read2)))
+            if (!one[..read1].SequenceEqual(two[..read2]))
             {
                 return false;
             }

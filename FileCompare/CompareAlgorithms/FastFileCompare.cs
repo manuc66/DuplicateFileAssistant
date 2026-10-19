@@ -37,8 +37,6 @@ public static class FastFileCompare
         byte[] buffer1 = sharedArrayPool.Rent(bufferSize);
         byte[] buffer2 = sharedArrayPool.Rent(bufferSize);
         int usableBufferLength = Math.Min(buffer1.Length, buffer2.Length);
-        Array.Fill<byte>(buffer1, 0);
-        Array.Fill<byte>(buffer2, 0);
         try
         {
             while (true)
