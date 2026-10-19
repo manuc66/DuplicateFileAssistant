@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Directory = System.IO.Directory;
 using MatchType = System.IO.MatchType;
@@ -10,6 +11,10 @@ namespace FileCompare;
 public class DupProvider
 {
     private const int MaxHashDegreeOfParallelism = 8;
+    private const int PartialHashChunkSize = 64 * 1024;
+    private const long PartialHashMinimumFileSize = 1024 * 1024;
+    private const ulong FnvOffsetBasis = 14695981039346656037UL;
+    private const ulong FnvPrime = 1099511628211UL;
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
@@ -40,7 +45,8 @@ public class DupProvider
             toHash.UnionWith(fileInB[commonSize]);
         }
 
-        Dictionary<string, T> hashByPath = HashPaths(toHash, getHash, textDisplayProgress, updateProgress: null, ct);
+        List<string> candidates = RefineByPartialHash(toHash, textDisplayProgress, ct);
+        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress: null, ct);
 
         Dictionary<T, (List<string> inA, List<string> inB)> duplicates = new();
         foreach ((long fileSize, List<string> pathsA) in fileInA)
@@ -111,6 +117,8 @@ public class DupProvider
         {
             candidates.AddRange(paths);
         }
+
+        candidates = RefineByPartialHash(candidates, textDisplayProgress, ct);
 
         Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress, ct);
         Dictionary<T, List<string>> duplicates = new();
@@ -189,6 +197,116 @@ public class DupProvider
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
         return FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+    }
+
+    private static List<string> RefineByPartialHash(IReadOnlyCollection<string> paths, TextWriter textDisplayProgress,
+        CancellationToken ct)
+    {
+        if (paths.Count < 2)
+        {
+            return paths.ToList();
+        }
+
+        List<string> alwaysKeep = new();
+        Dictionary<(long Size, ulong Hash), List<string>> groups = new();
+
+        foreach (string path in paths)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                long size = new FileInfo(path).Length;
+
+                if (size <= PartialHashMinimumFileSize)
+                {
+                    alwaysKeep.Add(path);
+                    continue;
+                }
+
+                (long Size, ulong Hash) key = (size, ComputePartialHash(path, size));
+
+                if (groups.TryGetValue(key, out List<string>? group))
+                {
+                    group.Add(path);
+                }
+                else
+                {
+                    groups[key] = new List<string>(1) { path };
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                textDisplayProgress.WriteLine(ex);
+            }
+        }
+
+        List<string> retained = new(alwaysKeep);
+        foreach (List<string> group in groups.Values)
+        {
+            if (group.Count > 1)
+            {
+                retained.AddRange(group);
+            }
+        }
+
+        return retained;
+    }
+
+    private static ulong ComputePartialHash(string path, long size)
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(PartialHashChunkSize);
+
+        try
+        {
+            using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+                FileOptions.SequentialScan);
+
+            int read = ReadUpTo(stream, buffer.AsSpan(0, PartialHashChunkSize));
+            ulong hash = ComputeFnv1a(buffer.AsSpan(0, read));
+
+            if (size > PartialHashChunkSize)
+            {
+                stream.Position = Math.Max(PartialHashChunkSize, size - PartialHashChunkSize);
+                int tailRead = ReadUpTo(stream, buffer.AsSpan(0, PartialHashChunkSize));
+                hash = ComputeFnv1a(buffer.AsSpan(0, tailRead), hash);
+            }
+
+            return hash;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static int ReadUpTo(Stream stream, Span<byte> buffer)
+    {
+        int readTotal = 0;
+
+        while (readTotal < buffer.Length)
+        {
+            int read = stream.Read(buffer[readTotal..]);
+            if (read == 0)
+            {
+                break;
+            }
+
+            readTotal += read;
+        }
+
+        return readTotal;
+    }
+
+    private static ulong ComputeFnv1a(ReadOnlySpan<byte> data, ulong hash = FnvOffsetBasis)
+    {
+        foreach (byte value in data)
+        {
+            hash ^= value;
+            hash *= FnvPrime;
+        }
+
+        return hash;
     }
 
     private static Dictionary<string, T> HashPaths<T>(IEnumerable<string> paths, Func<string, T> getHash,

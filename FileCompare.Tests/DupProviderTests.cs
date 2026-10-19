@@ -109,6 +109,70 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_SkipsFullHashWhenPartialHashesDiffer()
+    {
+        byte[] first = new byte[2 * 1024 * 1024];
+        byte[] second = new byte[first.Length];
+        first[0] = 1;
+        Array.Fill(first, (byte)7, 1, first.Length - 1);
+        second[0] = 2;
+        Array.Fill(second, (byte)7, 1, second.Length - 1);
+
+        _temp.CreateFile("first.bin", first);
+        _temp.CreateFile("second.bin", second);
+        int fullHashCalls = 0;
+
+        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ =>
+            {
+                fullHashCalls++;
+                return "same";
+            },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fullHashCalls, Is.Zero);
+            Assert.That(result, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_StillHashesIdenticalLargeFiles()
+    {
+        byte[] content = new byte[2 * 1024 * 1024];
+        Array.Fill(content, (byte)7);
+
+        _temp.CreateFile("first.bin", content);
+        _temp.CreateFile("second.bin", content);
+        int fullHashCalls = 0;
+
+        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ =>
+            {
+                Interlocked.Increment(ref fullHashCalls);
+                return "same";
+            },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fullHashCalls, Is.EqualTo(2));
+            Assert.That(result, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
     public void FindDuplicateByHash_HashesCandidatesInParallel()
     {
         if (Environment.ProcessorCount < 2)
