@@ -1,0 +1,41 @@
+<!-- Included at the end of <head> by just-the-docs' own head.html. -->
+<!-- The square icon (the two sheets and the magnifier), matching the desktop app's
+     window icon and the README. The wide `icon.svg` stays as the header logo; this is
+     the browser tab / bookmark / pinned-tile image. -->
+<link rel="icon" href="{{ '/assets/images/icon.svg' | relative_url }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ '/assets/images/icon-512.png' | relative_url }}">
+
+<style>
+  /* A blue-to-teal rule under the site header, a quiet echo of the icon's gradient.
+     It sits behind the header's own bottom border rather than replacing it, so a
+     browser without `background-clip: text` still gets a plain rule. */
+  .site-header {
+    position: relative;
+  }
+
+  .site-header::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      #3b82f6 0%,
+      #3b82f6 18%,
+      rgba(59, 130, 246, 0.35) 38%,
+      rgba(15, 118, 110, 0.20) 58%,
+      rgba(15, 118, 110, 0.55) 78%,
+      #0f766e 100%
+    );
+    pointer-events: none;
+  }
+
+  /* The mark is square, so keep it compact and aligned with the wordmark. */
+  .site-header .site-logo {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-right: 0.55rem;
+  }
+</style>
