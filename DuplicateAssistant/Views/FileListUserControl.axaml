@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
              xmlns:fileCompare="using:FileCompare"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.FileListUserControl"
              x:DataType="vm:FileListViewModel">
@@ -28,6 +29,10 @@
             <TextBlock Text="Max size" IsVisible="{Binding ShowSizeFilters}" VerticalAlignment="Center" />
             <TextBox Text="{Binding MaximumSizeText}" Width="100" PlaceholderText="no limit"
                      IsVisible="{Binding ShowSizeFilters}" />
+            <TextBlock Text="Extensions" IsVisible="{Binding ShowExtensionFilter}" VerticalAlignment="Center" />
+            <Border IsVisible="{Binding ShowExtensionFilter}">
+                <controls:ExtensionPicker DataContext="{Binding ExtensionSelection}" Width="160" />
+            </Border>
             <TextBlock Text="Max files" IsVisible="{Binding ShowMaximumFiles}" VerticalAlignment="Center" />
             <TextBox Text="{Binding MaximumFiles}" Width="100" IsVisible="{Binding ShowMaximumFiles}" />
             <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" />

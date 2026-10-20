@@ -41,6 +41,8 @@ public class FileListViewModel : ViewModelBase
         _mode = mode;
         _lastFolderStore = lastFolderStore;
         _searchPath = searchPath;
+        ExtensionSelection = new ExtensionSelectionViewModel();
+        ExtensionSelection.SelectionChanged += (_, _) => this.RaisePropertyChanged(nameof(FileExtensions));
         Files = new ObservableCollection<DuplicateFile>();
 
         SelectFolderCommand = ReactiveCommand.CreateFromTask(SelectFolderAsync);
@@ -87,6 +89,16 @@ public class FileListViewModel : ViewModelBase
     }
 
     public bool ShowSizeFilters => _mode is FileListMode.BigFiles or FileListMode.TemporaryFiles;
+
+    public bool ShowExtensionFilter => _mode == FileListMode.BigFiles;
+
+    public ExtensionSelectionViewModel ExtensionSelection { get; }
+
+    public string FileExtensions
+    {
+        get => ExtensionSelection.ToFilterString();
+        set => ExtensionSelection.SetFromFilterString(value);
+    }
 
     public ObservableCollection<DuplicateFile> Files { get; }
     public bool HasResults => Files.Count > 0;
@@ -155,7 +167,8 @@ public class FileListViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            FileSearchFilter filter = FileSearchFilter.FromText(minimumSize, null, _trash.ScanExclusions);
+            FileSearchFilter filter = FileSearchFilter.FromText(minimumSize,
+                ShowExtensionFilter ? FileExtensions : null, _trash.ScanExclusions);
 
             IReadOnlyList<DuplicateFile> files = await Task.Run(
                 () => _mode switch

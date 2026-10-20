@@ -10,6 +10,27 @@ namespace FileCompare.Tests;
 public class FileListViewModelTests
 {
     [AvaloniaTest]
+    public async Task BigFilesRespectTheExtensionFilter()
+    {
+        using TempDirectory temp = new();
+        string bin = temp.CreateFile("large.bin", new string('a', 100 * 1024));
+        temp.CreateFile("large.tmp", new string('b', 100 * 1024));
+
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root);
+        viewModel.ExtensionSelection.AddExtension("bin");
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { bin }));
+    }
+
+    [AvaloniaTest]
     public async Task TemporaryFilesRespectMinimumAndMaximumSize()
     {
         using TempDirectory temp = new();
