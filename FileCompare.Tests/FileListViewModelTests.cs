@@ -184,6 +184,148 @@ public class FileListViewModelTests
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EqualTo(new[] { large, medium }));
     }
 
+    [TestCase(FileListMode.EmptyFiles, false, false, false)]
+    [TestCase(FileListMode.BigFiles, true, true, true)]
+    [TestCase(FileListMode.TemporaryFiles, true, false, false)]
+    public void FilterVisibilityMatchesTheMode(FileListMode mode, bool sizeFilters, bool extensionFilter,
+        bool maximumFiles)
+    {
+        using TempDirectory temp = new();
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            mode,
+            temp.Root);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.ShowSizeFilters, Is.EqualTo(sizeFilters));
+            Assert.That(viewModel.ShowExtensionFilter, Is.EqualTo(extensionFilter));
+            Assert.That(viewModel.ShowMaximumFiles, Is.EqualTo(maximumFiles));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task AnInvalidSizeIsReportedWithoutScanning()
+    {
+        using TempDirectory temp = new();
+        temp.CreateFile("large.txt", new string('a', 1024));
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root)
+        {
+            MinimumSizeText = "not-a-size"
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.Files, Is.Empty);
+            Assert.That(viewModel.Status, Does.Contain("Minimum size"));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task AMinimumLargerThanTheMaximumIsReported()
+    {
+        using TempDirectory temp = new();
+        temp.CreateFile("large.txt", new string('a', 1024));
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root)
+        {
+            MinimumSizeText = "10 KB",
+            MaximumSizeText = "1 KB"
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.Files, Is.Empty);
+            Assert.That(viewModel.Status, Does.Contain("must not be greater"));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task AMissingFolderIsReported()
+    {
+        using TempDirectory temp = new();
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            Path.Combine(temp.Root, "missing"));
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Status, Does.Contain("existing folder"));
+    }
+
+    [AvaloniaTest]
+    public async Task CancellingTheConfirmationLeavesFilesInPlace()
+    {
+        using TempDirectory temp = new();
+        string empty = temp.CreateFile("empty.txt", string.Empty);
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        FileListViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation { Result = false },
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            temp.Root);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        viewModel.SelectedFile = viewModel.Files[0];
+        await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(empty), Is.True);
+            Assert.That(viewModel.Files, Has.Count.EqualTo(1));
+            Assert.That(trash.GetEntries(), Is.Empty);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task ScanningRemembersTheLastFolder()
+    {
+        using TempDirectory temp = new();
+        string defaultFolder = Path.Combine(temp.Root, "default");
+        string searchFolder = Path.Combine(temp.Root, "search");
+        Directory.CreateDirectory(defaultFolder);
+        Directory.CreateDirectory(searchFolder);
+        LastFolderStore store = new(
+            Path.Combine(temp.Root, "last-folder.json"),
+            new LastFolderSettings(defaultFolder));
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            searchFolder,
+            store);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(store.Current.LastFolder, Is.EqualTo(searchFolder));
+    }
+
     [AvaloniaTest]
     public async Task DryRunDoesNotDeleteFiles()
     {
