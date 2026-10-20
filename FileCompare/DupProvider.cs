@@ -23,13 +23,15 @@ public class DupProvider
         TextWriter textDisplayProgress,
         CancellationToken ct) where T : notnull
     {
-        Dictionary<long, List<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct);
+        HashSet<FileIdentity> seenIdentities = new();
+
+        Dictionary<long, List<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct, seenIdentities);
         if (ct.IsCancellationRequested)
         {
             return new(0);
         }
 
-        Dictionary<long, List<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct);
+        Dictionary<long, List<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct, seenIdentities);
         if (ct.IsCancellationRequested)
         {
             return new(0);
@@ -153,7 +155,7 @@ public class DupProvider
         SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct)
     {
         Dictionary<long, List<string>> fileBySize =
-            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct);
+            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct, new HashSet<FileIdentity>());
 
         if (ct.IsCancellationRequested)
         {
@@ -535,7 +537,7 @@ public class DupProvider
 
     private static Dictionary<long, List<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
         Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
-        CancellationToken ct)
+        CancellationToken ct, ISet<FileIdentity> seenIdentities)
     {
         Dictionary<long, List<string>> afileWithSameSize = new();
 
@@ -552,7 +554,8 @@ public class DupProvider
             try
             {
                 IFileInfo fileInfo = CustomFileInfo.Create(entryPath);
-                if (filter(fileInfo))
+                if (filter(fileInfo) &&
+                    (!FileIdentity.TryGet(entryPath, out FileIdentity identity) || seenIdentities.Add(identity)))
                 {
                     long fileSize = fileInfo.Length;
 

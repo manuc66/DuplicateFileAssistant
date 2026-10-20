@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace FileCompare.Tests;
 
 [TestFixture]
@@ -83,6 +85,35 @@ public class DupProviderTests
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Values.Single().Select(file => file.Path), Is.EquivalentTo(new[] { first, second }));
         });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_IgnoresHardLinks()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Hard-link test currently uses the ln command.");
+        }
+
+        string original = _temp.CreateFile("original.txt", "same content");
+        string hardLink = Path.Combine(_temp.Root, "hard-link.txt");
+
+        using (Process process = Process.Start("ln", new[] { original, hardLink })!)
+        {
+            process.WaitForExit();
+            Assert.That(process.ExitCode, Is.Zero);
+        }
+
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllText,
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
     }
 
     [Test]
