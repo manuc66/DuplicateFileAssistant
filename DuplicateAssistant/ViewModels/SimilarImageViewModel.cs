@@ -292,11 +292,18 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
 
     private async Task PruneCachesAsync()
     {
-        int removed = await Task.Run(() => CacheInspector.Prune(CachePaths.RootDirectory));
-        await RefreshCacheSummaryAsync();
+        try
+        {
+            int removed = await Task.Run(() => CacheInspector.Prune(CachePaths.RootDirectory));
+            await RefreshCacheSummaryAsync();
 
-        OnUiThread(() => Summary =
-            $"Pruned {removed} cache entr{(removed == 1 ? "y" : "ies")} for missing files.");
+            OnUiThread(() => Summary =
+                $"Pruned {removed} cache entr{(removed == 1 ? "y" : "ies")} for missing files.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            OnUiThread(() => Summary = exception.Message);
+        }
     }
 
     private async Task ClearCachesAsync()
@@ -310,11 +317,18 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
             return;
         }
 
-        CacheCleanupResult cleanup = await Task.Run(() => CacheInspector.Clear(CachePaths.RootDirectory));
-        await RefreshCacheSummaryAsync();
+        try
+        {
+            CacheCleanupResult cleanup = await Task.Run(() => CacheInspector.Clear(CachePaths.RootDirectory));
+            await RefreshCacheSummaryAsync();
 
-        OnUiThread(() => Summary =
-            $"Cleared {cleanup.Files} cache file(s), {FormatBytes(cleanup.Bytes)}.");
+            OnUiThread(() => Summary =
+                $"Cleared {cleanup.Files} cache file(s), {FormatBytes(cleanup.Bytes)}.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            OnUiThread(() => Summary = exception.Message);
+        }
     }
 
     private void OpenModelFolder()
