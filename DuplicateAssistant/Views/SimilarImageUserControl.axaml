@@ -71,13 +71,21 @@
 
                 <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*" Height="180" Margin="6,0,0,4">
                     <DockPanel Grid.Column="0" Margin="0,0,4,0">
-                        <TextBlock DockPanel.Dock="Top" Text="Keeper" FontSize="12" FontWeight="SemiBold" />
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Keeper" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Zoom" FontSize="11" Padding="6,0"
+                                    Click="OpenKeeperPreview_Click" />
+                        </Grid>
                         <Border BorderThickness="1" CornerRadius="4" Background="#11808080">
                             <Image Source="{Binding DuplicateCase.KeeperPreview}" Stretch="Uniform" />
                         </Border>
                     </DockPanel>
                     <DockPanel Grid.Column="1" Margin="4,0,0,0">
-                        <TextBlock DockPanel.Dock="Top" Text="Selected" FontSize="12" FontWeight="SemiBold" />
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Selected" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Zoom" FontSize="11" Padding="6,0"
+                                    Click="OpenSelectedPreview_Click" />
+                        </Grid>
                         <Border BorderThickness="1" CornerRadius="4" Background="#11808080">
                             <Image Source="{Binding DuplicateCase.SelectedPreview}" Stretch="Uniform" />
                         </Border>

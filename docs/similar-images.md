@@ -31,7 +31,8 @@ passes refine it:
 - Each group shows a thumbnail of the suggested keeper, decoded at a small size.
 - Each file row shows its dHash distance, cosine similarity and quality score when those
   values are available.
-- Selecting a file shows it side by side with the keeper in a larger preview.
+- Selecting a file shows it side by side with the keeper in a larger preview. The
+  **Zoom** button opens a full-screen viewer with zoom in/out, actual size and F11.
 
 Perceptual matches are not byte-identical, so the **Hardlink** action is disabled for image
 groups in the desktop tab.
