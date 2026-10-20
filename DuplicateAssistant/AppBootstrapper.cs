@@ -55,11 +55,6 @@ public class AppBootstrapper
         services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation, folderPicker));
         services.Register(() => new TrashViewModel(trash, deleteConfirmation));
 
-        FileListViewModel emptyFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath);
-        FileListViewModel bigFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath);
-        FileListViewModel temporaryFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath);
-        InvalidLinkViewModel invalidLinks = new(trash, deleteConfirmation, folderPicker, searchPath);
-
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
             resolver.GetService<DuplicateNameInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateNameInFolderViewModel service is not registered."),
@@ -69,10 +64,10 @@ public class AppBootstrapper
             resolver.GetService<DeleteIfElsewhereViewModel>() ?? throw new InvalidOperationException("DeleteIfElsewhereViewModel service is not registered."),
             resolver.GetService<MergeToDestinationViewModel>() ?? throw new InvalidOperationException("MergeToDestinationViewModel service is not registered."),
             resolver.GetService<TrashViewModel>() ?? throw new InvalidOperationException("TrashViewModel service is not registered."),
-            emptyFiles,
-            bigFiles,
-            temporaryFiles,
-            invalidLinks));
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath),
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath),
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath),
+            new InvalidLinkViewModel(trash, deleteConfirmation, folderPicker, searchPath)));
     }
 
     private static string ResolvePath(string? configuredPath, string fallbackPath)
