@@ -20,7 +20,8 @@ public class Blake3FileHashing : IHashFile
         cancellationToken.ThrowIfCancellationRequested();
 
         using Hasher hasher = Hasher.New();
-        using FileStream fs = File.OpenRead(path);
+        using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+            FileOptions.SequentialScan);
         ArrayPool<byte> sharedArrayPool = ArrayPool<byte>.Shared;
         byte[] buffer = sharedArrayPool.Rent(_bufferSize);
         try

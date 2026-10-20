@@ -65,7 +65,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
             return;
         }
 
-        _trashedPath = _trash.Delete(x, _fileLength, _lastWriteTimeUtc);
+        _trashedPath = await _trash.DeleteAsync(x, _fileLength, _lastWriteTimeUtc);
         SetDeleted(true);
     }
 

@@ -37,6 +37,21 @@ public class TrashTests
     }
 
     [Test]
+    public async Task DeleteAsync_MovesFileAndReturnsDestination()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+
+        string destination = await trash.DeleteAsync(source);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(source), Is.False);
+            Assert.That(File.Exists(destination), Is.True);
+        });
+    }
+
+    [Test]
     public void Restore_MovesTrashedFileBackToItsOriginalPath()
     {
         string source = _temp.CreateFile("photo.jpg", "content");

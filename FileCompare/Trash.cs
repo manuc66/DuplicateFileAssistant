@@ -1,4 +1,7 @@
-﻿namespace FileCompare;
+﻿using System.Threading;
+using System.Threading.Tasks;
+
+namespace FileCompare;
 
 public class Trash
 {
@@ -12,6 +15,12 @@ public class Trash
 
     public string Delete(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc)
     {
+        VerifyUnchanged(filePath, expectedLength, expectedLastWriteTimeUtc);
+        return Delete(filePath);
+    }
+
+    private static void VerifyUnchanged(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc)
+    {
         FileInfo fileInfo = new(filePath);
 
         if (fileInfo.Exists &&
@@ -19,8 +28,40 @@ public class Trash
         {
             throw new InvalidOperationException($"File changed since it was analyzed: {filePath}");
         }
+    }
 
-        return Delete(filePath);
+    public async Task<string> DeleteAsync(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc,
+        CancellationToken cancellationToken = default)
+    {
+        VerifyUnchanged(filePath, expectedLength, expectedLastWriteTimeUtc);
+        return await DeleteAsync(filePath, cancellationToken);
+    }
+
+    public async Task<string> DeleteAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(TrashFolder);
+
+        string fileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(filePath)}";
+        string destination = GetAvailableDestination(fileName);
+
+        try
+        {
+            File.Move(filePath, destination);
+        }
+        catch (IOException) when (File.Exists(filePath) && !File.Exists(destination))
+        {
+            await using (FileStream source = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
+                             FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (FileStream target = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
+                             FileOptions.Asynchronous))
+            {
+                await source.CopyToAsync(target, cancellationToken);
+            }
+
+            File.Delete(filePath);
+        }
+
+        return destination;
     }
 
     public string Delete(string filePath)

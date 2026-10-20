@@ -13,7 +13,8 @@ public class Md5FileHashing : IHashFile
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        using FileStream fs = File.OpenRead(path);
+        using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+            FileOptions.SequentialScan);
         byte[] buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
 
         try

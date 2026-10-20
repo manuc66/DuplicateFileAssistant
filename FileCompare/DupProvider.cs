@@ -39,14 +39,26 @@ public class DupProvider
         }
 
         HashSet<string> toHash = new(PathComparer);
+        Dictionary<string, long> sizeByPath = new(PathComparer);
+
         foreach (long commonSize in fileInA.Keys.Intersect(fileInB.Keys))
         {
-            toHash.UnionWith(fileInA[commonSize]);
-            toHash.UnionWith(fileInB[commonSize]);
+            foreach (string path in fileInA[commonSize])
+            {
+                toHash.Add(path);
+                sizeByPath[path] = commonSize;
+            }
+
+            foreach (string path in fileInB[commonSize])
+            {
+                toHash.Add(path);
+                sizeByPath[path] = commonSize;
+            }
         }
 
         List<string> candidates = RefineByPartialHash(toHash, textDisplayProgress, ct);
-        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress: null, ct);
+        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress: null,
+            sizeByPath, ct);
 
         Dictionary<T, (List<string> inA, List<string> inB)> duplicates = new();
         foreach ((long fileSize, List<string> pathsA) in fileInA)
@@ -113,14 +125,21 @@ public class DupProvider
         }
 
         List<string> candidates = new();
-        foreach ((_, List<string> paths) in potentialDup)
+        Dictionary<string, long> sizeByPath = new(PathComparer);
+
+        foreach ((long size, List<string> paths) in potentialDup)
         {
-            candidates.AddRange(paths);
+            foreach (string path in paths)
+            {
+                candidates.Add(path);
+                sizeByPath[path] = size;
+            }
         }
 
         candidates = RefineByPartialHash(candidates, textDisplayProgress, ct);
 
-        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress, ct);
+        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress,
+            sizeByPath, ct);
         Dictionary<T, List<string>> duplicates = new();
 
         foreach (string path in candidates)
@@ -315,7 +334,8 @@ public class DupProvider
     }
 
     private static Dictionary<string, T> HashPaths<T>(IEnumerable<string> paths, Func<string, T> getHash,
-        TextWriter textDisplayProgress, Action<int>? updateProgress, CancellationToken ct) where T : notnull
+        TextWriter textDisplayProgress, Action<int>? updateProgress, IReadOnlyDictionary<string, long> sizes,
+        CancellationToken ct) where T : notnull
     {
         List<string> pathList = paths as List<string> ?? paths.ToList();
         int total = pathList.Count;
@@ -326,9 +346,19 @@ public class DupProvider
             return new Dictionary<string, T>(PathComparer);
         }
 
+        long totalBytes = 0;
+        foreach (string path in pathList)
+        {
+            if (sizes.TryGetValue(path, out long size))
+            {
+                totalBytes += size;
+            }
+        }
+
         ConcurrentDictionary<string, T> hashes = new(PathComparer);
         object progressLock = new();
         int completed = 0;
+        long processedBytes = 0;
 
         ParallelOptions options = new()
         {
@@ -358,7 +388,11 @@ public class DupProvider
                 finally
                 {
                     int done = Interlocked.Increment(ref completed);
-                    int percent = (int)((long)done * 100 / total);
+                    long size = sizes.TryGetValue(path, out long pathSize) ? pathSize : 0;
+                    long processed = Interlocked.Add(ref processedBytes, size);
+                    int percent = totalBytes > 0
+                        ? (int)Math.Clamp(processed * 100 / totalBytes, 0, 100)
+                        : (int)((long)done * 100 / total);
 
                     lock (progressLock)
                     {
