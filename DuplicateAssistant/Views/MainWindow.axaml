@@ -40,6 +40,15 @@
         <TabItem Header="Remove empty folder" VerticalContentAlignment="Center">
             <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
         </TabItem>
+        <TabItem Header="Empty files" VerticalContentAlignment="Center">
+            <views:FileListUserControl DataContext="{Binding EmptyFileViewModel}" />
+        </TabItem>
+        <TabItem Header="Big files" VerticalContentAlignment="Center">
+            <views:FileListUserControl DataContext="{Binding BigFileViewModel}" />
+        </TabItem>
+        <TabItem Header="Temporary files" VerticalContentAlignment="Center">
+            <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}" />
+        </TabItem>
         <TabItem Header="Trash" VerticalContentAlignment="Center">
             <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
         </TabItem>

@@ -8,13 +8,19 @@ public class MainWindowViewModel : ViewModelBase
     public DeleteIfElsewhereViewModel DeleteIfElsewhereViewModel { get; }
     public MergeToDestinationViewModel MergeToDestinationViewModel { get; }
     public TrashViewModel TrashViewModel { get; }
+    public FileListViewModel EmptyFileViewModel { get; }
+    public FileListViewModel BigFileViewModel { get; }
+    public FileListViewModel TemporaryFileViewModel { get; }
 
     public MainWindowViewModel(DuplicateContentInFolderViewModel duplicateContentInFolderViewModel,
         DuplicateNameInFolderViewModel duplicateNameInFolderViewModel,
         EmptyFolderViewModel emptyFolderViewModel,
         DeleteIfElsewhereViewModel deleteIfElsewhereViewModel,
         MergeToDestinationViewModel mergeToDestinationViewModel,
-        TrashViewModel trashViewModel)
+        TrashViewModel trashViewModel,
+        FileListViewModel emptyFileViewModel,
+        FileListViewModel bigFileViewModel,
+        FileListViewModel temporaryFileViewModel)
     {
         DuplicateContentInFolderViewModel = duplicateContentInFolderViewModel;
         DuplicateNameInFolderViewModel = duplicateNameInFolderViewModel;
@@ -22,5 +28,8 @@ public class MainWindowViewModel : ViewModelBase
         DeleteIfElsewhereViewModel = deleteIfElsewhereViewModel;
         MergeToDestinationViewModel = mergeToDestinationViewModel;
         TrashViewModel = trashViewModel;
+        EmptyFileViewModel = emptyFileViewModel;
+        BigFileViewModel = bigFileViewModel;
+        TemporaryFileViewModel = temporaryFileViewModel;
     }
 }

@@ -1,0 +1,97 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using Avalonia.Headless.NUnit;
+using Avalonia.Threading;
+using DuplicateAssistant.ViewModels;
+
+namespace FileCompare.Tests;
+
+[TestFixture]
+public class FileListViewModelTests
+{
+    [AvaloniaTest]
+    public async Task EmptyFilesCanBeScannedAndDeleted()
+    {
+        using TempDirectory temp = new();
+        string empty = temp.CreateFile("empty.txt", string.Empty);
+        temp.CreateFile("content.txt", "content");
+
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        FileListViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            temp.Root);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { empty }));
+
+        viewModel.SelectedFile = viewModel.Files[0];
+        await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(empty), Is.False);
+            Assert.That(viewModel.Files, Is.Empty);
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task BigFilesAreLimitedAndOrdered()
+    {
+        using TempDirectory temp = new();
+        temp.CreateFile("small.txt", "1");
+        string medium = temp.CreateFile("medium.txt", "12345");
+        string large = temp.CreateFile("large.txt", "1234567890");
+
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root)
+        {
+            MaximumFiles = 2
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EqualTo(new[] { large, medium }));
+    }
+
+    [AvaloniaTest]
+    public async Task DryRunDoesNotDeleteFiles()
+    {
+        using TempDirectory temp = new();
+        string empty = temp.CreateFile("empty.txt", string.Empty);
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        FileListViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            temp.Root)
+        {
+            DryRun = true
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        viewModel.SelectedFile = viewModel.Files[0];
+        await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(empty), Is.True);
+            Assert.That(trash.GetEntries(), Is.Empty);
+            Assert.That(viewModel.Status, Does.Contain("Dry run"));
+        });
+    }
+}
