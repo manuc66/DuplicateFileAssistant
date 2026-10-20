@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reactive;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private bool _isDeleted;
     private bool _hardlinkAllowed = true;
     private string _errorMessage = string.Empty;
+    private string _matchDetail = string.Empty;
     public string FilePath { get; }
     public long FileSize => _fileLength;
     public long FileLength => _fileLength;
@@ -30,6 +32,12 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     public bool CanDelete => !IsDeleted && !IsKeeper;
     public bool CanHardlink => CanDelete && _hardlinkAllowed;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+    public string MatchDetail
+    {
+        get => _matchDetail;
+        private set => this.RaiseAndSetIfChanged(ref _matchDetail, value);
+    }
 
     public string ErrorMessage
     {
@@ -89,6 +97,23 @@ public class DuplicateCaseItemViewModel : ViewModelBase
 
         _hardlinkAllowed = false;
         this.RaisePropertyChanged(nameof(CanHardlink));
+    }
+
+    public void ApplySimilarityDetails(int distance, double? similarity, double? quality)
+    {
+        List<string> parts = new() { $"dHash {distance}" };
+
+        if (similarity is double similarityValue)
+        {
+            parts.Add($"similarity {similarityValue:F3}");
+        }
+
+        if (quality is double qualityValue)
+        {
+            parts.Add($"quality {qualityValue:F3}");
+        }
+
+        MatchDetail = string.Join(" | ", parts);
     }
 
     private async Task HardlinkAsync()

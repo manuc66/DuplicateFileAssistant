@@ -287,6 +287,11 @@ public class SemanticImageTests
                 Is.EquivalentTo(new[] { copyPath, originalPath }));
             Assert.That(viewModel.DuplicateCase.Kind, Is.EqualTo(SimilarImageKind.Perceptual));
             Assert.That(viewModel.DuplicateCase.Files.All(file => !file.CanHardlink), Is.True);
+            Assert.That(viewModel.DuplicateCase.Files.All(file => !string.IsNullOrWhiteSpace(file.MatchDetail)),
+                Is.True);
+            Assert.That(
+                viewModel.DuplicateCase.Files.First(file => file.FilePath == originalPath).MatchDetail,
+                Does.Contain("dHash"));
             Assert.That(viewModel.Summary, Does.Contain("group"));
         });
     }

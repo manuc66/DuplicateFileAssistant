@@ -29,6 +29,8 @@ passes refine it:
 - **Dry run** is checked by default. **Delete non-keepers** moves the other copies to the
   trash after confirmation.
 - Each group shows a thumbnail of the suggested keeper, decoded at a small size.
+- Each file row shows its dHash distance, cosine similarity and quality score when those
+  values are available.
 
 Perceptual matches are not byte-identical, so the **Hardlink** action is disabled for image
 groups in the desktop tab.

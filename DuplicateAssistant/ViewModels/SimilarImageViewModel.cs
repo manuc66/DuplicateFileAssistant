@@ -236,6 +236,14 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
             {
                 _ = duplicateCase.LoadThumbnailAsync(metadata.KeeperPath);
             }
+
+            foreach (DuplicateCaseItemViewModel file in duplicateCase.Files)
+            {
+                if (metadata.Matches.TryGetValue(file.FilePath, out SimilarMatchDetails? details))
+                {
+                    file.ApplySimilarityDetails(details.Distance, details.Similarity, details.Quality);
+                }
+            }
         }
 
         return duplicateCase;
@@ -251,6 +259,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         {
             HashKey key = new(BitConverter.GetBytes(index++));
             HashSet<DuplicateFile> files = new(DuplicateFile.Comparer);
+            Dictionary<string, SimilarMatchDetails> matches = new(PathUtilities.PathComparer);
 
             foreach (SimilarImageMatch match in group.Images)
             {
@@ -265,6 +274,10 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
                 }
 
                 files.Add(new DuplicateFile(match.Image.Path, match.Image.Length, lastWriteTimeUtc));
+                matches[match.Image.Path] = new SimilarMatchDetails(
+                    match.Distance,
+                    match.Similarity,
+                    match.Quality);
             }
 
             groups[key] = files;
@@ -273,7 +286,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
                 group.MaximumDistance,
                 group.MinimumSimilarity,
                 group.Keeper.Path,
-                group.KeeperQuality);
+                group.KeeperQuality,
+                matches);
         }
 
         return groups;
@@ -417,7 +431,10 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         int MaximumDistance,
         double? MinimumSimilarity,
         string KeeperPath,
-        double? KeeperQuality);
+        double? KeeperQuality,
+        IReadOnlyDictionary<string, SimilarMatchDetails> Matches);
+
+    private sealed record SimilarMatchDetails(int Distance, double? Similarity, double? Quality);
 
     private sealed class InlineProgress(Action<double> report) : IProgress<double>
     {
