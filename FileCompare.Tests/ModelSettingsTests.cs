@@ -69,6 +69,30 @@ public class ModelSettingsTests
     }
 
     [Test]
+    public void NormalizeFolderRejectsAFile()
+    {
+        string file = _temp.CreateFile("not-a-folder", "content");
+
+        Assert.That(
+            () => ModelSettingsStore.NormalizeFolder(file),
+            Throws.ArgumentException.With.Message.Contain("cannot be a file"));
+    }
+
+    [Test]
+    public void SettingsThatPointToAFileFallBackToTheDefault()
+    {
+        string settingsFile = Path.Combine(_temp.Root, "model-settings.json");
+        string file = _temp.CreateFile("not-a-folder", "content");
+        string defaultFolder = Path.Combine(_temp.Root, "models");
+        File.WriteAllText(settingsFile, System.Text.Json.JsonSerializer.Serialize(
+            new Dictionary<string, string> { ["ModelsFolder"] = file }));
+
+        ModelSettingsStore store = new(settingsFile, new ModelSettings(defaultFolder));
+
+        Assert.That(store.Current.ModelsFolder, Is.EqualTo(defaultFolder));
+    }
+
+    [Test]
     public void SaveRaisesChanged()
     {
         string settingsFile = Path.Combine(_temp.Root, "model-settings.json");

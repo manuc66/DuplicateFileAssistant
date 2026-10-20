@@ -86,6 +86,36 @@ public class TrashSettingsTests
     }
 
     [Test]
+    public void NormalizeFolderRejectsAFile()
+    {
+        string file = _temp.CreateFile("not-a-folder", "content");
+
+        Assert.That(
+            () => TrashSettingsStore.NormalizeFolder(file),
+            Throws.ArgumentException.With.Message.Contain("cannot be a file"));
+    }
+
+    [Test]
+    public void SettingsThatPointToAFileFallBackToTheDefault()
+    {
+        string settingsFile = Path.Combine(_temp.Root, "settings.json");
+        string file = _temp.CreateFile("not-a-folder", "content");
+        string defaultFolder = Path.Combine(_temp.Root, "trash");
+        File.WriteAllText(settingsFile, System.Text.Json.JsonSerializer.Serialize(
+            new Dictionary<string, string>
+            {
+                ["Mode"] = "Application",
+                ["TrashFolder"] = file
+            }));
+
+        TrashSettingsStore store = new(
+            settingsFile,
+            new TrashSettings(TrashMode.Application, defaultFolder));
+
+        Assert.That(store.Current.TrashFolder, Is.EqualTo(defaultFolder));
+    }
+
+    [Test]
     public void SaveRaisesChanged()
     {
         string settingsFile = Path.Combine(_temp.Root, "settings.json");

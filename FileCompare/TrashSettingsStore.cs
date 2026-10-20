@@ -62,6 +62,11 @@ public sealed class TrashSettingsStore
             throw new ArgumentException("The trash folder cannot be a filesystem root.", nameof(folder));
         }
 
+        if (File.Exists(expanded))
+        {
+            throw new ArgumentException("The trash folder cannot be a file.", nameof(folder));
+        }
+
         string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrWhiteSpace(userProfile) &&
             expanded.Equals(PathUtilities.ExpandPath(userProfile), PathUtilities.PathComparison))

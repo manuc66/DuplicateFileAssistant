@@ -52,6 +52,11 @@ public sealed class ModelSettingsStore
             throw new ArgumentException("The models folder cannot be a filesystem root.", nameof(folder));
         }
 
+        if (File.Exists(expanded))
+        {
+            throw new ArgumentException("The models folder cannot be a file.", nameof(folder));
+        }
+
         return expanded;
     }
 
