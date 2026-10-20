@@ -9,8 +9,9 @@ namespace DuplicateAssistant.ViewModels;
 public class DuplicateSizeInFolderViewModel : DuplicateInFolderViewModel
 {
     public DuplicateSizeInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
+        LastFolderStore? lastFolderStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
     {
         ShowHashOptions = false;
     }

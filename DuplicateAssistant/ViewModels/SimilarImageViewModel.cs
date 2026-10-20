@@ -33,8 +33,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
 
     public SimilarImageViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
-        ModelSettingsStore? modelSettings = null) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
+        ModelSettingsStore? modelSettings = null, LastFolderStore? lastFolderStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
     {
         _scanCache = scanCache;
         _modelSettings = modelSettings;

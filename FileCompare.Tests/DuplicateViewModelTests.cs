@@ -256,6 +256,35 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task SearchRemembersTheLastUsedFolder()
+    {
+        using TempDirectory temp = new();
+        string defaultFolder = Path.Combine(temp.Root, "default");
+        string searchFolder = Path.Combine(temp.Root, "search");
+        Directory.CreateDirectory(defaultFolder);
+        Directory.CreateDirectory(searchFolder);
+        LastFolderStore store = new(
+            Path.Combine(temp.Root, "last-folder.json"),
+            new LastFolderSettings(defaultFolder));
+
+        FakeDeleteConfirmation confirmation = new();
+        TestDuplicateInFolderViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            defaultFolder,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker(),
+            store)
+        {
+            SearchPath = searchFolder
+        };
+
+        await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
+
+        Assert.That(store.Current.LastFolder, Is.EqualTo(searchFolder));
+    }
+
+    [Test]
     public async Task DeletingTheKeeperPromotesAnotherCopyAndTrashesIt()
     {
         using TempDirectory temp = new();
@@ -541,8 +570,9 @@ public class DuplicateViewModelTests
     private sealed class TestDuplicateInFolderViewModel : DuplicateInFolderViewModel
     {
         public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-            IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker)
-            : base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
+            IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
+            LastFolderStore? lastFolderStore = null)
+            : base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
         {
         }
 

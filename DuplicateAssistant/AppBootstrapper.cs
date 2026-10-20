@@ -28,6 +28,10 @@ public class AppBootstrapper
         }
 
         string searchPath = ResolvePath(configuredSearchPath, defaultSearchPath);
+        LastFolderStore lastFolder = new(
+            ApplicationPaths.LastFolderFile,
+            new LastFolderSettings(searchPath));
+        searchPath = lastFolder.Current.LastFolder;
 
         string? configuredTrashFolder = configurationRoot["trashFolder"];
         string trashFolder = ResolvePath(configuredTrashFolder, Path.Combine(userProfile, "DuplicateTrash"));
@@ -42,10 +46,11 @@ public class AppBootstrapper
         services
             .RegisterConstant<IConfiguration>(configurationRoot);
         services.RegisterConstant(trashSettings);
+        services.RegisterConstant(lastFolder);
         services.RegisterLazySingleton(() => new Trash(() => trashSettings.Current));
         services.RegisterLazySingleton(() => new FileManagerHandler());
         services.RegisterLazySingleton<IDeleteConfirmation>(() => new DeleteConfirmationService());
-        services.RegisterLazySingleton<IFolderPicker>(() => new FolderPickerService());
+        services.RegisterLazySingleton<IFolderPicker>(() => new FolderPickerService(lastFolder));
 
         Trash trash = resolver.GetService<Trash>() ?? throw new InvalidOperationException("Trash service is not registered.");
         FileManagerHandler fileManagerHandler = resolver.GetService<FileManagerHandler>() ?? throw new InvalidOperationException("FileManagerHandler service is not registered.");
@@ -54,11 +59,11 @@ public class AppBootstrapper
 
         ScanCache scanCache = new(ScanCache.DefaultPath);
 
-        services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
-        services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
-        services.Register(() => new DuplicateSizeInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
-        services.Register(() => new SimilarImageViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache, modelSettings));
-        services.Register(() => new MultiFolderDuplicateViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
+        services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache, lastFolder));
+        services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolder));
+        services.Register(() => new DuplicateSizeInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolder));
+        services.Register(() => new SimilarImageViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache, modelSettings, lastFolder));
+        services.Register(() => new MultiFolderDuplicateViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache, lastFolder));
         services.Register(() => new EmptyFolderViewModel(searchPath, deleteConfirmation, folderPicker, trash));
         services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation, folderPicker));
@@ -76,9 +81,9 @@ public class AppBootstrapper
             resolver.GetService<MergeToDestinationViewModel>() ?? throw new InvalidOperationException("MergeToDestinationViewModel service is not registered."),
             resolver.GetService<TrashViewModel>() ?? throw new InvalidOperationException("TrashViewModel service is not registered."),
             resolver.GetService<SettingsViewModel>() ?? throw new InvalidOperationException("SettingsViewModel service is not registered."),
-            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath),
-            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath),
-            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath),
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath, lastFolder),
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath, lastFolder),
+            new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath, lastFolder),
             new InvalidLinkViewModel(trash, deleteConfirmation, folderPicker, searchPath)));
     }
 

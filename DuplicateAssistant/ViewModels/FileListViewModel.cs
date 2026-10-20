@@ -24,18 +24,20 @@ public class FileListViewModel : ViewModelBase
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
     private readonly FileListMode _mode;
+    private readonly LastFolderStore? _lastFolderStore;
     private string _searchPath;
     private int _maximumFiles = 100;
     private bool _dryRun;
     private DuplicateFile? _selectedFile;
 
     public FileListViewModel(Trash trash, IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
-        FileListMode mode, string searchPath)
+        FileListMode mode, string searchPath, LastFolderStore? lastFolderStore = null)
     {
         _trash = trash;
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
         _mode = mode;
+        _lastFolderStore = lastFolderStore;
         _searchPath = searchPath;
         Files = new ObservableCollection<DuplicateFile>();
 
@@ -102,6 +104,8 @@ public class FileListViewModel : ViewModelBase
             Status = "Choose an existing folder.";
             return;
         }
+
+        _lastFolderStore?.Save(SearchPath);
 
         Files.Clear();
         SelectedFile = null;

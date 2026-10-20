@@ -26,6 +26,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private readonly IFolderPicker _folderPicker;
     private readonly Trash _trash;
     private readonly FileManagerHandler _fileManagerHandler;
+    private readonly LastFolderStore? _lastFolderStore;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
@@ -135,12 +136,14 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker)
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
+        LastFolderStore? lastFolderStore = null)
     {
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
         _trash = trash;
         _fileManagerHandler = fileManagerHandler;
+        _lastFolderStore = lastFolderStore;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
@@ -179,6 +182,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     private async Task<Dictionary<HashKey, HashSet<DuplicateFile>>> SearchDuplicate(CancellationToken ct)
     {
+        _lastFolderStore?.Save(SearchPath);
         _isSearching.OnNext(true);
 
         try

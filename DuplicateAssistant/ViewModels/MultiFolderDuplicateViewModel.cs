@@ -18,8 +18,9 @@ public class MultiFolderDuplicateViewModel : DuplicateInFolderViewModel
     private string? _selectedFolder;
 
     public MultiFolderDuplicateViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
+        LastFolderStore? lastFolderStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
     {
         _scanCache = scanCache;
         Folders = new ObservableCollection<string> { searchPath };

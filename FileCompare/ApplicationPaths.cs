@@ -11,6 +11,8 @@ public static class ApplicationPaths
 
     public static string ModelSettingsFile => Path.Combine(RootDirectory, "model-settings.json");
 
+    public static string LastFolderFile => Path.Combine(RootDirectory, "last-folder.json");
+
     public static string SystemTrashDirectory => Path.Combine(RootDirectory, "system-trash");
 
     private static string ResolveRootDirectory()
