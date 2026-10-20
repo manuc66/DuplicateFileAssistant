@@ -25,6 +25,11 @@ public class MultiFolderDuplicateViewModel : DuplicateInFolderViewModel
         Folders = new ObservableCollection<string> { searchPath };
         AddFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
+            if (!Finished)
+            {
+                return;
+            }
+
             string? selectedPath = await PickFolderAsync();
 
             if (selectedPath != null &&
@@ -35,6 +40,11 @@ public class MultiFolderDuplicateViewModel : DuplicateInFolderViewModel
         });
         RemoveFolderCommand = ReactiveCommand.Create(() =>
         {
+            if (!Finished)
+            {
+                return;
+            }
+
             if (SelectedFolder != null)
             {
                 Folders.Remove(SelectedFolder);

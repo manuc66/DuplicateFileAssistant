@@ -44,4 +44,34 @@ public class InvalidLinkViewModelTests
             Assert.That(trash.GetEntries().Single().IsSymbolicLink, Is.True);
         });
     }
+
+    [AvaloniaTest]
+    public async Task FailedLinksRemainVisibleAfterDeletion()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Symbolic link creation is tested on Linux.");
+        }
+
+        using TempDirectory temp = new();
+        string first = Path.Combine(temp.Root, "first-link");
+        string second = Path.Combine(temp.Root, "second-link");
+        File.CreateSymbolicLink(first, Path.Combine(temp.Root, "missing-1"));
+        File.CreateSymbolicLink(second, Path.Combine(temp.Root, "missing-2"));
+
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        InvalidLinkViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker(),
+            temp.Root);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        File.Delete(second);
+        await viewModel.DeleteAllCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Links.Select(link => link.Path), Is.EquivalentTo(new[] { second }));
+    }
 }

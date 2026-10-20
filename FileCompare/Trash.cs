@@ -73,7 +73,7 @@ public class Trash
 
         string sha256 = await ComputeSha256Async(filePath, cancellationToken).ConfigureAwait(false);
         string destination = GetAvailableDestination(
-            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(filePath)}");
+            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Guid.NewGuid():N}-{Path.GetFileName(filePath)}");
 
         UnixFileMode? unixFileMode = null;
 
@@ -105,7 +105,16 @@ public class Trash
         lock (_sync)
         {
             _entries.Add(entry);
-            SaveManifestLocked();
+
+            try
+            {
+                SaveManifestLocked();
+            }
+            catch
+            {
+                _entries.Remove(entry);
+                throw;
+            }
         }
 
         try
@@ -174,7 +183,7 @@ public class Trash
         }
 
         string destination = GetAvailableDestination(
-            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(linkPath)}");
+            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Guid.NewGuid():N}-{Path.GetFileName(linkPath)}");
 
         TrashEntry entry = new(
             destination,
@@ -191,7 +200,16 @@ public class Trash
         lock (_sync)
         {
             _entries.Add(entry);
-            SaveManifestLocked();
+
+            try
+            {
+                SaveManifestLocked();
+            }
+            catch
+            {
+                _entries.Remove(entry);
+                throw;
+            }
         }
 
         try

@@ -109,7 +109,7 @@ public class FileListViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            FileSearchFilter filter = FileSearchFilter.FromText(0, null, null);
+            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.TrashFolder);
 
             IReadOnlyList<DuplicateFile> files = await Task.Run(
                 () => _mode switch
@@ -169,6 +169,7 @@ public class FileListViewModel : ViewModelBase
         {
             int deleted = 0;
             int failed = 0;
+            List<DuplicateFile> deletedFiles = new();
 
             foreach (DuplicateFile file in targets)
             {
@@ -177,6 +178,7 @@ public class FileListViewModel : ViewModelBase
                 try
                 {
                     await _trash.DeleteAsync(file.Path, file.Length, file.LastWriteTimeUtc, cancellationToken);
+                    deletedFiles.Add(file);
                     deleted++;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -187,7 +189,7 @@ public class FileListViewModel : ViewModelBase
 
             OnUiThread(() =>
             {
-                foreach (DuplicateFile file in targets)
+                foreach (DuplicateFile file in deletedFiles)
                 {
                     Files.Remove(file);
                 }

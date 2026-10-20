@@ -66,6 +66,22 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task CommandsExcludeTheTrashFolder()
+    {
+        string trashPath = Path.Combine(_temp.Root, "trash");
+        Directory.CreateDirectory(trashPath);
+        File.WriteAllText(Path.Combine(trashPath, "ghost.txt"), string.Empty);
+        StringWriter output = new();
+
+        await CliRunner.RunAsync(
+            new[] { "empty-files", "--path", _temp.Root, "--trash", trashPath, "--json" },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        Assert.That(document.RootElement.GetProperty("results").GetArrayLength(), Is.Zero);
+    }
+
+    [Test]
     public async Task BigFilesCommandRespectsTheMaximum()
     {
         _temp.CreateFile("small.txt", "1");

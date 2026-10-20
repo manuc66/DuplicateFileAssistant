@@ -145,6 +145,7 @@ public class InvalidLinkViewModel : ViewModelBase
         {
             int deleted = 0;
             int failed = 0;
+            List<InvalidSymbolicLink> deletedLinks = new();
 
             foreach (InvalidSymbolicLink link in targets)
             {
@@ -153,6 +154,7 @@ public class InvalidLinkViewModel : ViewModelBase
                 try
                 {
                     await _trash.DeleteSymbolicLinkAsync(link.Path, cancellationToken);
+                    deletedLinks.Add(link);
                     deleted++;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -163,7 +165,7 @@ public class InvalidLinkViewModel : ViewModelBase
 
             OnUiThread(() =>
             {
-                foreach (InvalidSymbolicLink link in targets)
+                foreach (InvalidSymbolicLink link in deletedLinks)
                 {
                     Links.Remove(link);
                 }

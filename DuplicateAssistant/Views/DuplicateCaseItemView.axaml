@@ -23,6 +23,7 @@
             <TextBlock Text="{Binding Path=FilePath}" VerticalAlignment="Center"></TextBlock>
             <TextBlock Text="{Binding Path=FileSize}" VerticalAlignment="Center" Opacity="0.7"></TextBlock>
             <TextBlock Text="Deleted" IsVisible="{Binding IsDeleted}" VerticalAlignment="Center" Opacity="0.7"></TextBlock>
+            <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Foreground="Red" VerticalAlignment="Center"></TextBlock>
         </StackPanel>
         <Button Grid.Column="1" Content="Keep"
                 IsVisible="{Binding !IsKeeper}"

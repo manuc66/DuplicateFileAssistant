@@ -21,6 +21,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
     private readonly Subject<Unit> _stopSearch = new();
     private readonly BehaviorSubject<bool> _isSearching = new(false);
+    private bool _isDeletingNonKeepers;
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
     private readonly Trash _trash;
@@ -164,8 +165,9 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         StopSearchCommand = ReactiveCommand.Create(
             () => _stopSearch.OnNext(Unit.Default),
             _isSearching);
-        ApplyRuleCommand = ReactiveCommand.Create(ApplyRule);
-        DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync);
+        ApplyRuleCommand = ReactiveCommand.Create(ApplyRule, _isSearching.Select(x => !x));
+        DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync,
+            _isSearching.Select(x => !x));
 
         _duplicateCaseItems = new();
     }
@@ -230,7 +232,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     private void ApplyRule()
     {
-        if (AutoDeleteRule == AutoDeleteRule.Manual)
+        if (!Finished || _isDeletingNonKeepers || AutoDeleteRule == AutoDeleteRule.Manual)
         {
             return;
         }
@@ -263,6 +265,11 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     private async Task DeleteNonKeepersAsync()
     {
+        if (!Finished || _isDeletingNonKeepers)
+        {
+            return;
+        }
+
         List<DuplicateCaseItemViewModel> items = DuplicateCaseItems
             .SelectMany(duplicateCase => duplicateCase.Files)
             .Where(file => file.CanDelete)
@@ -288,28 +295,42 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             return;
         }
 
-        int deleted = 0;
-        int failed = 0;
+        _isDeletingNonKeepers = true;
 
-        foreach (DuplicateCaseItemViewModel item in items)
+        try
         {
-            try
-            {
-                await _trash.DeleteAsync(
-                    item.FilePath,
-                    item.FileLength,
-                    item.LastWriteTimeUtc);
-                item.SetDeleted(true);
-                deleted++;
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                SearchLog = $"{SearchLog}{Environment.NewLine}{ex.Message}";
-            }
-        }
+            int deleted = 0;
+            int failed = 0;
 
-        SearchLog = $"{SearchLog}{Environment.NewLine}Moved {deleted} file(s); {failed} failed.";
+            foreach (DuplicateCaseItemViewModel item in items)
+            {
+                if (!item.CanDelete)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    await _trash.DeleteAsync(
+                        item.FilePath,
+                        item.FileLength,
+                        item.LastWriteTimeUtc);
+                    item.SetDeleted(true);
+                    deleted++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    SearchLog = $"{SearchLog}{Environment.NewLine}{ex.Message}";
+                }
+            }
+
+            SearchLog = $"{SearchLog}{Environment.NewLine}Moved {deleted} file(s); {failed} failed.";
+        }
+        finally
+        {
+            _isDeletingNonKeepers = false;
+        }
     }
 
     public void Remove(DuplicateCaseViewModel duplicateCaseViewModel)

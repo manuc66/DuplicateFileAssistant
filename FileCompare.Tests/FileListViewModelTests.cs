@@ -42,6 +42,54 @@ public class FileListViewModelTests
     }
 
     [AvaloniaTest]
+    public async Task TrashFolderIsExcludedFromFileLists()
+    {
+        using TempDirectory temp = new();
+        string normal = temp.CreateFile("empty.txt", string.Empty);
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        File.WriteAllText(Path.Combine(trash.TrashFolder, "ghost.txt"), string.Empty);
+
+        FileListViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            temp.Root);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { normal }));
+    }
+
+    [AvaloniaTest]
+    public async Task FailedFilesRemainVisibleAfterDeletion()
+    {
+        using TempDirectory temp = new();
+        string first = temp.CreateFile("a.txt", string.Empty);
+        string second = temp.CreateFile("b.txt", string.Empty);
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        FileListViewModel viewModel = new(
+            trash,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker(),
+            FileListMode.EmptyFiles,
+            temp.Root);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        File.Delete(second);
+        await viewModel.DeleteAllCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(first), Is.False);
+            Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { second }));
+        });
+    }
+
+    [AvaloniaTest]
     public async Task BigFilesAreLimitedAndOrdered()
     {
         using TempDirectory temp = new();

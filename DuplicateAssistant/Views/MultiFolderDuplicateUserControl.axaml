@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.MultiFolderDuplicateUserControl"
              x:DataType="vm:MultiFolderDuplicateViewModel">
@@ -59,8 +60,8 @@
             <ListBox BorderThickness="1" ItemsSource="{Binding DuplicateCase.Files}" />
         </DockPanel>
 
-        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace"
-                 IsVisible="{Binding !Finished}" Grid.Row="5" Grid.RowSpan="2"
-                 Text="{Binding SearchLog}" />
+        <controls:AutoScrollTextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace"
+                                   IsVisible="{Binding !Finished}" Grid.Row="5" Grid.RowSpan="2"
+                                   Text="{Binding SearchLog}" />
     </Grid>
 </UserControl>

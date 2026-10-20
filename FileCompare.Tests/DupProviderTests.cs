@@ -89,6 +89,29 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_IncludesHiddenFiles_OnLinux()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Hidden dotfiles are tested on Linux.");
+        }
+
+        _temp.CreateFile(".a", "same");
+        _temp.CreateFile(".b", "same");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void FindDuplicateByHash_DoesNotFollowDirectorySymlinks()
     {
         if (!OperatingSystem.IsLinux())

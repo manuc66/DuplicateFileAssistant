@@ -19,6 +19,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private string? _trashedPath;
     private bool _isKeeper;
     private bool _isDeleted;
+    private string _errorMessage = string.Empty;
     public string FilePath { get; }
     public long FileSize => _fileLength;
     public long FileLength => _fileLength;
@@ -27,6 +28,17 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     public bool IsDeleted => _isDeleted;
     public bool CanDelete => !IsDeleted && !IsKeeper;
     public bool CanHardlink => CanDelete;
+    public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _errorMessage, value);
+            this.RaisePropertyChanged(nameof(HasError));
+        }
+    }
     public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
     public ReactiveCommand<string, Unit> DeleteCommand { get; }
@@ -85,28 +97,46 @@ public class DuplicateCaseItemViewModel : ViewModelBase
             return;
         }
 
-        string trashedPath = await _trash.DeleteAsync(FilePath, _fileLength, _lastWriteTimeUtc);
-
         try
         {
-            HardLinkService.Create(FilePath, keeper.FilePath);
-        }
-        catch
-        {
-            await _trash.RestoreAsync(trashedPath, FilePath);
-            throw;
-        }
+            string trashedPath = await _trash.DeleteAsync(FilePath, _fileLength, _lastWriteTimeUtc);
 
-        try
-        {
-            _trash.Discard(trashedPath);
-        }
-        catch
-        {
-            // The link is in place; keeping the trash entry is safer than losing the old inode mapping.
-        }
+            try
+            {
+                HardLinkService.Create(FilePath, keeper.FilePath);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    await _trash.RestoreAsync(trashedPath, FilePath);
+                }
+                catch (Exception restoreException)
+                {
+                    ErrorMessage = $"{ex.Message} Restore failed: {restoreException.Message}";
+                    return;
+                }
 
-        _duplicateCase.Remove(this);
+                ErrorMessage = ex.Message;
+                return;
+            }
+
+            try
+            {
+                _trash.Discard(trashedPath);
+            }
+            catch
+            {
+                // The link is in place; keeping the trash entry is safer than losing the old inode mapping.
+            }
+
+            _duplicateCase.Remove(this);
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorMessage = ex.Message;
+        }
     }
 
     private async Task DeleteDuplicateItem(string x)
@@ -116,8 +146,16 @@ public class DuplicateCaseItemViewModel : ViewModelBase
             return;
         }
 
-        _trashedPath = await _trash.DeleteAsync(x, _fileLength, _lastWriteTimeUtc);
-        SetDeleted(true);
+        try
+        {
+            _trashedPath = await _trash.DeleteAsync(x, _fileLength, _lastWriteTimeUtc);
+            SetDeleted(true);
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorMessage = ex.Message;
+        }
     }
 
     private async Task RestoreFile()
@@ -127,8 +165,16 @@ public class DuplicateCaseItemViewModel : ViewModelBase
             return;
         }
 
-        await _trash.RestoreAsync(_trashedPath, FilePath);
-        _trashedPath = null;
-        SetDeleted(false);
+        try
+        {
+            await _trash.RestoreAsync(_trashedPath, FilePath);
+            _trashedPath = null;
+            SetDeleted(false);
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ErrorMessage = ex.Message;
+        }
     }
 }

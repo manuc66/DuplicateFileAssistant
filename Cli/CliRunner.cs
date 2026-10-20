@@ -32,7 +32,7 @@ public static class CliRunner
         bool json = options.HasFlag("json");
         bool apply = options.HasFlag("apply");
         string trashPath = options.GetSingle("trash") ?? "~/DuplicateTrash";
-        string[] excludedFolders = options.GetMany("exclude").ToArray();
+        string[] excludedFolders = options.GetMany("exclude").Append(trashPath).ToArray();
         FileSearchFilter filter = FileSearchFilter.FromText(0, null, string.Join(";", excludedFolders));
 
         try
@@ -87,7 +87,7 @@ public static class CliRunner
         if (apply)
         {
             Trash trash = new(trashPath);
-            await DeleteFilesAsync(groups.SelectMany(group =>
+            affected = await DeleteFilesAsync(groups.SelectMany(group =>
                 group.Value.OrderBy(file => file.Path, PathUtilities.PathComparer).Skip(1)), trash, output,
                 cancellationToken);
         }
@@ -102,14 +102,15 @@ public static class CliRunner
     {
         IReadOnlyList<DuplicateFile> files = finder();
         var results = files.Select(file => new { path = file.Path, length = file.Length }).Cast<object>().ToList();
+        int affected = files.Count;
 
         if (apply && files.Count > 0)
         {
             Trash trash = new(trashPath);
-            await DeleteFilesAsync(files, trash, output, cancellationToken);
+            affected = await DeleteFilesAsync(files, trash, output, cancellationToken);
         }
 
-        Write(output, json, command, root, apply, files.Count, results);
+        Write(output, json, command, root, apply, affected, results);
         return 0;
     }
 
@@ -142,23 +143,36 @@ public static class CliRunner
             filter.MatchesDirectory);
 
         var results = directories.Select(directory => new { path = directory }).Cast<object>().ToList();
+        int affected = directories.Count;
 
         if (apply)
         {
-            EmptyDirectoryService.DeleteEmptyDirectories(directories, cancellationToken);
+            affected = EmptyDirectoryService.DeleteEmptyDirectories(directories, cancellationToken);
         }
 
-        Write(output, json, "empty-folders", root, apply, directories.Count, results);
+        Write(output, json, "empty-folders", root, apply, affected, results);
         return Task.FromResult(0);
     }
 
-    private static async Task DeleteFilesAsync(IEnumerable<DuplicateFile> files, Trash trash, TextWriter output,
+    private static async Task<int> DeleteFilesAsync(IEnumerable<DuplicateFile> files, Trash trash, TextWriter output,
         CancellationToken cancellationToken)
     {
+        int deleted = 0;
+
         foreach (DuplicateFile file in files)
         {
-            await trash.DeleteAsync(file.Path, file.Length, file.LastWriteTimeUtc, cancellationToken);
+            try
+            {
+                await trash.DeleteAsync(file.Path, file.Length, file.LastWriteTimeUtc, cancellationToken);
+                deleted++;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                output.WriteLine($"Failed: {file.Path}: {ex.Message}");
+            }
         }
+
+        return deleted;
     }
 
     private static void Write(TextWriter output, bool json, string command, string root, bool applied, int affected,

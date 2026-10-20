@@ -56,6 +56,51 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task DeleteFailureIsReportedOnTheItem()
+    {
+        using TempDirectory temp = new();
+        string keeperPath = temp.CreateFile("keeper.jpg", "content");
+        string duplicatePath = temp.CreateFile("duplicate.jpg", "content");
+        FileInfo keeperInfo = new(keeperPath);
+        FileInfo duplicateInfo = new(duplicatePath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(keeperPath, keeperInfo.Length, keeperInfo.LastWriteTimeUtc),
+            new DuplicateFile(duplicatePath, duplicateInfo.Length, duplicateInfo.LastWriteTimeUtc)
+        };
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+        viewModel.DuplicateCaseItems.Add(duplicateCase);
+
+        DuplicateCaseItemViewModel keeper = duplicateCase.Keeper!;
+        DuplicateCaseItemViewModel duplicate = duplicateCase.Files.First(file => !ReferenceEquals(file, keeper));
+        File.WriteAllText(duplicate.FilePath, "changed content");
+
+        await duplicate.DeleteCommand.Execute(duplicate.FilePath).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(duplicate.HasError, Is.True);
+            Assert.That(duplicate.IsDeleted, Is.False);
+            Assert.That(File.Exists(duplicate.FilePath), Is.True);
+        });
+    }
+
+    [Test]
     public async Task HardlinkReplacesADuplicateWithALinkToTheKeeper()
     {
         using TempDirectory temp = new();
