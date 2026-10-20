@@ -77,6 +77,70 @@ public class FileSearchFilterTests
     }
 
     [Test]
+    public void WildcardExtensionsAreAccepted()
+    {
+        FileSearchFilter filter = FileSearchFilter.FromText(0, "*.jpg; *.PNG; *", null);
+        string jpg = _temp.CreateFile("photo.JPG", "content");
+        string png = _temp.CreateFile("image.png", "content");
+        string text = _temp.CreateFile("notes.txt", "content");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(filter.MatchesPath(jpg), Is.True);
+            Assert.That(filter.MatchesPath(png), Is.True);
+            Assert.That(filter.MatchesPath(text), Is.True, "A bare wildcard means every extension.");
+        });
+    }
+
+    [Test]
+    public void BlankExtensionsAreIgnored()
+    {
+        FileSearchFilter filter = FileSearchFilter.FromText(0, " ; , ", null);
+        string text = _temp.CreateFile("notes.txt", "content");
+
+        Assert.That(filter.MatchesPath(text), Is.True);
+    }
+
+    [Test]
+    public void InvalidExcludedFoldersAreIgnored()
+    {
+        FileSearchFilter filter = FileSearchFilter.FromText(0, null, "invalid\0folder");
+        string file = _temp.CreateFile("photo.jpg", "content");
+
+        Assert.That(filter.MatchesPath(file), Is.True);
+    }
+
+    [Test]
+    public void ExcludedFolderWithATrailingSeparatorRejectsItsChildren()
+    {
+        string excludedDirectory = Path.Combine(_temp.Root, "excluded");
+        FileSearchFilter filter = FileSearchFilter.FromText(0, null, excludedDirectory + Path.DirectorySeparatorChar);
+        string excluded = _temp.CreateFile(Path.Combine("excluded", "photo.jpg"), "content");
+
+        Assert.That(filter.MatchesPath(excluded), Is.False);
+    }
+
+    [Test]
+    public void ExcludedFilesystemRootRejectsEveryPath()
+    {
+        string root = Path.GetPathRoot(Path.GetFullPath(_temp.Root))!;
+        FileSearchFilter filter = FileSearchFilter.FromText(0, null, root);
+        string file = _temp.CreateFile("photo.jpg", "content");
+
+        Assert.That(filter.MatchesPath(file), Is.False);
+    }
+
+    [Test]
+    public void ExcludedFolderDoesNotHideASiblingWithTheSamePrefix()
+    {
+        string excludedDirectory = Path.Combine(_temp.Root, "photos");
+        string sibling = _temp.CreateFile(Path.Combine("photos-archive", "photo.jpg"), "content");
+        FileSearchFilter filter = FileSearchFilter.FromText(0, null, excludedDirectory);
+
+        Assert.That(filter.MatchesPath(sibling), Is.True);
+    }
+
+    [Test]
     public void DupProviderRespectsThePathFilter()
     {
         string includedDirectory = Path.Combine(_temp.Root, "included");

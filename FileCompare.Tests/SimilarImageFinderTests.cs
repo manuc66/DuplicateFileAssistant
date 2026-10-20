@@ -29,7 +29,8 @@ public class SimilarImageFinderTests
         using SKBitmap other = TestImages.CreateOtherPattern();
 
         string originalPath = _temp.CreateFile("original.png", TestImages.Encode(original, png: true));
-        string copyPath = _temp.CreateFile("sub/copy.jpg", TestImages.Encode(resized, png: false, quality: 40));
+        string copyPath = _temp.CreateFile(Path.Combine("sub", "copy.jpg"),
+            TestImages.Encode(resized, png: false, quality: 40));
         string otherPath = _temp.CreateFile("other.png", TestImages.Encode(other, png: true));
         _temp.CreateFile("notes.txt", "not an image");
 

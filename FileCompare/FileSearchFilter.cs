@@ -17,17 +17,48 @@ public sealed class FileSearchFilter
     public static FileSearchFilter FromText(long minimumSize, string? extensions, string? excludedFolders)
     {
         HashSet<string> parsedExtensions = new(StringComparer.OrdinalIgnoreCase);
+        bool matchAllExtensions = false;
 
-        foreach (string extension in Split(extensions))
+        foreach (string rawExtension in Split(extensions))
         {
-            parsedExtensions.Add(extension.StartsWith('.') ? extension : $".{extension}");
+            string extension = rawExtension.Trim();
+
+            if (extension.StartsWith("*.", StringComparison.Ordinal))
+            {
+                extension = extension[1..];
+            }
+            else if (extension == "*")
+            {
+                matchAllExtensions = true;
+                continue;
+            }
+            else if (extension.StartsWith('*'))
+            {
+                extension = extension[1..];
+            }
+
+            if (extension.Length > 0)
+            {
+                parsedExtensions.Add(extension.StartsWith('.') ? extension : $".{extension}");
+            }
         }
 
-        string[] parsedExcludedFolders = Split(excludedFolders)
-            .Select(PathUtilities.ExpandPath)
-            .ToArray();
+        if (matchAllExtensions)
+        {
+            parsedExtensions.Clear();
+        }
 
-        return new FileSearchFilter(minimumSize, parsedExtensions, parsedExcludedFolders);
+        List<string> parsedExcludedFolders = new();
+
+        foreach (string excludedFolder in Split(excludedFolders))
+        {
+            if (PathUtilities.TryExpandPath(excludedFolder, out string expanded))
+            {
+                parsedExcludedFolders.Add(expanded);
+            }
+        }
+
+        return new FileSearchFilter(minimumSize, parsedExtensions, parsedExcludedFolders.ToArray());
     }
 
     public bool MatchesFile(IFileInfo fileInfo)
@@ -45,18 +76,9 @@ public sealed class FileSearchFilter
 
     public bool MatchesDirectory(string path)
     {
-        if (_excludedFolders.Length == 0)
-        {
-            return true;
-        }
-
-        string fullPath = Path.GetFullPath(path);
-
         foreach (string excludedFolder in _excludedFolders)
         {
-            if (fullPath.Equals(excludedFolder, PathUtilities.PathComparison) ||
-                fullPath.StartsWith(excludedFolder + Path.DirectorySeparatorChar, PathUtilities.PathComparison) ||
-                fullPath.StartsWith(excludedFolder + Path.AltDirectorySeparatorChar, PathUtilities.PathComparison))
+            if (PathUtilities.IsUnder(path, excludedFolder))
             {
                 return false;
             }
