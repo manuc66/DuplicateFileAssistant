@@ -505,18 +505,28 @@ public static class CliRunner
     {
         IReadOnlyList<InvalidSymbolicLink> links = InvalidSymbolicLinkFinder.Find(root, filter, cancellationToken);
         var results = links.Select(link => new { path = link.Path, target = link.Target }).Cast<object>().ToList();
+        int affected = links.Count;
 
         if (apply && links.Count > 0)
         {
             Trash trash = new(trashPath);
+            affected = 0;
 
             foreach (InvalidSymbolicLink link in links)
             {
-                await trash.DeleteSymbolicLinkAsync(link.Path, cancellationToken);
+                try
+                {
+                    await trash.DeleteSymbolicLinkAsync(link.Path, cancellationToken).ConfigureAwait(false);
+                    affected++;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    output.WriteLine($"Failed: {link.Path}: {ex.Message}");
+                }
             }
         }
 
-        Write(output, json, "invalid-symlinks", root, apply, links.Count, results);
+        Write(output, json, "invalid-symlinks", root, apply, affected, results);
         return 0;
     }
 

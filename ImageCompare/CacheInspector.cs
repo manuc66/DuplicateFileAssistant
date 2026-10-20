@@ -71,19 +71,35 @@ public static class CacheInspector
 
         if (Directory.Exists(models))
         {
-            foreach (string path in Directory.EnumerateDirectories(models))
+            try
             {
-                long bytes = Directory
-                    .EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                    .Sum(file => new FileInfo(file).Length);
+                foreach (string path in Directory.EnumerateDirectories(models))
+                {
+                    long bytes;
 
-                entries.Add(new CacheEntry(
-                    "models",
-                    Path.GetFileName(path),
-                    path,
-                    null,
-                    0,
-                    bytes));
+                    try
+                    {
+                        bytes = Directory
+                            .EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                            .Sum(file => new FileInfo(file).Length);
+                    }
+                    catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                    {
+                        continue;
+                    }
+
+                    entries.Add(new CacheEntry(
+                        "models",
+                        Path.GetFileName(path),
+                        path,
+                        null,
+                        0,
+                        bytes));
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // An unreadable models folder must not hide the other caches.
             }
         }
 

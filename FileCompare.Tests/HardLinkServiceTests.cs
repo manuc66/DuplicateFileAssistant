@@ -33,4 +33,33 @@ public class HardLinkServiceTests
             Assert.That(first, Is.EqualTo(second));
         });
     }
+
+    [Test]
+    public void RejectsAMissingTarget()
+    {
+        string missing = Path.Combine(_temp.Root, "missing.txt");
+
+        Assert.That(
+            () => HardLinkService.Create(Path.Combine(_temp.Root, "link.txt"), missing),
+            Throws.TypeOf<FileNotFoundException>());
+    }
+
+    [Test]
+    public void RejectsAnExistingDestination()
+    {
+        string original = _temp.CreateFile("original.txt", "content");
+        string existing = _temp.CreateFile("existing.txt", "other");
+
+        Assert.That(
+            () => HardLinkService.Create(existing, original),
+            Throws.TypeOf<IOException>());
+    }
+
+    [Test]
+    public void FileIdentityReportsMissingPaths()
+    {
+        Assert.That(
+            FileIdentity.TryGet(Path.Combine(_temp.Root, "missing.txt"), out _),
+            Is.False);
+    }
 }

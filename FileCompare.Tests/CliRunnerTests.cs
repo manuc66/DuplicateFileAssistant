@@ -275,6 +275,73 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task InvalidSymlinksCommandIsDryRunByDefaultAndAppliesWithFlag()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Symbolic link creation is tested on Linux.");
+        }
+
+        string link = Path.Combine(_temp.Root, "broken-link");
+        File.CreateSymbolicLink(link, Path.Combine(_temp.Root, "missing.txt"));
+        string trashPath = Path.Combine(_temp.Root, "trash");
+        StringWriter output = new();
+
+        await CliRunner.RunAsync(
+            new[] { "invalid-symlinks", "--path", _temp.Root, "--json", "--trash", trashPath },
+            output);
+
+        using JsonDocument dryRun = JsonDocument.Parse(output.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(link), Is.True);
+            Assert.That(dryRun.RootElement.GetProperty("applied").GetBoolean(), Is.False);
+            Assert.That(dryRun.RootElement.GetProperty("affected").GetInt32(), Is.EqualTo(1));
+            Assert.That(dryRun.RootElement.GetProperty("results")[0].GetProperty("target").GetString(),
+                Is.EqualTo(Path.Combine(_temp.Root, "missing.txt")));
+        });
+
+        output = new StringWriter();
+        await CliRunner.RunAsync(
+            new[] { "invalid-symlinks", "--path", _temp.Root, "--json", "--apply", "--trash", trashPath },
+            output);
+
+        using JsonDocument applied = JsonDocument.Parse(output.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(new FileInfo(link).LinkTarget, Is.Null);
+            Assert.That(applied.RootElement.GetProperty("applied").GetBoolean(), Is.True);
+            Assert.That(applied.RootElement.GetProperty("affected").GetInt32(), Is.EqualTo(1));
+            Assert.That(new Trash(trashPath).GetEntries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task InvalidSymlinksCommandRespectsExclusions()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Symbolic link creation is tested on Linux.");
+        }
+
+        string excludedFolder = Directory.CreateDirectory(Path.Combine(_temp.Root, "excluded")).FullName;
+        File.CreateSymbolicLink(
+            Path.Combine(excludedFolder, "broken-link"),
+            Path.Combine(_temp.Root, "missing.txt"));
+        StringWriter output = new();
+
+        await CliRunner.RunAsync(
+            new[] { "invalid-symlinks", "--path", _temp.Root, "--json", "--exclude", excludedFolder },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+
+        Assert.That(document.RootElement.GetProperty("results").GetArrayLength(), Is.Zero);
+    }
+
+    [Test]
     public async Task BigFilesCommandRespectsTheMaximum()
     {
         _temp.CreateFile("small.txt", "1");
