@@ -109,7 +109,7 @@ public class FileListViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.TrashFolder);
+            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.ScanExclusions);
 
             IReadOnlyList<DuplicateFile> files = await Task.Run(
                 () => _mode switch

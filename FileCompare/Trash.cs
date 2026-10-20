@@ -1,40 +1,102 @@
-﻿using System.Security.Cryptography;
-using System.Text.Json;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileCompare;
 
+/// <summary>
+/// Facade over the application-owned trash folder and the operating system trash. The
+/// current mode is read from <see cref="TrashSettings"/>, so changing the setting takes
+/// effect for the next deletion without rebuilding the view models.
+/// </summary>
 public class Trash
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
-
+    private readonly Func<TrashSettings> _settingsProvider;
     private readonly object _sync = new();
-    private readonly string _manifestPath;
-    private readonly List<TrashEntry> _entries;
-    private readonly OperationJournal _journal;
+    private ApplicationTrash? _application;
+    private string _applicationFolder;
+    private SystemTrash? _system;
 
     public Trash(string trashFolder)
+        : this(() => new TrashSettings(TrashMode.Application, PathUtilities.ExpandPath(trashFolder)))
     {
-        TrashFolder = PathUtilities.ExpandPath(trashFolder);
-        Directory.CreateDirectory(TrashFolder);
-        _manifestPath = Path.Combine(TrashFolder, "trash-manifest.json");
-        _entries = LoadManifest();
-        _journal = new OperationJournal(Path.Combine(TrashFolder, "operations.jsonl"));
     }
 
-    public string TrashFolder { get; }
-    public OperationJournal Journal => _journal;
+    public Trash(Func<TrashSettings> settingsProvider)
+    {
+        ArgumentNullException.ThrowIfNull(settingsProvider);
+
+        _settingsProvider = settingsProvider;
+        TrashSettings settings = settingsProvider();
+        _applicationFolder = settings.TrashFolder;
+
+        if (settings.Mode == TrashMode.Application)
+        {
+            _application = new ApplicationTrash(_applicationFolder);
+        }
+    }
+
+    /// <summary>
+    /// Application-owned folder, shown in the UI and excluded from scans. In system mode
+    /// it is still the folder that would be used if the user switched back.
+    /// </summary>
+    public string TrashFolder => CurrentSettings.TrashFolder;
+
+    public TrashMode Mode => CurrentSettings.Mode;
+
+    public OperationJournal Journal => CurrentSettings.Mode == TrashMode.System
+        ? SystemStore.Journal
+        : ApplicationStore.Journal;
+
+    /// <summary>
+    /// Semicolon-separated list of every folder that scans must skip: the application
+    /// trash and the OS trash directories.
+    /// </summary>
+    public string ScanExclusions
+    {
+        get
+        {
+            List<string> folders = new() { CurrentSettings.TrashFolder };
+            SystemTrash? system = GetSystemStoreIfUsed();
+
+            if (system != null)
+            {
+                folders.AddRange(system.ExcludedFolders);
+            }
+
+            return string.Join(';', folders.Distinct(PathUtilities.PathComparer));
+        }
+    }
+
+    public bool IsInTrash(string path)
+    {
+        if (PathUtilities.IsUnder(path, CurrentSettings.TrashFolder))
+        {
+            return true;
+        }
+
+        SystemTrash? system = GetSystemStoreIfUsed();
+
+        return system != null && system.ExcludedFolders.Any(folder => PathUtilities.IsUnder(path, folder));
+    }
 
     public IReadOnlyList<TrashEntry> GetEntries()
     {
-        lock (_sync)
+        List<TrashEntry> entries = new();
+        ApplicationTrash? application = GetApplicationStoreIfUsed();
+
+        if (application != null)
         {
-            return _entries.ToList();
+            entries.AddRange(application.GetEntries());
         }
+
+        SystemTrash? system = GetSystemStoreIfUsed();
+
+        if (system != null)
+        {
+            entries.AddRange(system.GetEntries());
+        }
+
+        return entries;
     }
 
     public string Delete(string filePath)
@@ -48,99 +110,35 @@ public class Trash
             .ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
-    public Task<string> DeleteAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<string> DeleteAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return DeleteCoreAsync(filePath, expectedLength: null, expectedLastWriteTimeUtc: null, cancellationToken);
+        if (CurrentSettings.Mode == TrashMode.System)
+        {
+            return await SystemStore.DeleteAsync(filePath, expectedLength: null, expectedLastWriteTimeUtc: null,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return await ApplicationStore.DeleteAsync(filePath, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<string> DeleteAsync(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc,
         CancellationToken cancellationToken = default)
     {
-        return await DeleteCoreAsync(filePath, expectedLength, expectedLastWriteTimeUtc, cancellationToken);
+        if (CurrentSettings.Mode == TrashMode.System)
+        {
+            return await SystemStore.DeleteAsync(filePath, expectedLength, expectedLastWriteTimeUtc, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return await ApplicationStore.DeleteAsync(filePath, expectedLength, expectedLastWriteTimeUtc,
+            cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> DeleteCoreAsync(string filePath, long? expectedLength, DateTime? expectedLastWriteTimeUtc,
-        CancellationToken cancellationToken)
+    public Task<string> DeleteSymbolicLinkAsync(string linkPath, CancellationToken cancellationToken = default)
     {
-        FileInfo fileInfo = new(filePath);
-
-        if (!fileInfo.Exists)
-        {
-            throw new FileNotFoundException("File to trash was not found.", filePath);
-        }
-
-        VerifyUnchanged(fileInfo, expectedLength, expectedLastWriteTimeUtc);
-
-        string sha256 = await ComputeSha256Async(filePath, cancellationToken).ConfigureAwait(false);
-        string destination = GetAvailableDestination(
-            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Guid.NewGuid():N}-{Path.GetFileName(filePath)}");
-
-        UnixFileMode? unixFileMode = null;
-
-        if (!OperatingSystem.IsWindows())
-        {
-            try
-            {
-                unixFileMode = File.GetUnixFileMode(filePath);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
-            {
-            }
-        }
-
-        TrashEntry entry = new(
-            destination,
-            Path.GetFullPath(filePath),
-            fileInfo.Length,
-            fileInfo.LastWriteTimeUtc,
-            fileInfo.CreationTimeUtc,
-            sha256,
-            fileInfo.Attributes,
-            unixFileMode,
-            DateTime.UtcNow,
-            IsSymbolicLink: false);
-
-        // Register the entry before moving the file. If the process crashes after the move,
-        // the restore mapping is already persisted.
-        lock (_sync)
-        {
-            _entries.Add(entry);
-
-            try
-            {
-                SaveManifestLocked();
-            }
-            catch
-            {
-                _entries.Remove(entry);
-                throw;
-            }
-        }
-
-        try
-        {
-            await MoveFileAsync(filePath, destination, fileInfo, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            lock (_sync)
-            {
-                _entries.Remove(entry);
-
-                try
-                {
-                    SaveManifestLocked();
-                }
-                catch
-                {
-                }
-            }
-
-            throw;
-        }
-
-        _journal.Write("delete", entry.OriginalPath, entry.TrashedPath, "ok", null);
-        return destination;
+        return CurrentSettings.Mode == TrashMode.System
+            ? SystemStore.DeleteSymbolicLinkAsync(linkPath, cancellationToken)
+            : ApplicationStore.DeleteSymbolicLinkAsync(linkPath, cancellationToken);
     }
 
     public void Restore(string trashedPath, string originalPath)
@@ -158,84 +156,14 @@ public class Trash
             throw new InvalidOperationException("This trash entry is not present in the manifest.");
         }
 
-        if (File.Exists(entry.TrashedPath))
+        if (entry.Backend == TrashBackend.System)
         {
-            File.Delete(entry.TrashedPath);
+            SystemStore.Discard(entry);
         }
-
-        lock (_sync)
+        else
         {
-            _entries.Remove(entry);
-            SaveManifestLocked();
+            ApplicationStore.Discard(trashedPath);
         }
-
-        _journal.Write("discard", entry.OriginalPath, entry.TrashedPath, "ok", null);
-    }
-
-    public async Task<string> DeleteSymbolicLinkAsync(string linkPath, CancellationToken cancellationToken = default)
-    {
-        FileInfo linkInfo = new(linkPath);
-        string? target = linkInfo.LinkTarget;
-
-        if (target is null)
-        {
-            throw new InvalidOperationException($"Not a symbolic link: {linkPath}");
-        }
-
-        string destination = GetAvailableDestination(
-            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Guid.NewGuid():N}-{Path.GetFileName(linkPath)}");
-
-        TrashEntry entry = new(
-            destination,
-            Path.GetFullPath(linkPath),
-            0,
-            linkInfo.LastWriteTimeUtc,
-            linkInfo.CreationTimeUtc,
-            string.Empty,
-            linkInfo.Attributes,
-            null,
-            DateTime.UtcNow,
-            IsSymbolicLink: true);
-
-        lock (_sync)
-        {
-            _entries.Add(entry);
-
-            try
-            {
-                SaveManifestLocked();
-            }
-            catch
-            {
-                _entries.Remove(entry);
-                throw;
-            }
-        }
-
-        try
-        {
-            await MoveFileAsync(linkPath, destination, linkInfo, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            lock (_sync)
-            {
-                _entries.Remove(entry);
-
-                try
-                {
-                    SaveManifestLocked();
-                }
-                catch
-                {
-                }
-            }
-
-            throw;
-        }
-
-        _journal.Write("delete-symlink", entry.OriginalPath, entry.TrashedPath, "ok", null);
-        return destination;
     }
 
     public async Task RestoreAsync(string trashedPath, string originalPath, CancellationToken cancellationToken = default)
@@ -252,140 +180,78 @@ public class Trash
         await RestoreAsync(entry, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task RestoreAsync(TrashEntry entry, CancellationToken cancellationToken = default)
+    public Task RestoreAsync(TrashEntry entry, CancellationToken cancellationToken = default)
     {
-        TrashEntry? registered = GetEntries().FirstOrDefault(candidate =>
-            PathUtilities.PathComparer.Equals(candidate.TrashedPath, entry.TrashedPath));
+        return entry.Backend == TrashBackend.System
+            ? SystemStore.RestoreAsync(entry, cancellationToken)
+            : ApplicationStore.RestoreAsync(entry, cancellationToken);
+    }
 
-        if (registered is null)
+    private TrashSettings CurrentSettings => _settingsProvider();
+
+    private ApplicationTrash ApplicationStore
+    {
+        get
         {
-            throw new InvalidOperationException("This trash entry is not present in the manifest.");
-        }
+            string folder = CurrentSettings.TrashFolder;
 
-        if (!File.Exists(registered.TrashedPath))
-        {
-            throw new FileNotFoundException("The trashed file is missing.", registered.TrashedPath);
-        }
-
-        if (!registered.IsSymbolicLink)
-        {
-            string currentHash = await ComputeSha256Async(registered.TrashedPath, cancellationToken).ConfigureAwait(false);
-
-            if (!string.Equals(currentHash, registered.Sha256, StringComparison.OrdinalIgnoreCase))
+            lock (_sync)
             {
-                throw new InvalidOperationException("The trashed file has changed since it was deleted.");
+                if (_application == null ||
+                    !string.Equals(_applicationFolder, folder, PathUtilities.PathComparison))
+                {
+                    _application = new ApplicationTrash(folder);
+                    _applicationFolder = folder;
+                }
+
+                return _application;
             }
         }
+    }
 
-        if (File.Exists(registered.OriginalPath))
+    private ApplicationTrash? GetApplicationStoreIfUsed()
+    {
+        if (_application != null)
         {
-            throw new IOException($"The original path already exists: {registered.OriginalPath}");
+            return _application;
         }
 
-        string? originalDirectory = Path.GetDirectoryName(registered.OriginalPath);
-        if (originalDirectory != null)
+        if (CurrentSettings.Mode == TrashMode.Application)
         {
-            Directory.CreateDirectory(originalDirectory);
+            return ApplicationStore;
         }
 
-        await MoveFileAsync(registered.TrashedPath, registered.OriginalPath, new FileInfo(registered.TrashedPath),
-            cancellationToken).ConfigureAwait(false);
+        return Directory.Exists(CurrentSettings.TrashFolder) ? ApplicationStore : null;
+    }
 
-        if (!registered.IsSymbolicLink)
-        {
-            FileMetadata.Apply(registered, registered.OriginalPath);
-        }
+    private SystemTrash SystemStore =>
+        TryGetSystemStore() ??
+        throw new PlatformNotSupportedException("The system trash is not supported on this platform.");
 
+    private SystemTrash? GetSystemStoreIfUsed()
+    {
+        return _system ?? (CurrentSettings.Mode == TrashMode.System ? TryGetSystemStore() : null);
+    }
+
+    private SystemTrash? TryGetSystemStore()
+    {
         lock (_sync)
         {
-            _entries.Remove(registered);
-            SaveManifestLocked();
-        }
-
-        _journal.Write("restore", registered.OriginalPath, registered.TrashedPath, "ok", null);
-    }
-
-    private List<TrashEntry> LoadManifest()
-    {
-        if (!File.Exists(_manifestPath))
-        {
-            return new List<TrashEntry>();
-        }
-
-        try
-        {
-            string json = File.ReadAllText(_manifestPath);
-            return JsonSerializer.Deserialize<List<TrashEntry>>(json, JsonOptions) ?? new List<TrashEntry>();
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidOperationException($"The trash manifest is corrupt: {_manifestPath}", ex);
-        }
-    }
-
-    private void SaveManifestLocked()
-    {
-        string json = JsonSerializer.Serialize(_entries, JsonOptions);
-        string temporaryPath = _manifestPath + ".tmp";
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _manifestPath, overwrite: true);
-    }
-
-    private string GetAvailableDestination(string fileName)
-    {
-        string destination = Path.Combine(TrashFolder, fileName);
-        int suffix = 1;
-
-        while (File.Exists(destination) || Directory.Exists(destination))
-        {
-            destination = Path.Combine(
-                TrashFolder,
-                $"{Path.GetFileNameWithoutExtension(fileName)}-{suffix++}{Path.GetExtension(fileName)}");
-        }
-
-        return destination;
-    }
-
-    private static void VerifyUnchanged(FileInfo fileInfo, long? expectedLength, DateTime? expectedLastWriteTimeUtc)
-    {
-        if (expectedLength.HasValue && fileInfo.Length != expectedLength.Value)
-        {
-            throw new InvalidOperationException($"File changed since it was analyzed: {fileInfo.FullName}");
-        }
-
-        if (expectedLastWriteTimeUtc.HasValue && fileInfo.LastWriteTimeUtc != expectedLastWriteTimeUtc.Value)
-        {
-            throw new InvalidOperationException($"File changed since it was analyzed: {fileInfo.FullName}");
-        }
-    }
-
-    private static async Task MoveFileAsync(string sourcePath, string destinationPath, FileInfo sourceInfo,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            File.Move(sourcePath, destinationPath);
-        }
-        catch (IOException) when (File.Exists(sourcePath) && !File.Exists(destinationPath))
-        {
-            await using (FileStream source = new(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
-                             FileOptions.Asynchronous | FileOptions.SequentialScan))
-            await using (FileStream destination = new(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                             81920, FileOptions.Asynchronous))
+            if (_system != null)
             {
-                await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+                return _system;
             }
 
-            FileMetadata.Copy(sourceInfo, destinationPath);
-            File.Delete(sourcePath);
-        }
-    }
+            try
+            {
+                _system = new SystemTrash();
+            }
+            catch (PlatformNotSupportedException)
+            {
+                return null;
+            }
 
-    private static async Task<string> ComputeSha256Async(string path, CancellationToken cancellationToken)
-    {
-        await using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
-        byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
-        return Convert.ToHexStringLower(hash);
+            return _system;
+        }
     }
 }

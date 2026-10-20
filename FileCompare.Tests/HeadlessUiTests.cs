@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
+using DuplicateAssistant.ViewModels;
 using DuplicateAssistant.Views;
 
 [assembly: AvaloniaTestApplication(typeof(FileCompare.Tests.TestAppBuilder))]
@@ -43,6 +44,22 @@ public class HeadlessUiTests
     public void SimilarImageUserControl_Loads()
     {
         SimilarImageUserControl control = new();
+
+        Assert.That(control.Content, Is.Not.Null);
+    }
+
+    [AvaloniaTest]
+    public void SettingsUserControl_LoadsWithItsViewModel()
+    {
+        using TempDirectory temp = new();
+        TrashSettingsStore store = new(
+            Path.Combine(temp.Root, "settings.json"),
+            new TrashSettings(TrashMode.Application, Path.Combine(temp.Root, "trash")));
+
+        SettingsUserControl control = new()
+        {
+            DataContext = new SettingsViewModel(store, new FakeFolderPicker())
+        };
 
         Assert.That(control.Content, Is.Not.Null);
     }

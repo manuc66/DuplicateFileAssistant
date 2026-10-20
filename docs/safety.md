@@ -22,44 +22,66 @@ and that a wrong deletion must be recoverable.
   untouched and reported.
 - **No symlinked directories.** Directory symbolic links and reparse points are not
   followed during scans, so a scan cannot escape the tree the user chose.
-- **Trash excluded.** The trash folder is added to the exclusions of every scan.
+- **Trash excluded.** The application trash folder is added to the exclusions of every scan.
+  In system mode the OS trash directories are excluded too.
 
 ## Where deleted files go
 
-Every **file** deleted through the app or the CLI is moved to a trash folder, never
-unlinked. (Empty directories are the exception: they are removed directly, after a
-confirmation, because there is nothing to restore.)
+Every **file** deleted through the app or the CLI is moved to a trash, never unlinked.
+(Empty directories are the exception: they are removed directly, after a confirmation,
+because there is nothing to restore.)
 
-| Front end | Default | Override |
-|---|---|---|
-| Desktop app | `~/DuplicateTrash` | `trashFolder` in `DuplicateAssistant/appsettings.json` |
-| CLI | `~/DuplicateTrash` | `--trash <dir>` |
+The desktop app has two modes, chosen in the **Settings** tab:
 
-The file keeps its bytes; only its path changes. A plain move is attempted first. When the
-source and the trash are on different filesystems, the file is copied, its metadata is
-copied, and the source is deleted; if any step fails, the manifest entry is removed and the
-error is reported. The process needs write permission on both sides.
+| Mode | Default | Where the file goes | Restore |
+|---|---|---|---|
+| Application trash | `~/DuplicateTrash` | A folder owned by the app, with its manifest and audit log. | From the **Trash** tab, with hash verification. |
+| System trash | OS default | Windows Recycle Bin, freedesktop XDG trash, or the macOS Trash. | From the **Trash** tab (the app keeps its own manifest) or from the OS. |
 
-Inside the trash, every entry gets a unique timestamp-and-GUID prefix so two files with the
+The CLI always uses an application trash folder; `--trash <dir>` changes it. It does not
+read the desktop setting.
+
+### One folder, not one per volume
+
+The application trash is a single folder, by default on the volume that holds your home
+directory. It is not created per volume. A plain move is attempted first. When the source
+and the trash are on different filesystems, the file is copied, its metadata is copied, and
+the source is deleted; if any step fails, the manifest entry is removed and the error is
+reported. This works, but it costs time and temporary space on the trash volume, and a very
+large file can fail there. The process needs write permission on both sides.
+
+The system trash follows the OS conventions instead: the Windows Recycle Bin is per drive,
+the freedesktop trash uses `~/.local/share/Trash` for the home volume and
+`<volume>/.Trash-<uid>` (or `<volume>/.Trash/<uid>`) for other volumes, and macOS uses
+`~/.Trash` plus `.Trashes/<uid>` on other volumes.
+
+Inside a trash, every entry gets a unique timestamp-and-GUID prefix so two files with the
 same name never collide.
 
 ## The manifest
 
-`trash-manifest.json` is the mutable index of the trash, stored as a JSON array. Each entry
-records:
+`trash-manifest.json` is the mutable index of the trash, stored as a JSON array. In
+application mode it lives in the trash folder. In system mode the app keeps it under its own
+data directory; the operating system keeps its own metadata (`.trashinfo` on Linux, `$I`
+records on Windows) next to the file. Both are removed on restore.
+
+Each entry records:
 
 - the trash path and the **original absolute path**;
 - the length, creation time and last-write time;
 - the file attributes, and the Unix mode on non-Windows systems;
 - the **SHA-256 of the file** as it was when it was trashed;
-- the deletion time in UTC.
+- the deletion time in UTC;
+- which backend owns the entry, and the OS metadata path when there is one.
 
-The entry is written **before** the move, so a crash between the two leaves a mapping that
-can still be inspected rather than an orphan nobody can place. **Restore** moves the file
-back to the original path and refuses if something now occupies it.
+The entry is written **before** the move in application mode, so a crash between the two
+leaves a mapping that can still be inspected rather than an orphan nobody can place. In
+system mode the OS chooses the destination, so the entry is written immediately after the
+move. **Restore** moves the file back to the original path and refuses if something now
+occupies it.
 
-A corrupt manifest is not allowed to take the application down: the trash falls back to an
-empty index and the JSON is left on disk for inspection.
+A corrupt manifest fails closed: the application reports it and leaves the JSON on disk for
+inspection rather than treating every entry as absent.
 
 ## The audit log
 
@@ -83,7 +105,9 @@ exist at both paths.
 
 The trash is a safety net against manipulation errors, **not a backup**:
 
-- It lives on the same filesystem and shares its failure modes.
+- In application mode it lives on one filesystem (your home volume by default) and shares
+  its failure modes. In system mode it depends on the OS trash and can be emptied by the
+  system or another application.
 - It grows: nothing prunes it automatically.
 - It is a plain directory. A user or a cleanup tool can delete it.
 - Restore assumes the original path is free.

@@ -131,7 +131,7 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
                             TextWriter.Null,
                             UpdateProgress,
                             cancellationToken,
-                            path => !PathUtilities.IsUnder(path, _trash.TrashFolder));
+                            path => !_trash.IsInTrash(path));
                     }
                     finally
                     {

@@ -11,6 +11,7 @@ public class MainWindowViewModel : ViewModelBase
     public DeleteIfElsewhereViewModel DeleteIfElsewhereViewModel { get; }
     public MergeToDestinationViewModel MergeToDestinationViewModel { get; }
     public TrashViewModel TrashViewModel { get; }
+    public SettingsViewModel SettingsViewModel { get; }
     public FileListViewModel EmptyFileViewModel { get; }
     public FileListViewModel BigFileViewModel { get; }
     public FileListViewModel TemporaryFileViewModel { get; }
@@ -25,6 +26,7 @@ public class MainWindowViewModel : ViewModelBase
         DeleteIfElsewhereViewModel deleteIfElsewhereViewModel,
         MergeToDestinationViewModel mergeToDestinationViewModel,
         TrashViewModel trashViewModel,
+        SettingsViewModel settingsViewModel,
         FileListViewModel emptyFileViewModel,
         FileListViewModel bigFileViewModel,
         FileListViewModel temporaryFileViewModel,
@@ -39,6 +41,7 @@ public class MainWindowViewModel : ViewModelBase
         DeleteIfElsewhereViewModel = deleteIfElsewhereViewModel;
         MergeToDestinationViewModel = mergeToDestinationViewModel;
         TrashViewModel = trashViewModel;
+        SettingsViewModel = settingsViewModel;
         EmptyFileViewModel = emptyFileViewModel;
         BigFileViewModel = bigFileViewModel;
         TemporaryFileViewModel = temporaryFileViewModel;

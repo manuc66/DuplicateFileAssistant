@@ -107,7 +107,7 @@ public class MergeToDestinationViewModel : ViewModelBase
                     SourcePath,
                     DestinationPath,
                     cancellationToken,
-                    path => !PathUtilities.IsUnder(path, _trash.TrashFolder)),
+                    path => !_trash.IsInTrash(path)),
                 cancellationToken);
 
             OnUiThread(() =>

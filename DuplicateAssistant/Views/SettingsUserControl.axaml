@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="DuplicateAssistant.Views.SettingsUserControl"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16" Spacing="10" MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Text="Trash" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock TextWrapping="Wrap" Opacity="0.8"
+                       Text="Deleted files are moved to a restorable trash. Choose whether the application owns the trash folder or whether the operating system's trash should be used." />
+
+            <RadioButton GroupName="TrashMode" Content="Application trash folder"
+                         IsChecked="{Binding UseApplicationTrash}" />
+            <Grid ColumnDefinitions="*,Auto" Margin="24,0,0,0">
+                <TextBox Grid.Column="0" Text="{Binding TrashFolder}"
+                         IsEnabled="{Binding IsApplicationTrash}"
+                         PlaceholderText="~/DuplicateTrash" />
+                <Button Grid.Column="1" Content="Browse..." Margin="6,0,0,0"
+                        Command="{Binding BrowseFolderCommand}"
+                        IsEnabled="{Binding IsApplicationTrash}" />
+            </Grid>
+            <TextBlock Margin="24,0,0,0" Opacity="0.65" TextWrapping="Wrap"
+                       Text="Changing the folder does not move files that are already in the previous trash." />
+
+            <RadioButton GroupName="TrashMode" Content="System trash (recycle bin / Trash)"
+                         IsChecked="{Binding UseSystemTrash}" />
+
+            <Border BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,6,0,0">
+                <TextBlock Text="{Binding LocationDescription}" TextWrapping="Wrap" Opacity="0.85" />
+            </Border>
+
+            <Button Content="Save" Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Opacity="0.8" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

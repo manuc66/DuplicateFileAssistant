@@ -92,7 +92,7 @@ public class InvalidLinkViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.TrashFolder);
+            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.ScanExclusions);
             IReadOnlyList<InvalidSymbolicLink> links = await Task.Run(
                 () => InvalidSymbolicLinkFinder.Find(SearchPath, filter, cancellationToken),
                 cancellationToken);

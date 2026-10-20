@@ -6,7 +6,7 @@ namespace FileCompare;
 /// </summary>
 public static class CachePaths
 {
-    public static string RootDirectory { get; } = ResolveRootDirectory();
+    public static string RootDirectory => ApplicationPaths.RootDirectory;
 
     public static string ModelsDirectory => Path.Combine(RootDirectory, "models");
 
@@ -26,17 +26,5 @@ public static class CachePaths
     {
         return string.Concat(value.Select(character =>
             Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
-    }
-
-    private static string ResolveRootDirectory()
-    {
-        string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            root = Path.GetTempPath();
-        }
-
-        return Path.Combine(root, "DuplicateFileAssistant");
     }
 }

@@ -216,7 +216,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected bool IsInTrash(string path)
     {
-        return PathUtilities.IsUnder(path, _trash.TrashFolder);
+        return _trash.IsInTrash(path);
     }
 
     protected Task<string?> PickFolderAsync()

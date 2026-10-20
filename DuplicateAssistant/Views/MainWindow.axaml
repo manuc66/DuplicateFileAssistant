@@ -133,6 +133,14 @@
                 <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
             </DockPanel>
         </TabItem>
+        <TabItem Header="Settings" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Chooses between the application trash folder and the system trash.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Choose where deleted files go. The application trash is a folder this app can restore from; the system trash is the operating system's recycle bin or Trash." />
+                <views:SettingsUserControl DataContext="{Binding SettingsViewModel}" />
+            </DockPanel>
+        </TabItem>
     </TabControl>
 
 

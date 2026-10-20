@@ -103,6 +103,8 @@ stream as the report, so a caller should check the process exit code.
 
 ## Trash and logs
 
-`--trash` defaults to `~/DuplicateTrash`, the same folder the desktop app uses. A file is
-moved, not copied, so the operation needs write permission on both the source and the
-trash. The manifest and audit log are described in [Safety and trash](safety.md).
+`--trash` defaults to `~/DuplicateTrash`, the same application folder the desktop app uses
+by default. The CLI always uses an application trash; it does not read the desktop
+**Settings** choice. A file is moved, not copied, so the operation needs write permission on
+both the source and the trash. The manifest and audit log are described in
+[Safety and trash](safety.md).

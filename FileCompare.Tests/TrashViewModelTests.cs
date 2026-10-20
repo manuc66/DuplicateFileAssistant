@@ -35,4 +35,27 @@ public class TrashViewModelTests
             Assert.That(viewModel.Entries, Is.Empty);
         });
     }
+
+    [AvaloniaTest]
+    public async Task DiscardDeletesTheFileAndTheEntry()
+    {
+        using TempDirectory temp = new();
+        string source = temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        await trash.DeleteAsync(source);
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        TrashViewModel viewModel = new(trash, confirmation);
+        TrashEntry entry = viewModel.Entries[0];
+
+        viewModel.SelectedEntry = entry;
+        await viewModel.DiscardCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(entry.TrashedPath), Is.False);
+            Assert.That(viewModel.Entries, Is.Empty);
+        });
+    }
 }

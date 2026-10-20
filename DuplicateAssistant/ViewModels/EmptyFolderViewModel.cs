@@ -74,7 +74,7 @@ public class EmptyFolderViewModel : ViewModelBase
                 () => EmptyDirectoryService.FindEmptyDirectories(
                     SearchPath,
                     cancellationToken,
-                    directory => !PathUtilities.IsUnder(directory, _trash.TrashFolder)),
+                    directory => !_trash.IsInTrash(directory)),
                 cancellationToken);
 
             OnUiThread(() =>

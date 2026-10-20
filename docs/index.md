@@ -62,9 +62,10 @@ Destructive CLI commands are dry runs until you add `--apply`. Details:
 
 Duplicate candidates are compared byte-for-byte, not only by hash, before deletion is
 offered. Destructive operations are confirmed, and the two bulk operations have a dry-run
-mode. Deleted files are moved to `~/DuplicateTrash` by default and can be restored after a
-restart. The trash excludes itself from scans, and directory symlinks are not followed.
-The trash is a safety net against manipulation errors, **not a backup**.
+mode. Deleted files go to a restorable trash. By default this is the application folder
+`~/DuplicateTrash`; the **Settings** tab can switch to the operating system's trash or
+another folder. The trash excludes itself from scans, and directory symlinks are not
+followed. The trash is a safety net against manipulation errors, **not a backup**.
 
 ## Limits, stated plainly
 

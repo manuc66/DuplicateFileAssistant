@@ -15,7 +15,7 @@ public class TrashViewModel : ViewModelBase
     private readonly IDeleteConfirmation _deleteConfirmation;
     private TrashEntry? _selectedEntry;
 
-    public TrashViewModel(Trash trash, IDeleteConfirmation deleteConfirmation)
+    public TrashViewModel(Trash trash, IDeleteConfirmation deleteConfirmation, TrashSettingsStore? settingsStore = null)
     {
         _trash = trash;
         _deleteConfirmation = deleteConfirmation;
@@ -23,11 +23,21 @@ public class TrashViewModel : ViewModelBase
 
         RefreshCommand = ReactiveCommand.Create(Refresh);
         RestoreCommand = ReactiveCommand.CreateFromTask(RestoreAsync);
+        DiscardCommand = ReactiveCommand.CreateFromTask(DiscardAsync);
+
+        if (settingsStore != null)
+        {
+            settingsStore.Changed += (_, _) => OnUiThread(Refresh);
+        }
 
         Refresh();
     }
 
     public ObservableCollection<TrashEntry> Entries { get; }
+
+    public string TrashLocation => _trash.Mode == TrashMode.System
+        ? "System trash"
+        : _trash.TrashFolder;
 
     public TrashEntry? SelectedEntry
     {
@@ -39,6 +49,7 @@ public class TrashViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> RestoreCommand { get; }
+    public ReactiveCommand<Unit, Unit> DiscardCommand { get; }
 
     private void Refresh()
     {
@@ -52,6 +63,7 @@ public class TrashViewModel : ViewModelBase
         SelectedEntry = null;
         Status = $"{Entries.Count} item(s) in the trash.";
         this.RaisePropertyChanged(nameof(HasEntries));
+        this.RaisePropertyChanged(nameof(TrashLocation));
     }
 
     private async Task RestoreAsync()
@@ -80,5 +92,33 @@ public class TrashViewModel : ViewModelBase
                 Status = $"Restored {entry.OriginalPath}.";
             });
         }, "Restoring...");
+    }
+
+    private async Task DiscardAsync()
+    {
+        if (IsBusy || SelectedEntry is null)
+        {
+            return;
+        }
+
+        TrashEntry entry = SelectedEntry;
+        bool confirmed = await _deleteConfirmation.ConfirmAsync(
+            entry.OriginalPath,
+            $"Permanently delete this file from the trash?\n\n{entry.OriginalPath}\n\nThis cannot be undone.");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await RunOperationAsync(async cancellationToken =>
+        {
+            await Task.Run(() => _trash.Discard(entry.TrashedPath), cancellationToken);
+            OnUiThread(() =>
+            {
+                Refresh();
+                Status = $"Discarded {entry.OriginalPath}.";
+            });
+        }, "Discarding...");
     }
 }

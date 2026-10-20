@@ -31,10 +31,15 @@ public class AppBootstrapper
 
         string? configuredTrashFolder = configurationRoot["trashFolder"];
         string trashFolder = ResolvePath(configuredTrashFolder, Path.Combine(userProfile, "DuplicateTrash"));
+        TrashMode configuredTrashMode = TrashSettingsStore.ParseMode(configurationRoot["trashMode"]);
+        TrashSettingsStore trashSettings = new(
+            ApplicationPaths.SettingsFile,
+            new TrashSettings(configuredTrashMode, trashFolder));
 
         services
             .RegisterConstant<IConfiguration>(configurationRoot);
-        services.RegisterLazySingleton(() => new Trash(trashFolder));
+        services.RegisterConstant(trashSettings);
+        services.RegisterLazySingleton(() => new Trash(() => trashSettings.Current));
         services.RegisterLazySingleton(() => new FileManagerHandler());
         services.RegisterLazySingleton<IDeleteConfirmation>(() => new DeleteConfirmationService());
         services.RegisterLazySingleton<IFolderPicker>(() => new FolderPickerService());
@@ -54,7 +59,8 @@ public class AppBootstrapper
         services.Register(() => new EmptyFolderViewModel(searchPath, deleteConfirmation, folderPicker, trash));
         services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation, folderPicker));
-        services.Register(() => new TrashViewModel(trash, deleteConfirmation));
+        services.Register(() => new TrashViewModel(trash, deleteConfirmation, trashSettings));
+        services.Register(() => new SettingsViewModel(trashSettings, folderPicker));
 
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
@@ -66,6 +72,7 @@ public class AppBootstrapper
             resolver.GetService<DeleteIfElsewhereViewModel>() ?? throw new InvalidOperationException("DeleteIfElsewhereViewModel service is not registered."),
             resolver.GetService<MergeToDestinationViewModel>() ?? throw new InvalidOperationException("MergeToDestinationViewModel service is not registered."),
             resolver.GetService<TrashViewModel>() ?? throw new InvalidOperationException("TrashViewModel service is not registered."),
+            resolver.GetService<SettingsViewModel>() ?? throw new InvalidOperationException("SettingsViewModel service is not registered."),
             new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath),
             new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath),
             new FileListViewModel(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath),

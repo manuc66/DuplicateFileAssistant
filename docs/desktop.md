@@ -5,14 +5,14 @@ nav_order: 3
 
 # Desktop app
 
-`DuplicateAssistant` is the Avalonia front end. It has thirteen tabs, each a self-contained
+`DuplicateAssistant` is the Avalonia front end. It has fourteen tabs, each a self-contained
 scan over one folder (or several, for the multi-folder tab). Most tabs show a path and a
 **Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
 report progress in the log below the list and can be stopped at any point.
 
 ![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 
-## The thirteen tabs
+## The fourteen tabs
 
 | Tab | What it finds |
 |---|---|
@@ -28,7 +28,8 @@ report progress in the log below the list and can be stopped at any point.
 | **Big files** | The largest files below the root; the maximum count is configurable. |
 | **Temporary files** | Files with temporary or backup extensions and names. |
 | **Invalid symlinks** | Symbolic links whose target no longer resolves. |
-| **Trash** | Everything deleted through the app, with **Restore** and **Refresh**. |
+| **Trash** | Everything deleted through the app, with **Restore**, **Discard** and **Refresh**. |
+| **Settings** | Chooses between the application trash folder and the system trash, and changes the folder. |
 
 The **Similar images** tab uses the same finder as the CLI and is described in
 [Similar images](similar-images.md).
@@ -105,8 +106,26 @@ link, never the target.
 ## Trash
 
 The **Trash** tab lists the manifest. **Restore** returns an entry to its original path and
-fails if a file now occupies that path. The trash folder defaults to `~/DuplicateTrash` and
-is excluded from every scan.
+fails if a file now occupies that path. **Discard** permanently deletes an entry after
+confirmation, which is also how to clear an entry that was already restored or removed from
+the system trash outside the app. It shows the current location above the list. In
+application mode the folder defaults to `~/DuplicateTrash`; in system mode the files are in
+the Windows Recycle Bin, the freedesktop trash or the macOS Trash. Both modes are tracked by
+the app, so **Restore** works for files it deleted in either mode.
 
 The trash is a safety net against manipulation errors, not a backup. See
-[Safety and trash](safety.md) for the manifest format and the audit log.
+[Safety and trash](safety.md) for the manifest format, the audit log and the volume rules.
+
+## Settings
+
+The **Settings** tab chooses where deleted files go:
+
+- **Application trash folder**: the app owns the folder, the manifest and the audit log.
+  **Browse...** changes the folder. Files already in the previous folder stay there; the app
+  does not move them.
+- **System trash**: files go to the operating system's recycle bin or Trash, and the app
+  keeps its own manifest so they still appear in the **Trash** tab. The application folder
+  is not used in this mode.
+
+The choice is saved in the user profile, so it survives a restart. The defaults come from
+`DuplicateAssistant/appsettings.json` (`trashMode` and `trashFolder`) on the first run.

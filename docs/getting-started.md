@@ -70,12 +70,13 @@ publishes the three archives only for pushes to `main` after the tests pass. See
 | Hash in the desktop app | Blake3 | MD5 and XXHash are also offered. Blake3 is the default for its speed. |
 | Hash in the CLI (`duplicates`) | SHA-256 | `--algorithm md5` is the only alternative. |
 | Recursion | On | The **Subfolder** switch controls it in every desktop tab. |
-| Trash folder | `~/DuplicateTrash` | Set with `trashFolder` in `DuplicateAssistant/appsettings.json` for the app, or `--trash` for the CLI. |
+| Trash | Application folder, `~/DuplicateTrash` | The desktop app's **Settings** tab switches to the system trash or another folder. The CLI always uses an application folder; change it with `--trash`. |
 | Similar-image distance | 8 of 64 bits | `--threshold` on the CLI; see [Similar images](similar-images.md). |
 | Keeper rule | Manual | The multi-folder tab can keep the oldest, newest, shortest or longest path. |
 
 `appsettings.json` is copied next to the executable on build; it also holds the initial
-`searchPath`.
+`searchPath` and the default `trashMode` / `trashFolder`. The **Settings** tab saves the trash
+choice in the user profile, which takes precedence over these defaults.
 
 ## A safe first run
 

@@ -21,14 +21,15 @@ README is the short version.
 ## Safety
 
 - Duplicate candidates are verified byte-for-byte before being offered for deletion.
-- Deleted files are moved to a configurable trash folder and can be restored from the
-  `Trash` tab, including after an application restart.
+- Deleted files are moved to a configurable trash folder or to the operating system's trash,
+  selectable in the app's `Settings` tab, and can be restored from the `Trash` tab, including
+  after an application restart.
 - The trash manifest records the original path, size, timestamps, attributes, Unix mode
   and SHA-256 hash of every entry.
 - Destructive operations are confirmed, and `Delete if elsewhere` / `Merge to destination`
   provide a dry-run mode.
 - `Merge to destination` never overwrites conflicts; conflicting files are left untouched.
-- The trash folder is excluded from scans, and directory symlinks/reparse points are not
+- The trash locations are excluded from scans, and directory symlinks/reparse points are not
   followed.
 
 The trash is a safety net against manipulation errors, not a backup. Keep an independent
@@ -168,7 +169,8 @@ trade-off: a file modified without changing its size or timestamp (for example a
 
 ## Storage formats
 
-- `trash-manifest.json` stores the mutable trash index as a JSON array.
+- `trash-manifest.json` stores the mutable trash index as a JSON array. In system mode it
+  lives in the application data directory, not in the OS trash.
 - `operations.jsonl` is an append-only audit log. JSON Lines was chosen deliberately:
   it is simple, human-readable, dependency-free and well suited to an append-only log.
 
