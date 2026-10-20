@@ -25,7 +25,9 @@ public class EmptyFolderViewModelTests
         EmptyFolderViewModel viewModel = new(root, confirmation, new FakeFolderPicker(), trash);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.EmptyDirectories.Count == 3,
+            "the empty folders to appear");
 
         Assert.Multiple(() =>
         {
@@ -35,7 +37,9 @@ public class EmptyFolderViewModelTests
         });
 
         await viewModel.DeleteCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.EmptyDirectories.Count == 0,
+            "the empty folder list to be cleared");
 
         Assert.Multiple(() =>
         {

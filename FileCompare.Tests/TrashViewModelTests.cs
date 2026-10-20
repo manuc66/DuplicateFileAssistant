@@ -27,7 +27,9 @@ public class TrashViewModelTests
 
         viewModel.SelectedEntry = viewModel.Entries[0];
         await viewModel.RestoreCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Entries.Count == 0,
+            "the restored entry to leave the trash list");
 
         Assert.Multiple(() =>
         {
@@ -50,7 +52,9 @@ public class TrashViewModelTests
 
         viewModel.SelectedEntry = entry;
         await viewModel.DiscardCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Entries.Count == 0,
+            "the discarded entry to leave the trash list");
 
         Assert.Multiple(() =>
         {

@@ -31,6 +31,9 @@ public class MultiFolderDuplicateViewModelTests
         var searchResult = await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
         Dispatcher.UIThread.RunJobs();
         Assert.That(searchResult, Has.Count.EqualTo(1), viewModel.SearchLog);
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.Multiple(() =>
         {

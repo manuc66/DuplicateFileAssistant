@@ -276,7 +276,9 @@ public class SemanticImageTests
         };
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the similar-image group to appear");
 
         Assert.Multiple(() =>
         {

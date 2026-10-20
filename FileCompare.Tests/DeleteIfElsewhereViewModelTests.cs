@@ -61,7 +61,9 @@ public class DeleteIfElsewhereViewModelTests
         };
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Duplicates.Count == 1,
+            "the cross-folder duplicate to appear");
 
         Assert.Multiple(() =>
         {
@@ -71,7 +73,9 @@ public class DeleteIfElsewhereViewModelTests
         });
 
         await viewModel.DeleteCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Duplicates.Count == 0,
+            "the duplicate list to be cleared");
 
         Assert.Multiple(() =>
         {

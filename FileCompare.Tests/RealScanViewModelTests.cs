@@ -51,7 +51,9 @@ public class RealScanViewModelTests
             _folderPicker);
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.Multiple(() =>
         {
@@ -78,7 +80,9 @@ public class RealScanViewModelTests
             _folderPicker);
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.Multiple(() =>
         {
@@ -104,7 +108,9 @@ public class RealScanViewModelTests
             _folderPicker);
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.Multiple(() =>
         {
@@ -133,7 +139,9 @@ public class RealScanViewModelTests
         viewModel.ExtensionSelection.AddExtension("jpg");
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.That(
             viewModel.DuplicateCaseItems[0].Files.Select(file => file.FilePath),
@@ -159,7 +167,9 @@ public class RealScanViewModelTests
         };
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.That(
             viewModel.DuplicateCaseItems[0].Files.Select(file => file.FilePath),
@@ -183,7 +193,9 @@ public class RealScanViewModelTests
         };
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.SearchLog.Contains("Minimum file size"),
+            "the invalid size to be reported");
 
         Assert.Multiple(() =>
         {
@@ -212,7 +224,9 @@ public class RealScanViewModelTests
         };
 
         await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.DuplicateCaseItems.Count == 1,
+            "the duplicate items to appear");
 
         Assert.That(
             viewModel.DuplicateCaseItems.Single().Files.Select(file => file.FilePath),

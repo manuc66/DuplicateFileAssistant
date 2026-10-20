@@ -25,7 +25,9 @@ public class FileListViewModelTests
         viewModel.ExtensionSelection.AddExtension("bin");
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the big file to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { bin }));
     }
@@ -50,7 +52,9 @@ public class FileListViewModelTests
         };
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the temporary file to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { medium }));
     }
@@ -75,7 +79,9 @@ public class FileListViewModelTests
         };
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the big file to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { medium }));
     }
@@ -96,13 +102,17 @@ public class FileListViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the empty file to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { empty }));
 
         viewModel.SelectedFile = viewModel.Files[0];
         await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 0,
+            "the deleted file to leave the list");
 
         Assert.Multiple(() =>
         {
@@ -128,7 +138,9 @@ public class FileListViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the empty file outside the trash to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { normal }));
     }
@@ -148,10 +160,14 @@ public class FileListViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 2,
+            "the two empty files to appear");
         File.Delete(second);
         await viewModel.DeleteAllCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the failed file to remain in the list");
 
         Assert.Multiple(() =>
         {
@@ -179,7 +195,9 @@ public class FileListViewModelTests
         };
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 2,
+            "the two largest files to appear");
 
         Assert.That(viewModel.Files.Select(file => file.Path), Is.EqualTo(new[] { large, medium }));
     }
@@ -288,7 +306,9 @@ public class FileListViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the empty file to appear");
         viewModel.SelectedFile = viewModel.Files[0];
         await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
         Dispatcher.UIThread.RunJobs();
@@ -343,7 +363,9 @@ public class FileListViewModelTests
         };
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Files.Count == 1,
+            "the empty file to appear");
         viewModel.SelectedFile = viewModel.Files[0];
         await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
         Dispatcher.UIThread.RunJobs();

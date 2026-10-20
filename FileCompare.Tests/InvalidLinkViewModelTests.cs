@@ -29,13 +29,17 @@ public class InvalidLinkViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Links.Count == 1,
+            "the broken link to appear");
 
         Assert.That(viewModel.Links, Has.Count.EqualTo(1));
 
         viewModel.SelectedLink = viewModel.Links[0];
         await viewModel.DeleteSelectedCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Links.Count == 0,
+            "the deleted link to leave the list");
 
         Assert.Multiple(() =>
         {
@@ -67,10 +71,14 @@ public class InvalidLinkViewModelTests
             temp.Root);
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Links.Count == 2,
+            "the two broken links to appear");
         File.Delete(second);
         await viewModel.DeleteAllCommand.Execute(Unit.Default).FirstAsync();
-        Dispatcher.UIThread.RunJobs();
+        await TestUi.WaitForAsync(
+            () => viewModel.Links.Count == 1,
+            "the failed link to remain in the list");
 
         Assert.That(viewModel.Links.Select(link => link.Path), Is.EquivalentTo(new[] { second }));
     }
