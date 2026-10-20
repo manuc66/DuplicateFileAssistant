@@ -11,12 +11,14 @@ namespace ImageCompare.Onnx;
 /// </summary>
 public sealed class OnnxModelStore
 {
-    private static readonly HttpClient HttpClient = CreateHttpClient();
+    private static readonly HttpClient SharedHttpClient = CreateHttpClient();
+    private readonly HttpClient _httpClient;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public OnnxModelStore(string? rootDirectory = null)
+    public OnnxModelStore(string? rootDirectory = null, HttpClient? httpClient = null)
     {
         RootDirectory = Path.GetFullPath(rootDirectory ?? DefaultRootDirectory);
+        _httpClient = httpClient ?? SharedHttpClient;
     }
 
     public string RootDirectory { get; }
@@ -27,20 +29,22 @@ public sealed class OnnxModelStore
         OnnxImageEmbeddingModel model,
         bool allowDownload,
         Action<string>? log,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<double>? progress = null)
     {
         return EnsureFilesAsync(model.Id, model.DisplayName, model.Files, allowDownload, log,
-            cancellationToken);
+            cancellationToken, progress);
     }
 
     public Task<IReadOnlyDictionary<string, string>> EnsureFilesAsync(
         OnnxQualityModel model,
         bool allowDownload,
         Action<string>? log,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<double>? progress = null)
     {
         return EnsureFilesAsync(model.Id, model.DisplayName, model.Files, allowDownload, log,
-            cancellationToken);
+            cancellationToken, progress);
     }
 
     private async Task<IReadOnlyDictionary<string, string>> EnsureFilesAsync(
@@ -49,7 +53,8 @@ public sealed class OnnxModelStore
         IReadOnlyList<OnnxModelFile> modelFiles,
         bool allowDownload,
         Action<string>? log,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<double>? progress)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -78,7 +83,7 @@ public sealed class OnnxModelStore
                         path);
                 }
 
-                await DownloadAsync(modelFile, path, displayName, log, cancellationToken)
+                await DownloadAsync(modelFile, path, displayName, log, progress, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -90,26 +95,48 @@ public sealed class OnnxModelStore
         }
     }
 
-    private static async Task DownloadAsync(OnnxModelFile modelFile, string path, string displayName,
-        Action<string>? log, CancellationToken cancellationToken)
+    private async Task DownloadAsync(OnnxModelFile modelFile, string path, string displayName,
+        Action<string>? log, IProgress<double>? progress, CancellationToken cancellationToken)
     {
         string temporaryPath = path + ".download";
 
         log?.Invoke(
             $"Downloading {displayName} ({FormatSize(modelFile.Size)}) from {modelFile.Url}...");
+        progress?.Report(0);
 
         try
         {
-            using HttpResponseMessage response = await HttpClient
+            using HttpResponseMessage response = await _httpClient
                 .GetAsync(modelFile.Url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
 
+            long total = response.Content.Headers.ContentLength ?? modelFile.Size;
+            long copied = 0;
+            byte[] buffer = new byte[81920];
+
+            await using (Stream source = await response.Content
+                             .ReadAsStreamAsync(cancellationToken)
+                             .ConfigureAwait(false))
             await using (FileStream target = File.Create(temporaryPath))
             {
-                await response.Content.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
+                int read;
+
+                while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken)
+                        .ConfigureAwait(false);
+                    copied += read;
+
+                    if (total > 0)
+                    {
+                        progress?.Report(Math.Min(99.9, copied * 100.0 / total));
+                    }
+                }
             }
+
+            progress?.Report(100);
 
             FileInfo downloaded = new(temporaryPath);
 

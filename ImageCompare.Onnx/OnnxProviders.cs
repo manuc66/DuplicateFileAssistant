@@ -15,11 +15,12 @@ public static class OnnxProviders
         OnnxModelStore store,
         bool allowDownload,
         Action<string>? log,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<double>? progress = null)
     {
         OnnxImageEmbeddingModel model = OnnxModelCatalog.GetImageEmbedding(modelId);
         IReadOnlyDictionary<string, string> files = await store
-            .EnsureFilesAsync(model, allowDownload, log, cancellationToken)
+            .EnsureFilesAsync(model, allowDownload, log, cancellationToken, progress)
             .ConfigureAwait(false);
 
         return new OnnxImageEmbeddingProvider(model, files);
@@ -30,11 +31,12 @@ public static class OnnxProviders
         OnnxModelStore store,
         bool allowDownload,
         Action<string>? log,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IProgress<double>? progress = null)
     {
         OnnxQualityModel model = OnnxModelCatalog.GetQualityModel(modelId);
         IReadOnlyDictionary<string, string> files = await store
-            .EnsureFilesAsync(model, allowDownload, log, cancellationToken)
+            .EnsureFilesAsync(model, allowDownload, log, cancellationToken, progress)
             .ConfigureAwait(false);
 
         return new OnnxQualityScorer(model, files);

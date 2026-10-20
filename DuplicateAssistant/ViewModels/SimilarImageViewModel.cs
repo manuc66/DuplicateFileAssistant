@@ -129,6 +129,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         try
         {
             OnnxModelStore? store = NeedsModelDownload ? new OnnxModelStore() : null;
+            IProgress<double> modelProgress = new InlineProgress(value =>
+                UpdateProgress((int)Math.Clamp(value, 0, 100)));
 
             if (UseSemantic)
             {
@@ -138,7 +140,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
                         store!,
                         AllowModelDownload,
                         message => log.WriteLine(message),
-                        ct)
+                        ct,
+                        modelProgress)
                     .GetAwaiter()
                     .GetResult();
 
@@ -157,7 +160,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
                             store!,
                             AllowModelDownload,
                             message => log.WriteLine(message),
-                            ct)
+                            ct,
+                            modelProgress)
                         .GetAwaiter()
                         .GetResult();
                 }
@@ -414,4 +418,12 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         double? MinimumSimilarity,
         string KeeperPath,
         double? KeeperQuality);
+
+    private sealed class InlineProgress(Action<double> report) : IProgress<double>
+    {
+        public void Report(double value)
+        {
+            report(value);
+        }
+    }
 }

@@ -25,6 +25,7 @@ passes refine it:
 - **Suggest a keeper by quality** enables quality scoring. The default is the model-free
   heuristic; **Use DBCNN quality model** selects the trained model instead.
 - The numeric field next to the semantic checkbox is the cosine threshold (0.80 by default).
+- The progress bar reports model downloads, then the scan itself.
 - **Dry run** is checked by default. **Delete non-keepers** moves the other copies to the
   trash after confirmation.
 - Each group shows a thumbnail of the suggested keeper, decoded at a small size.
