@@ -90,14 +90,23 @@ public class DuplicateCaseItemViewModel : ViewModelBase
         try
         {
             HardLinkService.Create(FilePath, keeper.FilePath);
-            _trash.Discard(trashedPath);
-            _duplicateCase.Remove(this);
         }
         catch
         {
             await _trash.RestoreAsync(trashedPath, FilePath);
             throw;
         }
+
+        try
+        {
+            _trash.Discard(trashedPath);
+        }
+        catch
+        {
+            // The link is in place; keeping the trash entry is safer than losing the old inode mapping.
+        }
+
+        _duplicateCase.Remove(this);
     }
 
     private async Task DeleteDuplicateItem(string x)
