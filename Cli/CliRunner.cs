@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using FileCompare;
@@ -46,6 +47,26 @@ public static class CliRunner
         if (!options.TryGetSingle("path", out string? root) || string.IsNullOrWhiteSpace(root))
         {
             output.WriteLine("Missing required option: --path <dir>");
+            return 1;
+        }
+
+        if (!PathUtilities.TryExpandPath(root, out string expandedRoot))
+        {
+            output.WriteLine($"Invalid path: {root}");
+            return 1;
+        }
+
+        root = expandedRoot;
+
+        if (!Directory.Exists(root))
+        {
+            output.WriteLine($"Directory not found: {root}");
+            return 1;
+        }
+
+        if (command == "big-files" &&
+            !TryGetInt(options, "max", 100, 0, int.MaxValue, output, out _))
+        {
             return 1;
         }
 
@@ -175,6 +196,13 @@ public static class CliRunner
         string trashPath, bool json, TextWriter output, CancellationToken cancellationToken)
     {
         string algorithm = options.GetSingle("algorithm")?.ToLowerInvariant() ?? "sha256";
+
+        if (algorithm is not ("sha256" or "md5"))
+        {
+            output.WriteLine($"Unsupported algorithm: {algorithm}. Use sha256 or md5.");
+            return 1;
+        }
+
         ScanCache? cache = options.HasFlag("no-cache")
             ? null
             : new ScanCache(options.GetSingle("cache-path") ?? ScanCache.DefaultPath);
@@ -235,11 +263,23 @@ public static class CliRunner
             return 1;
         }
 
-        int threshold = options.GetInt("threshold", SimilarImageFinder.DefaultMaxDistance);
-        long minimumSize = options.GetLong("min-size", 10 * 1024);
+        if (!TryGetInt(options, "threshold", SimilarImageFinder.DefaultMaxDistance, 0, 64, output,
+                out int threshold) ||
+            !TryGetLong(options, "min-size", 10 * 1024, 0, long.MaxValue, output, out long minimumSize) ||
+            !TryGetDouble(options, "semantic-threshold", 0.80, 0, 1, output, out double semanticThreshold) ||
+            !TryGetDouble(options, "semantic-margin", 0.05, 0, 1, output, out double semanticMargin))
+        {
+            return 1;
+        }
+
         string extensions = options.GetSingle("extensions") ?? DefaultImageExtensions;
-        double semanticThreshold = options.GetDouble("semantic-threshold", 0.80);
-        double semanticMargin = options.GetDouble("semantic-margin", 0.05);
+
+        if (string.IsNullOrWhiteSpace(extensions))
+        {
+            output.WriteLine("Invalid --extensions: provide at least one extension.");
+            return 1;
+        }
+
         FileSearchFilter filter =
             FileSearchFilter.FromText(minimumSize, extensions, string.Join(";", excludedFolders));
 
@@ -550,6 +590,76 @@ public static class CliRunner
     {
         output.WriteLine($"Unknown command: {command}");
         return 1;
+    }
+
+    private static bool TryGetInt(CliOptions options, string key, int fallback, int minimum, int maximum,
+        TextWriter output, out int value)
+    {
+        value = fallback;
+        string? text = options.GetSingle(key);
+
+        if (text is null)
+        {
+            return true;
+        }
+
+        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value) ||
+            value < minimum ||
+            value > maximum)
+        {
+            output.WriteLine($"Invalid --{key}: expected an integer between {minimum} and {maximum}.");
+            value = fallback;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetLong(CliOptions options, string key, long fallback, long minimum, long maximum,
+        TextWriter output, out long value)
+    {
+        value = fallback;
+        string? text = options.GetSingle(key);
+
+        if (text is null)
+        {
+            return true;
+        }
+
+        if (!long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value) ||
+            value < minimum ||
+            value > maximum)
+        {
+            output.WriteLine($"Invalid --{key}: expected an integer between {minimum} and {maximum}.");
+            value = fallback;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetDouble(CliOptions options, string key, double fallback, double minimum,
+        double maximum, TextWriter output, out double value)
+    {
+        value = fallback;
+        string? text = options.GetSingle(key);
+
+        if (text is null)
+        {
+            return true;
+        }
+
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
+            double.IsNaN(value) ||
+            value < minimum ||
+            value > maximum)
+        {
+            output.WriteLine($"Invalid --{key}: expected a number between {minimum} and {maximum}.");
+            value = fallback;
+            return false;
+        }
+
+        return true;
     }
 
 

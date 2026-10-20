@@ -160,6 +160,121 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task UnknownCommandsAreRejected()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "does-not-exist", "--path", _temp.Root },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Unknown command"));
+        });
+    }
+
+    [Test]
+    public async Task MissingPathIsRejected()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(new[] { "duplicates" }, output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Missing required option"));
+        });
+    }
+
+    [Test]
+    public async Task ANonExistingPathIsRejected()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "duplicates", "--path", Path.Combine(_temp.Root, "missing") },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Directory not found"));
+        });
+    }
+
+    [Test]
+    public async Task InvalidNumericOptionsAreRejected()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "big-files", "--path", _temp.Root, "--max", "not-a-number" },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Invalid --max"));
+        });
+    }
+
+    [Test]
+    public async Task ANegativeMaximumIsRejected()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "big-files", "--path", _temp.Root, "--max", "-1" },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Invalid --max"));
+        });
+    }
+
+    [Test]
+    public async Task AnUnknownHashAlgorithmIsRejected()
+    {
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "duplicates", "--path", _temp.Root, "--algorithm", "crc32" },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("Unsupported algorithm"));
+        });
+    }
+
+    [TestCase("--threshold", "65")]
+    [TestCase("--semantic-threshold", "1.5")]
+    [TestCase("--semantic-margin", "-0.1")]
+    [TestCase("--min-size", "-1")]
+    public async Task InvalidSimilarImageOptionsAreRejected(string option, string value)
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "similar-images", "--path", _temp.Root, option, value },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain($"Invalid {option}"));
+        });
+    }
+
+    [Test]
     public async Task BigFilesCommandRespectsTheMaximum()
     {
         _temp.CreateFile("small.txt", "1");
