@@ -10,7 +10,7 @@ scan over one folder (or several, for the multi-folder tab). Most tabs show a pa
 **Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
 report progress in the log below the list and can be stopped at any point.
 
-![The Duplicate in folder tab after a scan.]({{ '/assets/images/screenshot.png' | relative_url }})
+![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 
 ## The twelve tabs
 

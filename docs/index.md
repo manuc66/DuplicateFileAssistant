@@ -19,8 +19,8 @@ Linux are the tested targets; the build workflow also publishes a macOS arm64 ar
 
 ![The Duplicate in folder tab: a search path, a hash algorithm, a subfolder switch, and a list of duplicate groups.]({{ '/assets/images/screenshot.png' | relative_url }})
 
-<sub>The **Duplicate in folder** tab after a scan. The window carries twelve tabs; this
-is the first one. See [Desktop app](desktop.md) for the rest.</sub>
+<sub>The **Duplicate in folder** tab after a scan, in an earlier build. The window now
+carries twelve tabs; see [Desktop app](desktop.md) for the list.</sub>
 
 ## Run it from a clone
 
