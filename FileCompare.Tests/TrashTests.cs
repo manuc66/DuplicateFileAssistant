@@ -37,6 +37,25 @@ public class TrashTests
     }
 
     [Test]
+    public void Restore_MovesTrashedFileBackToItsOriginalPath()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+
+        string trashed = trash.Delete(source);
+        Assert.That(File.Exists(source), Is.False);
+        Assert.That(File.Exists(trashed), Is.True);
+
+        trash.Restore(trashed, source);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(source), Is.True);
+            Assert.That(File.Exists(trashed), Is.False);
+        });
+    }
+
+    [Test]
     public void Delete_RejectsAFileChangedSinceAnalysis()
     {
         string source = _temp.CreateFile("photo.jpg", "content");

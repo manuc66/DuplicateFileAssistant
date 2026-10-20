@@ -49,11 +49,16 @@ public class DuplicateCaseViewModel : ViewModelBase
 
     public string ReclaimableSizeText => $"Reclaimable: {ReclaimableSize:N0} bytes";
 
-    public DuplicateCaseViewModel(DuplicateInFolderViewModel duplicateInFolderViewModel, IEnumerable<DuplicateFile> files, Trash trash, FileManagerHandler fileManagerHandler)
+    public string KeeperText => Keeper is null ? "Keep: none" : $"Keep: {Keeper.FilePath}";
+
+    public DuplicateCaseViewModel(DuplicateInFolderViewModel duplicateInFolderViewModel,
+        IEnumerable<DuplicateFile> files, Trash trash, FileManagerHandler fileManagerHandler,
+        IDeleteConfirmation deleteConfirmation)
     {
         _duplicateInFolderViewModel = duplicateInFolderViewModel;
         _name = String.Join(" - ", files.Select(file => Path.GetFileName(file.Path)).Distinct(StringComparer.OrdinalIgnoreCase));
-        _files = new ObservableCollection<DuplicateCaseItemViewModel>(files.Select(file => new DuplicateCaseItemViewModel(this, file, fileManagerHandler, trash)));
+        _files = new ObservableCollection<DuplicateCaseItemViewModel>(files.Select(file =>
+            new DuplicateCaseItemViewModel(this, file, fileManagerHandler, trash, deleteConfirmation)));
 
         foreach (DuplicateCaseItemViewModel file in _files)
         {
@@ -76,6 +81,7 @@ public class DuplicateCaseViewModel : ViewModelBase
         }
 
         Keeper = keeper;
+        this.RaisePropertyChanged(nameof(KeeperText));
         RaiseReclaimableSizeChanged();
     }
 

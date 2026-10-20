@@ -10,7 +10,7 @@ public class Trash
         Directory.CreateDirectory(TrashFolder);
     }
 
-    public void Delete(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc)
+    public string Delete(string filePath, long expectedLength, DateTime expectedLastWriteTimeUtc)
     {
         FileInfo fileInfo = new(filePath);
 
@@ -20,10 +20,10 @@ public class Trash
             throw new InvalidOperationException($"File changed since it was analyzed: {filePath}");
         }
 
-        Delete(filePath);
+        return Delete(filePath);
     }
 
-    public void Delete(string filePath)
+    public string Delete(string filePath)
     {
         Directory.CreateDirectory(TrashFolder);
 
@@ -40,6 +40,19 @@ public class Trash
             File.Copy(filePath, destination);
             File.Delete(filePath);
         }
+
+        return destination;
+    }
+
+    public void Restore(string trashedPath, string originalPath)
+    {
+        string? originalDirectory = Path.GetDirectoryName(originalPath);
+        if (originalDirectory != null)
+        {
+            Directory.CreateDirectory(originalDirectory);
+        }
+
+        File.Move(trashedPath, originalPath);
     }
 
     private string GetAvailableDestination(string fileName)

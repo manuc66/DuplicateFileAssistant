@@ -25,6 +25,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 {
     private readonly Subject<Unit> _stopSearch = new();
     private readonly BehaviorSubject<bool> _isSearching = new(false);
+    private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly object _progressLock = new();
     private int _pendingProgress;
     private bool _progressUpdateScheduled;
@@ -89,8 +90,10 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _searchLog, value);
     }
 
-    protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
+    protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
+        IDeleteConfirmation deleteConfirmation)
     {
+        _deleteConfirmation = deleteConfirmation;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         SubFolder = true;
@@ -103,7 +106,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand.Subscribe(x => OnUiThread(() =>
         {
             DuplicateCaseItems =
-                new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => new DuplicateCaseViewModel(this, y.Value, trash, fileManagerHandler)));
+                new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => new DuplicateCaseViewModel(this, y.Value, trash, fileManagerHandler, _deleteConfirmation)));
             DuplicateCase = DuplicateCaseItems.FirstOrDefault();
             Finished = true;
         }));

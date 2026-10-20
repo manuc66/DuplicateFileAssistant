@@ -1,5 +1,7 @@
 using DuplicateAssistant.Business;
 using DuplicateAssistant.ViewModels;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace FileCompare.Tests;
 
@@ -10,10 +12,12 @@ public class DuplicateViewModelTests
     public void DuplicateCase_DefaultsToFirstKeeperAndUpdatesReclaimableSize()
     {
         using TempDirectory temp = new();
+        FakeDeleteConfirmation confirmation = new();
         TestDuplicateInFolderViewModel viewModel = new(
             new Trash(Path.Combine(temp.Root, "trash")),
             temp.Root,
-            new FileManagerHandler());
+            new FileManagerHandler(),
+            confirmation);
 
         HashSet<DuplicateFile> files = new()
         {
@@ -25,7 +29,8 @@ public class DuplicateViewModelTests
             viewModel,
             files,
             new Trash(Path.Combine(temp.Root, "trash")),
-            new FileManagerHandler());
+            new FileManagerHandler(),
+            confirmation);
 
         DuplicateCaseItemViewModel first = duplicateCase.Files[0];
         DuplicateCaseItemViewModel second = duplicateCase.Files[1];
@@ -50,15 +55,76 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task DeleteAndRestore_MovesFileAndCanUndo()
+    {
+        using TempDirectory temp = new();
+        string firstPath = temp.CreateFile("first.jpg", "content");
+        string secondPath = temp.CreateFile("second.jpg", "content");
+        FileInfo firstInfo = new(firstPath);
+        FileInfo secondInfo = new(secondPath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(firstPath, firstInfo.Length, firstInfo.LastWriteTimeUtc),
+            new DuplicateFile(secondPath, secondInfo.Length, secondInfo.LastWriteTimeUtc)
+        };
+
+        FakeDeleteConfirmation confirmation = new() { Result = false };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation);
+
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+
+        DuplicateCaseItemViewModel item = duplicateCase.Files[0];
+
+        await item.DeleteCommand.Execute(firstPath).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(firstPath), Is.True);
+            Assert.That(item.IsDeleted, Is.False);
+            Assert.That(confirmation.LastPath, Is.EqualTo(firstPath));
+        });
+
+        confirmation.Result = true;
+        await item.DeleteCommand.Execute(firstPath).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(firstPath), Is.False);
+            Assert.That(item.IsDeleted, Is.True);
+        });
+
+        await item.RestoreCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(firstPath), Is.True);
+            Assert.That(item.IsDeleted, Is.False);
+        });
+    }
+
+    [Test]
     public void RemovingFileFromLastDuplicateCase_DoesNotThrow()
     {
         using TempDirectory temp = new();
         string trashFolder = Path.Combine(temp.Root, "trash");
 
+        FakeDeleteConfirmation confirmation = new();
         TestDuplicateInFolderViewModel viewModel = new(
             new Trash(trashFolder),
             temp.Root,
-            new FileManagerHandler());
+            new FileManagerHandler(),
+            confirmation);
 
         HashSet<DuplicateFile> files = new()
         {
@@ -70,7 +136,8 @@ public class DuplicateViewModelTests
             viewModel,
             files,
             new Trash(trashFolder),
-            new FileManagerHandler());
+            new FileManagerHandler(),
+            confirmation);
 
         viewModel.DuplicateCaseItems.Add(duplicateCase);
 
@@ -85,8 +152,9 @@ public class DuplicateViewModelTests
 
     private sealed class TestDuplicateInFolderViewModel : DuplicateInFolderViewModel
     {
-        public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler)
-            : base(trash, searchPath, fileManagerHandler)
+        public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
+            IDeleteConfirmation deleteConfirmation)
+            : base(trash, searchPath, fileManagerHandler, deleteConfirmation)
         {
         }
 

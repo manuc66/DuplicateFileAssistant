@@ -8,8 +8,9 @@ namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
 {
-    public DuplicateNameInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) : base(
-        trash, searchPath, fileManagerHandler)
+    public DuplicateNameInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
+        IDeleteConfirmation deleteConfirmation) : base(
+        trash, searchPath, fileManagerHandler, deleteConfirmation)
     {
     }
 

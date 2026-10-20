@@ -27,8 +27,9 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
     }
 
-    public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) :
-        base(trash, searchPath, fileManagerHandler)
+    public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
+        IDeleteConfirmation deleteConfirmation) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation)
     {
         HashAlgorithms = new List<string> { "MD5", "Blake3", "XXHash" };
         HashAlgorithm = HashAlgorithms[1];

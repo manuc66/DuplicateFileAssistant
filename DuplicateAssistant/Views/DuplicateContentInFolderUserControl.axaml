@@ -56,10 +56,16 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0"
-                 Name="DuplicateItems"
-                 ItemsSource="{Binding DuplicateCase.Files}">
-        </ListBox>
+        <DockPanel IsVisible="{Binding Finished}" Grid.Row="3" Grid.Column="0">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="16" Margin="4">
+                <TextBlock Text="{Binding DuplicateCase.ReclaimableSizeText}" />
+                <TextBlock Text="{Binding DuplicateCase.KeeperText}" />
+            </StackPanel>
+            <ListBox BorderThickness="1"
+                     Name="DuplicateItems"
+                     ItemsSource="{Binding DuplicateCase.Files}">
+            </ListBox>
+        </DockPanel>
         <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace"
                  IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
                  Text="{Binding SearchLog}">
