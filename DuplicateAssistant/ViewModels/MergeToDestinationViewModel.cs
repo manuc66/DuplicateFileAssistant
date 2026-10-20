@@ -152,7 +152,10 @@ public class MergeToDestinationViewModel : ViewModelBase
             MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken, _trash.Journal);
 
             IReadOnlyList<string> emptyDirectories = await Task.Run(
-                () => EmptyDirectoryService.FindEmptyDirectories(SourcePath, cancellationToken),
+                () => EmptyDirectoryService.FindEmptyDirectories(
+                    SourcePath,
+                    cancellationToken,
+                    directory => !_trash.IsInTrash(directory)),
                 cancellationToken);
             int removedDirectories = EmptyDirectoryService.DeleteEmptyDirectories(emptyDirectories, cancellationToken);
 

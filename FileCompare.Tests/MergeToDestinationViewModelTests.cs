@@ -87,4 +87,34 @@ public class MergeToDestinationViewModelTests
             Assert.That(viewModel.Status, Does.Contain("Moved 1"));
         });
     }
+
+    [AvaloniaTest]
+    public async Task MergeDoesNotDeleteATrashFolderInsideTheSource()
+    {
+        using TempDirectory temp = new();
+        string source = Directory.CreateDirectory(Path.Combine(temp.Root, "source")).FullName;
+        string destination = Directory.CreateDirectory(Path.Combine(temp.Root, "destination")).FullName;
+        temp.CreateFile(Path.Combine("source", "move.txt"), "move");
+        string trashFolder = Path.Combine(source, ".trash");
+        Trash trash = new(trashFolder);
+        MergeToDestinationViewModel viewModel = new(
+            trash,
+            source,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker())
+        {
+            DestinationPath = destination
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        await viewModel.MergeCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(Path.Combine(destination, "move.txt")), Is.True);
+            Assert.That(Directory.Exists(trashFolder), Is.True);
+        });
+    }
 }
