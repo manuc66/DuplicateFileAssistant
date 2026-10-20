@@ -20,22 +20,25 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private bool _isKeeper;
     private bool _isDeleted;
     public string FilePath { get; }
-    public long FileSize { get; }
+    public long FileSize => _fileLength;
+    public long FileLength => _fileLength;
+    public DateTime LastWriteTimeUtc => _lastWriteTimeUtc;
     public bool IsKeeper => _isKeeper;
     public bool IsDeleted => _isDeleted;
     public bool CanDelete => !IsDeleted && !IsKeeper;
+    public bool CanHardlink => CanDelete;
     public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
     public ReactiveCommand<string, Unit> DeleteCommand { get; }
     public ReactiveCommand<Unit, Unit> RestoreCommand { get; }
     public ReactiveCommand<Unit, Unit> MakeKeeperCommand { get; }
+    public ReactiveCommand<Unit, Unit> HardlinkCommand { get; }
 
     public DuplicateCaseItemViewModel(DuplicateCaseViewModel duplicateCase, DuplicateFile file,
         FileManagerHandler fileManagerHandler, Trash trash, IDeleteConfirmation deleteConfirmation)
     {
         _duplicateCase = duplicateCase;
         FilePath = file.Path;
-        FileSize = file.Length;
         _trash = trash;
         _fileManagerHandler = fileManagerHandler;
         _deleteConfirmation = deleteConfirmation;
@@ -47,18 +50,54 @@ public class DuplicateCaseItemViewModel : ViewModelBase
         DeleteCommand = ReactiveCommand.CreateFromTask<string>(DeleteDuplicateItem);
         RestoreCommand = ReactiveCommand.CreateFromTask(RestoreFile);
         MakeKeeperCommand = ReactiveCommand.Create(() => _duplicateCase.SetKeeper(this));
+        HardlinkCommand = ReactiveCommand.CreateFromTask(HardlinkAsync);
     }
 
     internal void ApplyKeeper(bool value)
     {
         this.RaiseAndSetIfChanged(ref _isKeeper, value, nameof(IsKeeper));
         this.RaisePropertyChanged(nameof(CanDelete));
+        this.RaisePropertyChanged(nameof(CanHardlink));
     }
 
     internal void SetDeleted(bool value)
     {
         this.RaiseAndSetIfChanged(ref _isDeleted, value, nameof(IsDeleted));
         this.RaisePropertyChanged(nameof(CanDelete));
+        this.RaisePropertyChanged(nameof(CanHardlink));
+    }
+
+    private async Task HardlinkAsync()
+    {
+        DuplicateCaseItemViewModel? keeper = _duplicateCase.Keeper;
+
+        if (!CanHardlink || keeper is null || ReferenceEquals(keeper, this))
+        {
+            return;
+        }
+
+        bool confirmed = await _deleteConfirmation.ConfirmAsync(
+            FilePath,
+            $"Replace this duplicate with a hard link to the keeper?\n\nKeeper: {keeper.FilePath}");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        string trashedPath = await _trash.DeleteAsync(FilePath, _fileLength, _lastWriteTimeUtc);
+
+        try
+        {
+            HardLinkService.Create(FilePath, keeper.FilePath);
+            _trash.Discard(trashedPath);
+            _duplicateCase.Remove(this);
+        }
+        catch
+        {
+            await _trash.RestoreAsync(trashedPath, FilePath);
+            throw;
+        }
     }
 
     private async Task DeleteDuplicateItem(string x)

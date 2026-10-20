@@ -56,6 +56,101 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task HardlinkReplacesADuplicateWithALinkToTheKeeper()
+    {
+        using TempDirectory temp = new();
+        string keeperPath = temp.CreateFile("keeper.jpg", "content");
+        string duplicatePath = temp.CreateFile("duplicate.jpg", "content");
+        FileInfo keeperInfo = new(keeperPath);
+        FileInfo duplicateInfo = new(duplicatePath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(keeperPath, keeperInfo.Length, keeperInfo.LastWriteTimeUtc),
+            new DuplicateFile(duplicatePath, duplicateInfo.Length, duplicateInfo.LastWriteTimeUtc)
+        };
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+        viewModel.DuplicateCaseItems.Add(duplicateCase);
+
+        DuplicateCaseItemViewModel keeper = duplicateCase.Keeper!;
+        DuplicateCaseItemViewModel duplicate = duplicateCase.Files.First(file => !ReferenceEquals(file, keeper));
+        await duplicate.HardlinkCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(keeperPath), Is.True);
+            Assert.That(File.Exists(duplicatePath), Is.True);
+            Assert.That(FileIdentity.TryGet(keeperPath, out FileIdentity keeperId), Is.True);
+            Assert.That(FileIdentity.TryGet(duplicatePath, out FileIdentity duplicateId), Is.True);
+            Assert.That(keeperId, Is.EqualTo(duplicateId));
+            Assert.That(trash.GetEntries(), Is.Empty);
+            Assert.That(viewModel.DuplicateCaseItems, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task AutoRuleSelectsTheOldestKeeperAndDeletesNonKeepers()
+    {
+        using TempDirectory temp = new();
+        string oldestPath = temp.CreateFile("oldest.jpg", "content");
+        string newestPath = temp.CreateFile("newest.jpg", "content");
+        File.SetLastWriteTimeUtc(oldestPath, DateTime.UtcNow.AddDays(-2));
+        File.SetLastWriteTimeUtc(newestPath, DateTime.UtcNow.AddDays(-1));
+        FileInfo oldestInfo = new(oldestPath);
+        FileInfo newestInfo = new(newestPath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(oldestPath, oldestInfo.Length, oldestInfo.LastWriteTimeUtc),
+            new DuplicateFile(newestPath, newestInfo.Length, newestInfo.LastWriteTimeUtc)
+        };
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+        viewModel.DuplicateCaseItems.Add(duplicateCase);
+
+        viewModel.AutoDeleteRule = AutoDeleteRule.KeepOldest;
+        await viewModel.ApplyRuleCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.That(duplicateCase.Keeper!.FilePath, Is.EqualTo(oldestPath));
+
+        await viewModel.DeleteNonKeepersCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(oldestPath), Is.True);
+            Assert.That(File.Exists(newestPath), Is.False);
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task KeeperCannotBeDeleted()
     {
         using TempDirectory temp = new();

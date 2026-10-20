@@ -139,6 +139,30 @@ public class Trash
         RestoreAsync(trashedPath, originalPath, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
+    public void Discard(string trashedPath)
+    {
+        TrashEntry? entry = GetEntries().FirstOrDefault(candidate =>
+            PathUtilities.PathComparer.Equals(candidate.TrashedPath, trashedPath));
+
+        if (entry is null)
+        {
+            throw new InvalidOperationException("This trash entry is not present in the manifest.");
+        }
+
+        if (File.Exists(entry.TrashedPath))
+        {
+            File.Delete(entry.TrashedPath);
+        }
+
+        lock (_sync)
+        {
+            _entries.Remove(entry);
+            SaveManifestLocked();
+        }
+
+        _journal.Write("discard", entry.OriginalPath, entry.TrashedPath, "ok", null);
+    }
+
     public async Task<string> DeleteSymbolicLinkAsync(string linkPath, CancellationToken cancellationToken = default)
     {
         FileInfo linkInfo = new(linkPath);

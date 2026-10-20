@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.MultiFolderDuplicateUserControl"
              x:DataType="vm:MultiFolderDuplicateViewModel">
-    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,*,*">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,*">
         <Grid Grid.Row="0" Margin="0,0,0,4" ColumnDefinitions="*,Auto,Auto">
             <ListBox Grid.Column="0" ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}"
                      Height="70" BorderThickness="1" />
@@ -23,7 +23,15 @@
             <Button Grid.Column="4" Content="Stop" Command="{Binding StopSearchCommand}" Margin="6,0,0,0" />
         </Grid>
 
-        <Grid Grid.Row="2" Margin="0,0,0,4" ColumnDefinitions="Auto,120,Auto,*,Auto,2*">
+        <Grid Grid.Row="2" Margin="0,0,0,4" ColumnDefinitions="Auto,160,Auto,Auto,Auto,*">
+            <TextBlock Grid.Column="0" Text="Auto rule" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding AutoDeleteRules}" SelectedItem="{Binding AutoDeleteRule}" />
+            <Button Grid.Column="2" Content="Apply" Command="{Binding ApplyRuleCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="3" Content="Delete non-keepers" Command="{Binding DeleteNonKeepersCommand}" Margin="6,0,0,0" />
+            <CheckBox Grid.Column="4" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,0,0,4" ColumnDefinitions="Auto,120,Auto,*,Auto,2*">
             <TextBlock Grid.Column="0" Text="Min bytes" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Grid.Column="1" Text="{Binding MinimumFileSizeText}" PlaceholderText="0" />
             <TextBlock Grid.Column="2" Text="Extensions" VerticalAlignment="Center" Margin="12,0,6,0" />
@@ -32,9 +40,9 @@
             <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
         </Grid>
 
-        <ProgressBar Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Margin="0,0,0,6" />
+        <ProgressBar Grid.Row="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Margin="0,0,0,6" />
 
-        <ListBox Grid.Row="4" IsVisible="{Binding Finished}" BorderThickness="1"
+        <ListBox Grid.Row="5" IsVisible="{Binding Finished}" BorderThickness="1"
                  SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
@@ -43,7 +51,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <DockPanel Grid.Row="5" IsVisible="{Binding Finished}">
+        <DockPanel Grid.Row="6" IsVisible="{Binding Finished}">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="16" Margin="4">
                 <TextBlock Text="{Binding DuplicateCase.ReclaimableSizeText}" />
                 <TextBlock Text="{Binding DuplicateCase.KeeperText}" />
@@ -52,7 +60,7 @@
         </DockPanel>
 
         <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="monospace"
-                 IsVisible="{Binding !Finished}" Grid.Row="4" Grid.RowSpan="2"
+                 IsVisible="{Binding !Finished}" Grid.Row="5" Grid.RowSpan="2"
                  Text="{Binding SearchLog}" />
     </Grid>
 </UserControl>

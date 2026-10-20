@@ -28,9 +28,28 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
+    public ReactiveCommand<Unit, Unit> ApplyRuleCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteNonKeepersCommand { get; }
 
     public IReadOnlyList<string> HashAlgorithms { get; }
+    public IReadOnlyList<AutoDeleteRule> AutoDeleteRules { get; } = Enum.GetValues<AutoDeleteRule>();
     public bool ShowHashOptions { get; protected set; } = true;
+
+    private AutoDeleteRule _autoDeleteRule = AutoDeleteRule.Manual;
+
+    public AutoDeleteRule AutoDeleteRule
+    {
+        get => _autoDeleteRule;
+        set => this.RaiseAndSetIfChanged(ref _autoDeleteRule, value);
+    }
+
+    private bool _dryRun;
+
+    public bool DryRun
+    {
+        get => _dryRun;
+        set => this.RaiseAndSetIfChanged(ref _dryRun, value);
+    }
 
     private string _hashAlgorithm = "Blake3";
 
@@ -145,6 +164,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         StopSearchCommand = ReactiveCommand.Create(
             () => _stopSearch.OnNext(Unit.Default),
             _isSearching);
+        ApplyRuleCommand = ReactiveCommand.Create(ApplyRule);
+        DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync);
 
         _duplicateCaseItems = new();
     }
@@ -205,6 +226,90 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }
 
         return FileSearchFilter.FromText(minimumSize, FileExtensions, ExcludedFolders);
+    }
+
+    private void ApplyRule()
+    {
+        if (AutoDeleteRule == AutoDeleteRule.Manual)
+        {
+            return;
+        }
+
+        foreach (DuplicateCaseViewModel duplicateCase in DuplicateCaseItems)
+        {
+            DuplicateCaseItemViewModel? keeper = AutoDeleteRule switch
+            {
+                AutoDeleteRule.KeepOldest => duplicateCase.Files
+                    .OrderBy(file => file.LastWriteTimeUtc)
+                    .FirstOrDefault(),
+                AutoDeleteRule.KeepNewest => duplicateCase.Files
+                    .OrderByDescending(file => file.LastWriteTimeUtc)
+                    .FirstOrDefault(),
+                AutoDeleteRule.KeepShortestPath => duplicateCase.Files
+                    .OrderBy(file => file.FilePath.Length)
+                    .FirstOrDefault(),
+                AutoDeleteRule.KeepLongestPath => duplicateCase.Files
+                    .OrderByDescending(file => file.FilePath.Length)
+                    .FirstOrDefault(),
+                _ => null
+            };
+
+            if (keeper != null)
+            {
+                duplicateCase.SetKeeper(keeper);
+            }
+        }
+    }
+
+    private async Task DeleteNonKeepersAsync()
+    {
+        List<DuplicateCaseItemViewModel> items = DuplicateCaseItems
+            .SelectMany(duplicateCase => duplicateCase.Files)
+            .Where(file => file.CanDelete)
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        if (DryRun)
+        {
+            SearchLog = $"{SearchLog}{Environment.NewLine}Dry run: would move {items.Count} duplicate(s) to the trash.";
+            return;
+        }
+
+        bool confirmed = await _deleteConfirmation.ConfirmAsync(
+            SearchPath,
+            $"Move {items.Count} non-keeper file(s) to the trash?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        int deleted = 0;
+        int failed = 0;
+
+        foreach (DuplicateCaseItemViewModel item in items)
+        {
+            try
+            {
+                await _trash.DeleteAsync(
+                    item.FilePath,
+                    item.FileLength,
+                    item.LastWriteTimeUtc);
+                item.SetDeleted(true);
+                deleted++;
+            }
+            catch (Exception ex)
+            {
+                failed++;
+                SearchLog = $"{SearchLog}{Environment.NewLine}{ex.Message}";
+            }
+        }
+
+        SearchLog = $"{SearchLog}{Environment.NewLine}Moved {deleted} file(s); {failed} failed.";
     }
 
     public void Remove(DuplicateCaseViewModel duplicateCaseViewModel)
