@@ -5,10 +5,18 @@ public static class BigFileFinder
     public static IReadOnlyList<DuplicateFile> Find(string root, int maximumFiles, FileSearchFilter filter,
         CancellationToken cancellationToken)
     {
+        return Find(root, maximumFiles, filter, long.MaxValue, cancellationToken);
+    }
+
+    public static IReadOnlyList<DuplicateFile> Find(string root, int maximumFiles, FileSearchFilter filter,
+        long maximumSize, CancellationToken cancellationToken)
+    {
         if (!Directory.Exists(root))
         {
             throw new DirectoryNotFoundException($"Directory not found: {root}");
         }
+
+        long effectiveMaximum = maximumSize <= 0 ? long.MaxValue : maximumSize;
 
         EnumerationOptions options = new()
         {
@@ -28,7 +36,8 @@ public static class BigFileFinder
             if (!filter.MatchesPath(path) ||
                 !DuplicateFile.TryCreate(path, out DuplicateFile? file) ||
                 file is null ||
-                file.Length < filter.MinimumSize)
+                file.Length < filter.MinimumSize ||
+                file.Length > effectiveMaximum)
             {
                 continue;
             }

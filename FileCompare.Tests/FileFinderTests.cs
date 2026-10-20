@@ -49,6 +49,39 @@ public class FileFinderTests
     }
 
     [Test]
+    public void BigFileFinderRespectsAMaximumSize()
+    {
+        string small = _temp.CreateFile("small.txt", new string('a', 1024));
+        string medium = _temp.CreateFile("medium.txt", new string('b', 10 * 1024));
+        _temp.CreateFile("large.txt", new string('c', 100 * 1024));
+
+        IReadOnlyList<DuplicateFile> result = BigFileFinder.Find(
+            _temp.Root,
+            10,
+            FileSearchFilter.FromText(0, null, null),
+            50 * 1024,
+            CancellationToken.None);
+
+        Assert.That(result.Select(file => file.Path), Is.EquivalentTo(new[] { small, medium }));
+    }
+
+    [Test]
+    public void BigFileFinderRespectsTheMinimumSize()
+    {
+        _temp.CreateFile("small.txt", new string('a', 1024));
+        string medium = _temp.CreateFile("medium.txt", new string('b', 10 * 1024));
+        string large = _temp.CreateFile("large.txt", new string('c', 100 * 1024));
+
+        IReadOnlyList<DuplicateFile> result = BigFileFinder.Find(
+            _temp.Root,
+            10,
+            FileSearchFilter.FromText(5 * 1024, null, null),
+            CancellationToken.None);
+
+        Assert.That(result.Select(file => file.Path), Is.EquivalentTo(new[] { medium, large }));
+    }
+
+    [Test]
     public void TemporaryFileFinderMatchesKnownPatterns()
     {
         string tempFile = _temp.CreateFile("document.tmp", "content");

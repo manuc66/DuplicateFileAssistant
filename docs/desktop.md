@@ -108,10 +108,11 @@ operation only starts when **Move to trash** or **Merge** is pressed.
 
 ## Empty files, big files, temporary files, invalid symlinks
 
-These four are list-and-delete tools rather than duplicate finders. **Big files** has a
-**Max files** field; the others have no size parameter. All four have a **Dry run** mode
-and **Delete selected** / **Delete all** buttons. **Invalid symlinks** only deletes the
-link, never the target.
+These four are list-and-delete tools rather than duplicate finders. **Big files** also has
+**Min size** and **Max size** fields (for example `10 MB` or `1.5 GB`, blank means no
+bound), plus a **Max files** field. The others have no size parameter. All four have a
+**Dry run** mode and **Delete selected** / **Delete all** buttons. **Invalid symlinks** only
+deletes the link, never the target.
 
 ## Trash
 

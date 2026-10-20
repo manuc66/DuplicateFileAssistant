@@ -29,6 +29,8 @@ public class FileListViewModel : ViewModelBase
     private int _maximumFiles = 100;
     private bool _dryRun;
     private DuplicateFile? _selectedFile;
+    private string _minimumSizeText = string.Empty;
+    private string _maximumSizeText = string.Empty;
 
     public FileListViewModel(Trash trash, IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
         FileListMode mode, string searchPath, LastFolderStore? lastFolderStore = null)
@@ -72,6 +74,20 @@ public class FileListViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _selectedFile, value);
     }
 
+    public string MinimumSizeText
+    {
+        get => _minimumSizeText;
+        set => this.RaiseAndSetIfChanged(ref _minimumSizeText, value);
+    }
+
+    public string MaximumSizeText
+    {
+        get => _maximumSizeText;
+        set => this.RaiseAndSetIfChanged(ref _maximumSizeText, value);
+    }
+
+    public bool ShowSizeFilters => _mode == FileListMode.BigFiles;
+
     public ObservableCollection<DuplicateFile> Files { get; }
     public bool HasResults => Files.Count > 0;
     public bool ShowMaximumFiles => _mode == FileListMode.BigFiles;
@@ -107,19 +123,45 @@ public class FileListViewModel : ViewModelBase
 
         _lastFolderStore?.Save(SearchPath);
 
+        long minimumSize = 0;
+        long maximumSize = long.MaxValue;
+
+        if (_mode == FileListMode.BigFiles)
+        {
+            if (!string.IsNullOrWhiteSpace(MinimumSizeText) &&
+                !FileSizeParser.TryParse(MinimumSizeText, out minimumSize))
+            {
+                Status = "Minimum size must be a number, optionally followed by KB, MB, GB or TB.";
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(MaximumSizeText) &&
+                !FileSizeParser.TryParse(MaximumSizeText, out maximumSize))
+            {
+                Status = "Maximum size must be a number, optionally followed by KB, MB, GB or TB.";
+                return;
+            }
+
+            if (maximumSize > 0 && minimumSize > maximumSize)
+            {
+                Status = "Minimum size must not be greater than maximum size.";
+                return;
+            }
+        }
+
         Files.Clear();
         SelectedFile = null;
         RaiseFilesChanged();
 
         await RunOperationAsync(async cancellationToken =>
         {
-            FileSearchFilter filter = FileSearchFilter.FromText(0, null, _trash.ScanExclusions);
+            FileSearchFilter filter = FileSearchFilter.FromText(minimumSize, null, _trash.ScanExclusions);
 
             IReadOnlyList<DuplicateFile> files = await Task.Run(
                 () => _mode switch
                 {
                     FileListMode.EmptyFiles => EmptyFileFinder.Find(SearchPath, filter, cancellationToken),
-                    FileListMode.BigFiles => BigFileFinder.Find(SearchPath, MaximumFiles, filter, cancellationToken),
+                    FileListMode.BigFiles => BigFileFinder.Find(SearchPath, MaximumFiles, filter, maximumSize, cancellationToken),
                     FileListMode.TemporaryFiles => TemporaryFileFinder.Find(SearchPath, filter, cancellationToken),
                     _ => throw new ArgumentOutOfRangeException()
                 },
