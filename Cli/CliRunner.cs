@@ -107,7 +107,28 @@ public static class CliRunner
         bool json = options.HasFlag("json");
         bool prune = options.HasFlag("prune");
         bool clear = options.HasFlag("clear");
-        string directory = Path.GetFullPath(options.GetSingle("cache-dir") ?? CachePaths.RootDirectory);
+        string configuredDirectory = options.GetSingle("cache-dir") ?? CachePaths.RootDirectory;
+
+        if (!PathUtilities.TryExpandPath(configuredDirectory, out string directory))
+        {
+            output.WriteLine($"Invalid cache directory: {configuredDirectory}");
+            return 1;
+        }
+
+        if (File.Exists(directory))
+        {
+            output.WriteLine($"The cache directory is a file: {directory}");
+            return 1;
+        }
+
+        string? modelsDirectory = null;
+
+        if (options.TryGetSingle("model-dir", out string? configuredModels) &&
+            !PathUtilities.TryExpandPath(configuredModels, out modelsDirectory))
+        {
+            output.WriteLine($"Invalid models directory: {configuredModels}");
+            return 1;
+        }
 
         if (clear)
         {
@@ -140,7 +161,7 @@ public static class CliRunner
         }
 
         int pruned = prune ? CacheInspector.Prune(directory) : 0;
-        CacheSnapshot snapshot = CacheInspector.Inspect(directory, options.GetSingle("model-dir"));
+        CacheSnapshot snapshot = CacheInspector.Inspect(directory, modelsDirectory);
 
         if (json)
         {

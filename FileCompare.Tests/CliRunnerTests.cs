@@ -99,6 +99,23 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task CacheCommandRejectsAFileAsTheCacheDirectory()
+    {
+        string file = _temp.CreateFile("cache-file", "not a directory");
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "cache", "--cache-dir", file },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(output.ToString(), Does.Contain("is a file"));
+        });
+    }
+
+    [Test]
     public async Task DuplicatesCommandUsesTheScanCache()
     {
         _temp.CreateFile("a.txt", "same");
