@@ -58,6 +58,42 @@ public class DuplicateCaseViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _thumbnail, value);
     }
 
+    private bool _previewsEnabled;
+    private DuplicateCaseItemViewModel? _selectedFile;
+    private Bitmap? _keeperPreview;
+    private Bitmap? _selectedPreview;
+
+    public DuplicateCaseItemViewModel? SelectedFile
+    {
+        get => _selectedFile;
+        set
+        {
+            if (ReferenceEquals(_selectedFile, value))
+            {
+                return;
+            }
+
+            this.RaiseAndSetIfChanged(ref _selectedFile, value);
+
+            if (_previewsEnabled)
+            {
+                _ = LoadSelectedPreviewAsync(value);
+            }
+        }
+    }
+
+    public Bitmap? KeeperPreview
+    {
+        get => _keeperPreview;
+        private set => this.RaiseAndSetIfChanged(ref _keeperPreview, value);
+    }
+
+    public Bitmap? SelectedPreview
+    {
+        get => _selectedPreview;
+        private set => this.RaiseAndSetIfChanged(ref _selectedPreview, value);
+    }
+
     public long ReclaimableSize
     {
         get
@@ -104,6 +140,11 @@ public class DuplicateCaseViewModel : ViewModelBase
         Keeper = keeper;
         this.RaisePropertyChanged(nameof(KeeperText));
         RaiseReclaimableSizeChanged();
+
+        if (_previewsEnabled)
+        {
+            _ = LoadKeeperPreviewAsync(keeper);
+        }
     }
 
     public void ApplySimilarImageDetails(SimilarImageKind kind, int maximumDistance,
@@ -136,6 +177,10 @@ public class DuplicateCaseViewModel : ViewModelBase
             SetKeeper(suggestedKeeper);
         }
 
+        _previewsEnabled = true;
+        _selectedFile = Files.FirstOrDefault(file => !file.IsKeeper) ?? Keeper;
+        this.RaisePropertyChanged(nameof(SelectedFile));
+
         this.RaisePropertyChanged(nameof(Kind));
         this.RaisePropertyChanged(nameof(KindText));
         this.RaisePropertyChanged(nameof(Detail));
@@ -158,6 +203,71 @@ public class DuplicateCaseViewModel : ViewModelBase
             {
                 using MemoryStream stream = new(png);
                 Thumbnail = new Bitmap(stream);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+            }
+        });
+    }
+
+    public async Task LoadPreviewsAsync()
+    {
+        if (!_previewsEnabled)
+        {
+            return;
+        }
+
+        await LoadKeeperPreviewAsync(Keeper);
+        await LoadSelectedPreviewAsync(SelectedFile ?? Keeper);
+    }
+
+    private async Task LoadKeeperPreviewAsync(DuplicateCaseItemViewModel? keeper)
+    {
+        if (!_previewsEnabled || keeper is null)
+        {
+            return;
+        }
+
+        byte[]? png = await Task.Run(() => ThumbnailLoader.LoadPng(keeper.FilePath, 640, 480));
+
+        if (png is null)
+        {
+            return;
+        }
+
+        OnUiThread(() =>
+        {
+            try
+            {
+                using MemoryStream stream = new(png);
+                KeeperPreview = new Bitmap(stream);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+            }
+        });
+    }
+
+    private async Task LoadSelectedPreviewAsync(DuplicateCaseItemViewModel? selected)
+    {
+        if (!_previewsEnabled || selected is null)
+        {
+            return;
+        }
+
+        byte[]? png = await Task.Run(() => ThumbnailLoader.LoadPng(selected.FilePath, 640, 480));
+
+        if (png is null)
+        {
+            return;
+        }
+
+        OnUiThread(() =>
+        {
+            try
+            {
+                using MemoryStream stream = new(png);
+                SelectedPreview = new Bitmap(stream);
             }
             catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
             {

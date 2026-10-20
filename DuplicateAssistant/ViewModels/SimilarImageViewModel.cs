@@ -238,6 +238,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
             if (LoadThumbnails)
             {
                 _ = duplicateCase.LoadThumbnailAsync(metadata.KeeperPath);
+                _ = duplicateCase.LoadPreviewsAsync();
             }
 
             foreach (DuplicateCaseItemViewModel file in duplicateCase.Files)

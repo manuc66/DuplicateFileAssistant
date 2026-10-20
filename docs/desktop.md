@@ -83,8 +83,9 @@ and finds resized or recompressed copies. Two optional passes refine it:
 
 The threshold field tunes the semantic pass (0.80 by default); a higher value is stricter.
 **Dry run** is checked by default. Review the group, then **Delete non-keepers** moves the
-other copies to the trash after confirmation. Hard links are disabled for image groups
-because a perceptual match is not guaranteed to be byte-identical.
+other copies to the trash after confirmation. Selecting a file shows it side by side with
+the keeper, so a crop or edit can be checked before acting. Hard links are disabled for
+image groups because a perceptual match is not guaranteed to be byte-identical.
 
 ## Delete if elsewhere and Merge to destination
 

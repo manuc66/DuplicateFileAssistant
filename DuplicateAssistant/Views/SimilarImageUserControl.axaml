@@ -69,7 +69,23 @@
                     <TextBlock Text="{Binding DuplicateCase.KeeperQualityText}" />
                 </StackPanel>
 
-                <ListBox Name="SimilarImageItems" BorderThickness="1" ItemsSource="{Binding DuplicateCase.Files}">
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*" Height="180" Margin="6,0,0,4">
+                    <DockPanel Grid.Column="0" Margin="0,0,4,0">
+                        <TextBlock DockPanel.Dock="Top" Text="Keeper" FontSize="12" FontWeight="SemiBold" />
+                        <Border BorderThickness="1" CornerRadius="4" Background="#11808080">
+                            <Image Source="{Binding DuplicateCase.KeeperPreview}" Stretch="Uniform" />
+                        </Border>
+                    </DockPanel>
+                    <DockPanel Grid.Column="1" Margin="4,0,0,0">
+                        <TextBlock DockPanel.Dock="Top" Text="Selected" FontSize="12" FontWeight="SemiBold" />
+                        <Border BorderThickness="1" CornerRadius="4" Background="#11808080">
+                            <Image Source="{Binding DuplicateCase.SelectedPreview}" Stretch="Uniform" />
+                        </Border>
+                    </DockPanel>
+                </Grid>
+
+                <ListBox Name="SimilarImageItems" BorderThickness="1" ItemsSource="{Binding DuplicateCase.Files}"
+                         SelectedItem="{Binding DuplicateCase.SelectedFile}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:DuplicateCaseItemViewModel">
                             <views:DuplicateCaseItemView />

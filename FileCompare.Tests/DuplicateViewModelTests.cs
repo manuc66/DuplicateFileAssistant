@@ -1,6 +1,9 @@
+using Avalonia.Headless.NUnit;
+using Avalonia.Threading;
 using DuplicateAssistant.Business;
 using DuplicateAssistant.ViewModels;
 using ImageCompare;
+using SkiaSharp;
 using System.Reactive;
 using System.Reactive.Linq;
 
@@ -391,6 +394,48 @@ public class DuplicateViewModelTests
         {
             Assert.That(viewModel.DuplicateCaseItems, Is.Empty);
             Assert.That(viewModel.DuplicateCase, Is.Null);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task PreviewsAreLoadedForKeeperAndSelectedFile()
+    {
+        using TempDirectory temp = new();
+        using SKBitmap image = TestImages.CreatePattern(800, 600);
+        string keeperPath = temp.CreateFile("keeper.png", TestImages.Encode(image, png: true));
+        string otherPath = temp.CreateFile("other.png", TestImages.Encode(image, png: true));
+
+        FakeDeleteConfirmation confirmation = new();
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+        DuplicateCaseViewModel duplicateCase = CreateCase(
+            viewModel,
+            trash,
+            confirmation,
+            keeperPath,
+            otherPath);
+
+        duplicateCase.ApplySimilarImageDetails(
+            SimilarImageKind.Perceptual,
+            maximumDistance: 0,
+            minimumSimilarity: 1.0,
+            keeperPath: keeperPath,
+            keeperQuality: 0.5);
+
+        await duplicateCase.LoadPreviewsAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(duplicateCase.KeeperPreview, Is.Not.Null);
+            Assert.That(duplicateCase.SelectedPreview, Is.Not.Null);
+            Assert.That(duplicateCase.SelectedFile, Is.Not.Null);
+            Assert.That(duplicateCase.SelectedFile!.FilePath, Is.EqualTo(otherPath));
         });
     }
 
