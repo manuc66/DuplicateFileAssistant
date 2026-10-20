@@ -49,6 +49,7 @@ public class TrashViewModel : ViewModelBase
             Entries.Add(entry);
         }
 
+        SelectedEntry = null;
         Status = $"{Entries.Count} item(s) in the trash.";
         this.RaisePropertyChanged(nameof(HasEntries));
     }
