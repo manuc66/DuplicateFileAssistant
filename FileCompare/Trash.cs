@@ -75,13 +75,28 @@ public class Trash
         string destination = GetAvailableDestination(
             $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(filePath)}");
 
+        UnixFileMode? unixFileMode = null;
+
+        if (!OperatingSystem.IsWindows())
+        {
+            try
+            {
+                unixFileMode = File.GetUnixFileMode(filePath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            {
+            }
+        }
+
         TrashEntry entry = new(
             destination,
             Path.GetFullPath(filePath),
             fileInfo.Length,
             fileInfo.LastWriteTimeUtc,
+            fileInfo.CreationTimeUtc,
             sha256,
             fileInfo.Attributes,
+            unixFileMode,
             DateTime.UtcNow);
 
         // Register the entry before moving the file. If the process crashes after the move,

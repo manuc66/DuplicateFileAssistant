@@ -26,7 +26,13 @@ public static class FileMetadata
         try
         {
             File.SetLastWriteTimeUtc(destinationPath, entry.LastWriteTimeUtc);
+            File.SetCreationTimeUtc(destinationPath, entry.CreationTimeUtc);
             File.SetAttributes(destinationPath, entry.Attributes);
+
+            if (!OperatingSystem.IsWindows() && entry.UnixFileMode.HasValue)
+            {
+                File.SetUnixFileMode(destinationPath, entry.UnixFileMode.Value);
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
         {

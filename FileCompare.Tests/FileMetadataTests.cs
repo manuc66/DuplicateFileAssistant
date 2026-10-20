@@ -4,6 +4,28 @@ namespace FileCompare.Tests;
 public class FileMetadataTests
 {
     [Test]
+    public void ApplyRestoresTimestampAndAttributes()
+    {
+        using TempDirectory temp = new();
+        string destination = temp.CreateFile("destination.txt", "content");
+        DateTime timestamp = new(2021, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+        TrashEntry entry = new(
+            "trashed.txt",
+            destination,
+            7,
+            timestamp,
+            timestamp,
+            "hash",
+            FileAttributes.Normal,
+            null,
+            DateTime.UtcNow);
+
+        FileMetadata.Apply(entry, destination);
+
+        Assert.That(File.GetLastWriteTimeUtc(destination), Is.EqualTo(timestamp));
+    }
+
+    [Test]
     public void CopyPreservesLastWriteTime()
     {
         using TempDirectory temp = new();
