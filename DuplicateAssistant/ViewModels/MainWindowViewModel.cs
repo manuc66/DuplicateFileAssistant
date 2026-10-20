@@ -4,6 +4,8 @@ public class MainWindowViewModel : ViewModelBase
 {
     public DuplicateContentInFolderViewModel DuplicateContentInFolderViewModel { get; }
     public DuplicateNameInFolderViewModel DuplicateNameInFolderViewModel { get; }
+    public DuplicateSizeInFolderViewModel DuplicateSizeInFolderViewModel { get; }
+    public MultiFolderDuplicateViewModel MultiFolderDuplicateViewModel { get; }
     public EmptyFolderViewModel EmptyFolderViewModel { get; }
     public DeleteIfElsewhereViewModel DeleteIfElsewhereViewModel { get; }
     public MergeToDestinationViewModel MergeToDestinationViewModel { get; }
@@ -15,6 +17,8 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel(DuplicateContentInFolderViewModel duplicateContentInFolderViewModel,
         DuplicateNameInFolderViewModel duplicateNameInFolderViewModel,
+        DuplicateSizeInFolderViewModel duplicateSizeInFolderViewModel,
+        MultiFolderDuplicateViewModel multiFolderDuplicateViewModel,
         EmptyFolderViewModel emptyFolderViewModel,
         DeleteIfElsewhereViewModel deleteIfElsewhereViewModel,
         MergeToDestinationViewModel mergeToDestinationViewModel,
@@ -26,6 +30,8 @@ public class MainWindowViewModel : ViewModelBase
     {
         DuplicateContentInFolderViewModel = duplicateContentInFolderViewModel;
         DuplicateNameInFolderViewModel = duplicateNameInFolderViewModel;
+        DuplicateSizeInFolderViewModel = duplicateSizeInFolderViewModel;
+        MultiFolderDuplicateViewModel = multiFolderDuplicateViewModel;
         EmptyFolderViewModel = emptyFolderViewModel;
         DeleteIfElsewhereViewModel = deleteIfElsewhereViewModel;
         MergeToDestinationViewModel = mergeToDestinationViewModel;

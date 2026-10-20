@@ -28,6 +28,12 @@
         <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
             <views:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
         </TabItem>
+        <TabItem Header="Same size in folder" VerticalContentAlignment="Center">
+            <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateSizeInFolderViewModel}" />
+        </TabItem>
+        <TabItem Header="Multi-folder duplicates" VerticalContentAlignment="Center">
+            <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}" />
+        </TabItem>
         <TabItem Header="Remove renamed" VerticalContentAlignment="Center">
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
         </TabItem>

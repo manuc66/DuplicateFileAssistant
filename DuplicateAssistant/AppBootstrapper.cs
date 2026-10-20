@@ -44,10 +44,14 @@ public class AppBootstrapper
         IDeleteConfirmation deleteConfirmation = resolver.GetService<IDeleteConfirmation>() ?? throw new InvalidOperationException("DeleteConfirmation service is not registered.");
         IFolderPicker folderPicker = resolver.GetService<IFolderPicker>() ?? throw new InvalidOperationException("FolderPicker service is not registered.");
 
-        services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
+        ScanCache scanCache = new(ScanCache.DefaultPath);
+
+        services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
+        services.Register(() => new DuplicateSizeInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
+        services.Register(() => new MultiFolderDuplicateViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new EmptyFolderViewModel(searchPath, deleteConfirmation, folderPicker, trash));
-        services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation, folderPicker));
+        services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation, folderPicker));
         services.Register(() => new TrashViewModel(trash, deleteConfirmation));
 
@@ -59,6 +63,8 @@ public class AppBootstrapper
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
             resolver.GetService<DuplicateNameInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateNameInFolderViewModel service is not registered."),
+            resolver.GetService<DuplicateSizeInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateSizeInFolderViewModel service is not registered."),
+            resolver.GetService<MultiFolderDuplicateViewModel>() ?? throw new InvalidOperationException("MultiFolderDuplicateViewModel service is not registered."),
             resolver.GetService<EmptyFolderViewModel>() ?? throw new InvalidOperationException("EmptyFolderViewModel service is not registered."),
             resolver.GetService<DeleteIfElsewhereViewModel>() ?? throw new InvalidOperationException("DeleteIfElsewhereViewModel service is not registered."),
             resolver.GetService<MergeToDestinationViewModel>() ?? throw new InvalidOperationException("MergeToDestinationViewModel service is not registered."),

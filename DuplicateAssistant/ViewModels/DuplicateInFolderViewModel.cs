@@ -29,6 +29,17 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
 
+    public IReadOnlyList<string> HashAlgorithms { get; }
+    public bool ShowHashOptions { get; protected set; } = true;
+
+    private string _hashAlgorithm = "Blake3";
+
+    public string HashAlgorithm
+    {
+        get => _hashAlgorithm;
+        set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
+    }
+
     private string _searchPath;
 
     public string SearchPath
@@ -109,6 +120,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         _trash = trash;
         _searchPath = searchPath;
         _searchLog = string.Empty;
+        HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
         SubFolder = true;
         Finished = true;
         SearchCommand = ReactiveCommand.CreateFromObservable(
@@ -175,6 +187,11 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     protected bool IsInTrash(string path)
     {
         return PathUtilities.IsUnder(path, _trash.TrashFolder);
+    }
+
+    protected Task<string?> PickFolderAsync()
+    {
+        return _folderPicker.PickFolderAsync(SearchPath);
     }
 
     protected FileSearchFilter CreateSearchFilter()

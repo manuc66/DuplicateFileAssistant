@@ -17,19 +17,21 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
     private readonly Trash _trash;
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
+    private readonly ScanCache? _scanCache;
     private string _sourcePath;
     private string _otherPath;
     private string _hashAlgorithm = "Blake3";
     private bool _dryRun;
 
     public DeleteIfElsewhereViewModel(Trash trash, string sourcePath, IDeleteConfirmation deleteConfirmation,
-        IFolderPicker folderPicker)
+        IFolderPicker folderPicker, ScanCache? scanCache = null)
     {
         _trash = trash;
         _sourcePath = sourcePath;
         _otherPath = string.Empty;
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
+        _scanCache = scanCache;
         HashAlgorithms = new List<string>(HashAlgorithmFactory.Names);
         Duplicates = new ObservableCollection<CrossFolderDuplicate>();
 
@@ -112,15 +114,30 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
             IHashFile hashing = HashAlgorithmFactory.Create(HashAlgorithm);
 
             IReadOnlyList<CrossFolderDuplicate> results = await Task.Run(
-                () => CrossFolderDuplicateFinder.Find(
-                    SourcePath,
-                    OtherPath,
-                    fileInfo => !fileInfo.IsLink() && !fileInfo.IsFifoFile(),
-                    path => hashing.Hash(path, cancellationToken),
-                    TextWriter.Null,
-                    UpdateProgress,
-                    cancellationToken,
-                    path => !PathUtilities.IsUnder(path, _trash.TrashFolder)),
+                () =>
+                {
+                    byte[] Compute(string path) => hashing.Hash(path, cancellationToken);
+                    Func<string, byte[]> hash = _scanCache is null
+                        ? Compute
+                        : path => _scanCache.GetOrCompute(HashAlgorithm, path, Compute);
+
+                    try
+                    {
+                        return CrossFolderDuplicateFinder.Find(
+                            SourcePath,
+                            OtherPath,
+                            fileInfo => !fileInfo.IsLink() && !fileInfo.IsFifoFile(),
+                            hash,
+                            TextWriter.Null,
+                            UpdateProgress,
+                            cancellationToken,
+                            path => !PathUtilities.IsUnder(path, _trash.TrashFolder));
+                    }
+                    finally
+                    {
+                        _scanCache?.Save();
+                    }
+                },
                 cancellationToken);
 
             OnUiThread(() =>

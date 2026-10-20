@@ -11,28 +11,13 @@ namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 {
-    private List<string> _hashAlgorithms = null!;
-
-    public List<string> HashAlgorithms
-    {
-        get => _hashAlgorithms;
-        set => this.RaiseAndSetIfChanged(ref _hashAlgorithms, value);
-    }
-
-    private string _hashAlgorithm = null!;
-
-    public string HashAlgorithm
-    {
-        get => _hashAlgorithm;
-        set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
-    }
+    private readonly ScanCache? _scanCache;
 
     public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker) :
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null) :
         base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
     {
-        HashAlgorithms = new List<string>(HashAlgorithmFactory.Names);
-        HashAlgorithm = "Blake3";
+        _scanCache = scanCache;
     }
 
     protected override Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
@@ -43,10 +28,21 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         IHashFile fileHashing = HashAlgorithmFactory.Create(HashAlgorithm);
         FileSearchFilter searchFilter = CreateSearchFilter();
 
-        Func<string, byte[]> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
+        Func<string, byte[]> compute = p => Hash(p, fileHashing, textDisplayProgress, ct);
+        Func<string, byte[]> hash = _scanCache is null
+            ? compute
+            : p => _scanCache.GetOrCompute(HashAlgorithm, p, compute);
 
-        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, searchFilter.MatchesFile, textDisplayProgress,
-            UpdateProgress, hash, ct, path => searchFilter.MatchesPath(path) && !IsInTrash(path));
+        try
+        {
+            return DupProvider.FindDuplicateByHash(SearchPath, searchOption, searchFilter.MatchesFile,
+                textDisplayProgress, UpdateProgress, hash, ct,
+                path => searchFilter.MatchesPath(path) && !IsInTrash(path));
+        }
+        finally
+        {
+            _scanCache?.Save();
+        }
     }
 
     static byte[] Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
