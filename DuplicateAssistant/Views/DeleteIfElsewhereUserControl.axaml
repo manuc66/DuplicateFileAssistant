@@ -45,7 +45,7 @@
             <CheckBox Grid.Column="4" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
         </Grid>
 
-        <ProgressBar Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Margin="0,0,0,6" />
+        <ProgressBar Classes="pageProgress" Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
 
         <ListBox Grid.Row="4" BorderThickness="1" ItemsSource="{Binding Duplicates}" FontFamily="monospace">
             <ListBox.ItemTemplate>
@@ -64,7 +64,8 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
             <Button Grid.Column="1" Content="Move to trash" Command="{Binding DeleteCommand}"
                     IsEnabled="{Binding HasResults}" />
         </Grid>

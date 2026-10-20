@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
 using DuplicateAssistant.ViewModels;
@@ -26,6 +27,19 @@ public class HeadlessUiTests
         MainWindow window = new();
 
         Assert.That(window.Content, Is.Not.Null);
+    }
+
+    [AvaloniaTest]
+    public void MainWindow_SidebarSelectsTheMatchingPage()
+    {
+        MainWindow window = new();
+
+        ListBox settingsNavigation = window.FindControl<ListBox>("UtilityNavigation")!;
+        TabControl pages = window.FindControl<TabControl>("Pages")!;
+
+        settingsNavigation.SelectedIndex = 1;
+
+        Assert.That(pages.SelectedIndex, Is.EqualTo(13));
     }
 
     [AvaloniaTest]

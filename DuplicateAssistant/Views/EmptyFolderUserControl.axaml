@@ -20,7 +20,7 @@
             <Button Grid.Column="3" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
         </Grid>
 
-        <ProgressBar Grid.Row="1" IsIndeterminate="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Margin="0,6" />
+        <ProgressBar Classes="pageProgress" Grid.Row="1" IsIndeterminate="{Binding IsBusy}" />
 
         <ListBox Grid.Row="2" BorderThickness="1" ItemsSource="{Binding EmptyDirectories}" FontFamily="monospace" />
 
@@ -29,7 +29,8 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
             <Button Grid.Column="1" Content="Delete empty folders" Command="{Binding DeleteCommand}"
                     IsEnabled="{Binding HasResults}" />
         </Grid>

@@ -4,144 +4,359 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:DuplicateAssistant.Views"
         xmlns:vm="using:DuplicateAssistant.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="DuplicateAssistant.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="DuplicateAssistant"
+        Title="DuplicateFileAssistant"
         Icon="/Assets/icon.png"
-        >
+        Width="1180" Height="760"
+        MinWidth="860" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-    <TabControl>
-        <TabControl.Styles>
-            <Style Selector="TabItem">
-                <Setter Property="FontSize" Value="14"/>
-                <Setter Property="Height" Value="34"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Margin" Value="0 0 0 0"/>
-                <Setter Property="Padding" Value="10 0"/>
-            </Style>
-            <Style Selector="TextBlock.tabDescription">
-                <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Opacity" Value="0.7"/>
-                <Setter Property="TextWrapping" Value="Wrap"/>
-                <Setter Property="Margin" Value="10,6,10,0"/>
-            </Style>
-        </TabControl.Styles>
-        <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Finds files with identical content in one folder.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Finds files with identical content in one folder. Each group has one keeper; the other copies can be moved to the trash after confirmation." />
-                <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Same name in folder" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Finds files that share the same name, even when their content differs.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Finds files that share the same name, even when their content differs. Review each group before acting: files are only moved to the trash." />
-                <views:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Same size in folder" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Groups files by exact size only; same size does not mean same content.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Groups files by exact size only. Same size does not mean same content, so check the files before deleting anything." />
-                <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateSizeInFolderViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Multi-folder duplicates" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Finds identical files across several folders.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Finds identical files across several folders. Add the folders to compare, then keep one copy per group; non-keepers go to the trash after confirmation." />
-                <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Similar images" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Finds the same picture resized, recompressed, cropped or edited.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Finds the same picture at another size, recompressed, cropped or edited. Semantic matching and keeper quality are optional; Dry run is on by default and every deletion goes to the trash after confirmation." />
-                <views:SimilarImageUserControl DataContext="{Binding SimilarImageViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Trashes source files that also exist in another folder.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists files from the source folder that also exist in the other folder. Only the source copies are moved to the trash. Use Dry run to preview." />
-                <views:DeleteIfElsewhereUserControl DataContext="{Binding DeleteIfElsewhereViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Merge to destination" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Moves a folder into another one without overwriting conflicts.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Moves the source folder into the destination: missing files are moved, identical duplicates are trashed, and conflicting files are left untouched. Use Dry run to preview." />
-                <views:MergeToDestinationUserControl DataContext="{Binding MergeToDestinationViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Remove empty folder" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Lists and deletes folders that contain no files.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists folders that no longer contain any file and deletes them. Only empty folders are removed, so no data is lost." />
-                <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Empty files" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Lists zero-byte files.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists zero-byte files, often left by interrupted downloads or crashes. Deleted files go to the trash and can be restored." />
-                <views:FileListUserControl DataContext="{Binding EmptyFileViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Big files" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Lists the largest files in a folder.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists the largest files in a folder to help free space. You choose what to move to the trash." />
-                <views:FileListUserControl DataContext="{Binding BigFileViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Temporary files" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Lists temporary, backup and cache files.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists temporary and cache files (*.tmp, *.bak, *.log, .DS_Store, Thumbs.db, ...). Review the list before moving anything to the trash." />
-                <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Invalid symlinks" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Lists symbolic links whose target no longer exists.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Lists symbolic links whose target no longer exists. Deleting a link never deletes its target; the link itself goes to the trash." />
-                <views:InvalidLinkUserControl DataContext="{Binding InvalidLinkViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Trash" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Restores files moved to the trash.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Every file moved to the trash is kept here with its original path. Select an entry and press Restore to put it back. The trash is a safety net, not a backup." />
-                <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
-            </DockPanel>
-        </TabItem>
-        <TabItem Header="Settings" VerticalContentAlignment="Center"
-                 ToolTip.Tip="Chooses between the application trash folder and the system trash.">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
-                           Text="Choose where deleted files go. The application trash is a folder this app can restore from; the system trash is the operating system's recycle bin or Trash." />
-                <views:SettingsUserControl DataContext="{Binding SettingsViewModel}" />
-            </DockPanel>
-        </TabItem>
-    </TabControl>
 
+    <Window.Styles>
+        <Style Selector="Border.sidebar">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+        </Style>
 
+        <Style Selector="TextBlock.appTitle">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.appSubtitle">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Opacity" Value="0.6"/>
+        </Style>
+
+        <Style Selector="TextBlock.navSection">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            <Setter Property="Margin" Value="16,14,10,4"/>
+        </Style>
+
+        <Style Selector="ListBox.nav">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+        </Style>
+
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="Padding" Value="16,7"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+
+        <Style Selector="ListBox.nav ListBoxItem TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="materialIcons|MaterialIcon.navIcon">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="TabControl.pages">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <!-- The navigation sidebar selects the page, so the tab strip itself is hidden. -->
+        <Style Selector="TabControl.pages /template/ ItemsPresenter#PART_ItemsPresenter">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+
+        <!-- Breathing room on every page, including pages whose control has no margin of its own. -->
+        <Style Selector="TabControl.pages /template/ ContentPresenter#PART_SelectedContentHost">
+            <Setter Property="Margin" Value="8,0,8,8"/>
+        </Style>
+
+        <Style Selector="TextBlock.pageTitle">
+            <Setter Property="FontSize" Value="19"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style Selector="TextBlock.tabDescription">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Opacity" Value="0.7"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="MaxWidth" Value="900"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="260,*">
+        <Border Grid.Column="0" Classes="sidebar">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="16,18,16,8" Spacing="2">
+                    <TextBlock Classes="appTitle" Text="DuplicateFileAssistant"/>
+                    <TextBlock Classes="appSubtitle" Text="Find, review and clean up"/>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Padding="0,8"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="0,1,0,0">
+                    <ListBox x:Name="UtilityNavigation" Classes="nav"
+                             SelectionChanged="OnNavigationSelectionChanged">
+                        <ListBoxItem Tag="12">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <materialIcons:MaterialIcon Classes="navIcon" Kind="TrashCan"/>
+                                <TextBlock Text="Trash"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="13">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <materialIcons:MaterialIcon Classes="navIcon" Kind="Cogs"/>
+                                <TextBlock Text="Settings"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                    </ListBox>
+                </Border>
+
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock Classes="navSection" Text="FIND DUPLICATES"/>
+                        <ListBox x:Name="DuplicateNavigation" Classes="nav"
+                                 SelectionChanged="OnNavigationSelectionChanged">
+                            <ListBoxItem Tag="0">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="ContentDuplicate"/>
+                                    <TextBlock Text="Duplicate in folder"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="1">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="RenameBox"/>
+                                    <TextBlock Text="Same name in folder"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="2">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FileCompare"/>
+                                    <TextBlock Text="Same size in folder"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="3">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FolderMultiple"/>
+                                    <TextBlock Text="Multi-folder duplicates"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="4">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="ImageSearch"/>
+                                    <TextBlock Text="Similar images"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                        </ListBox>
+
+                        <TextBlock Classes="navSection" Text="ORGANIZE"/>
+                        <ListBox x:Name="OrganizeNavigation" Classes="nav"
+                                 SelectionChanged="OnNavigationSelectionChanged">
+                            <ListBoxItem Tag="5">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="DeleteSweep"/>
+                                    <TextBlock Text="Delete if elsewhere"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="6">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FolderMove"/>
+                                    <TextBlock Text="Merge to destination"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="7">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FolderRemove"/>
+                                    <TextBlock Text="Remove empty folder"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                        </ListBox>
+
+                        <TextBlock Classes="navSection" Text="MAINTENANCE"/>
+                        <ListBox x:Name="MaintenanceNavigation" Classes="nav"
+                                 SelectionChanged="OnNavigationSelectionChanged">
+                            <ListBoxItem Tag="8">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FileRemove"/>
+                                    <TextBlock Text="Empty files"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="9">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FileChart"/>
+                                    <TextBlock Text="Big files"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="10">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="FileClock"/>
+                                    <TextBlock Text="Temporary files"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                            <ListBoxItem Tag="11">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <materialIcons:MaterialIcon Classes="navIcon" Kind="LinkVariantOff"/>
+                                    <TextBlock Text="Invalid symlinks"/>
+                                </StackPanel>
+                            </ListBoxItem>
+                        </ListBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <TabControl Grid.Column="1" x:Name="Pages" Classes="pages">
+            <TabItem Header="Duplicate in folder">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Duplicate in folder"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Finds files with identical content in one folder. Each group has one keeper; the other copies can be moved to the trash after confirmation."/>
+                    </StackPanel>
+                    <views:DuplicateContentInFolderUserControl Margin="8,0,8,0" DataContext="{Binding DuplicateContentInFolderViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Same name in folder">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Same name in folder"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Finds files that share the same name, even when their content differs. Review each group before acting: files are only moved to the trash."/>
+                    </StackPanel>
+                    <views:DuplicateNameInFolderUserControl Margin="8,0,8,0" DataContext="{Binding DuplicateNameInFolderViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Same size in folder">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Same size in folder"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Groups files by exact size only. Same size does not mean same content, so check the files before deleting anything."/>
+                    </StackPanel>
+                    <views:DuplicateContentInFolderUserControl Margin="8,0,8,0" DataContext="{Binding DuplicateSizeInFolderViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Multi-folder duplicates">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Multi-folder duplicates"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Finds identical files across several folders. Add the folders to compare, then keep one copy per group; non-keepers go to the trash after confirmation."/>
+                    </StackPanel>
+                    <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Similar images">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Similar images"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Finds the same picture at another size, recompressed, cropped or edited. Semantic matching and keeper quality are optional; Dry run is on by default and every deletion goes to the trash after confirmation."/>
+                    </StackPanel>
+                    <views:SimilarImageUserControl DataContext="{Binding SimilarImageViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Delete if elsewhere">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Delete if elsewhere"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists files from the source folder that also exist in the other folder. Only the source copies are moved to the trash. Use Dry run to preview."/>
+                    </StackPanel>
+                    <views:DeleteIfElsewhereUserControl DataContext="{Binding DeleteIfElsewhereViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Merge to destination">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Merge to destination"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Moves the source folder into the destination: missing files are moved, identical duplicates are trashed, and conflicting files are left untouched. Use Dry run to preview."/>
+                    </StackPanel>
+                    <views:MergeToDestinationUserControl DataContext="{Binding MergeToDestinationViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Remove empty folder">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Remove empty folder"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists folders that no longer contain any file and deletes them. Only empty folders are removed, so no data is lost."/>
+                    </StackPanel>
+                    <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Empty files">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Empty files"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists zero-byte files, often left by interrupted downloads or crashes. Deleted files go to the trash and can be restored."/>
+                    </StackPanel>
+                    <views:FileListUserControl DataContext="{Binding EmptyFileViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Big files">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Big files"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists the largest files in a folder to help free space. You choose what to move to the trash."/>
+                    </StackPanel>
+                    <views:FileListUserControl DataContext="{Binding BigFileViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Temporary files">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Temporary files"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists temporary and cache files (*.tmp, *.bak, *.log, .DS_Store, Thumbs.db, ...). Review the list before moving anything to the trash."/>
+                    </StackPanel>
+                    <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Invalid symlinks">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Invalid symlinks"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Lists symbolic links whose target no longer exists. Deleting a link never deletes its target; the link itself goes to the trash."/>
+                    </StackPanel>
+                    <views:InvalidLinkUserControl DataContext="{Binding InvalidLinkViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Trash">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Trash"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Every file moved to the trash is kept here with its original path. Select an entry and press Restore to put it back. The trash is a safety net, not a backup."/>
+                    </StackPanel>
+                    <views:TrashUserControl DataContext="{Binding TrashViewModel}"/>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Settings">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,14,8,8" Spacing="2">
+                        <TextBlock Classes="pageTitle" Text="Settings"/>
+                        <TextBlock Classes="tabDescription"
+                                   Text="Choose where deleted files go. The application trash is a folder this app can restore from; the system trash is the operating system's recycle bin or Trash."/>
+                    </StackPanel>
+                    <views:SettingsUserControl DataContext="{Binding SettingsViewModel}"/>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </Window>

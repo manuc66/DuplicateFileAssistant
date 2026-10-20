@@ -41,7 +41,7 @@
             <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
         </Grid>
 
-        <ProgressBar Grid.Row="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" Margin="0,0,0,6" />
+        <ProgressBar Classes="pageProgress" Grid.Row="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
 
         <ListBox Grid.Row="5" IsVisible="{Binding Finished}" BorderThickness="1"
                  SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
@@ -53,10 +53,11 @@
         </ListBox>
 
         <DockPanel Grid.Row="6" IsVisible="{Binding Finished}">
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="16" Margin="4">
-                <TextBlock Text="{Binding DuplicateCase.ReclaimableSizeText}" />
-                <TextBlock Text="{Binding DuplicateCase.KeeperText}" />
-            </StackPanel>
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="4">
+                <TextBlock Grid.Column="0" Text="{Binding DuplicateCase.ReclaimableSizeText}" />
+                <TextBlock Grid.Column="1" Text="{Binding DuplicateCase.KeeperText}" Margin="16,0,0,0"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DuplicateCase.KeeperText}" />
+            </Grid>
             <ListBox BorderThickness="1" ItemsSource="{Binding DuplicateCase.Files}" />
         </DockPanel>
 

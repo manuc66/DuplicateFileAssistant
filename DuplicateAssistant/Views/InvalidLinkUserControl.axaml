@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.InvalidLinkUserControl"
              x:DataType="vm:InvalidLinkViewModel">
-    <Grid Margin="8" RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,*,Auto">
         <Grid Grid.Row="0" Margin="0,0,0,4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
@@ -23,7 +23,9 @@
 
         <CheckBox Grid.Row="1" Content="Dry run" IsChecked="{Binding DryRun}" Margin="0,0,0,4" />
 
-        <ListBox Grid.Row="2" BorderThickness="1" ItemsSource="{Binding Links}"
+        <ProgressBar Classes="pageProgress" Grid.Row="2" IsIndeterminate="{Binding IsBusy}" />
+
+        <ListBox Grid.Row="3" BorderThickness="1" ItemsSource="{Binding Links}"
                  SelectedItem="{Binding SelectedLink}" FontFamily="monospace">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="fileCompare:InvalidSymbolicLink">
@@ -36,13 +38,14 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <Grid Grid.Row="3" Margin="0,6,0,0">
+        <Grid Grid.Row="4" Margin="0,6,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
             <Button Grid.Column="1" Content="Delete selected" Command="{Binding DeleteSelectedCommand}" Margin="6,0,0,0" />
             <Button Grid.Column="2" Content="Delete all" Command="{Binding DeleteAllCommand}" Margin="6,0,0,0" />
         </Grid>

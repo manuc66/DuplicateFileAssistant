@@ -27,7 +27,7 @@
             <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" />
         </StackPanel>
 
-        <ProgressBar Grid.Row="2" IsIndeterminate="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Margin="0,0,0,6" />
+        <ProgressBar Classes="pageProgress" Grid.Row="2" IsIndeterminate="{Binding IsBusy}" />
 
         <ListBox Grid.Row="3" BorderThickness="1" ItemsSource="{Binding Files}"
                  SelectedItem="{Binding SelectedFile}" FontFamily="monospace">
@@ -47,7 +47,8 @@
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
             <Button Grid.Column="1" Content="Delete selected" Command="{Binding DeleteSelectedCommand}" Margin="6,0,0,0" />
             <Button Grid.Column="2" Content="Delete all" Command="{Binding DeleteAllCommand}" Margin="6,0,0,0" />
         </Grid>
