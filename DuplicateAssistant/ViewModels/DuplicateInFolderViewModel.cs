@@ -32,6 +32,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
     public ReactiveCommand<Unit, Unit> ApplyRuleCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteNonKeepersCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteSelectedNonKeepersCommand { get; }
 
     public IReadOnlyList<string> HashAlgorithms { get; }
     public IReadOnlyList<AutoDeleteRule> AutoDeleteRules { get; } = Enum.GetValues<AutoDeleteRule>();
@@ -170,6 +171,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         ApplyRuleCommand = ReactiveCommand.Create(ApplyRule, _isSearching.Select(x => !x));
         DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync,
             _isSearching.Select(x => !x));
+        DeleteSelectedNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteSelectedNonKeepersAsync,
+            _isSearching.Select(x => !x));
 
         _duplicateCaseItems = new();
     }
@@ -272,11 +275,11 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }
     }
 
-    private async Task DeleteNonKeepersAsync()
+    private Task DeleteNonKeepersAsync()
     {
         if (!Finished || _isDeletingNonKeepers)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         List<DuplicateCaseItemViewModel> items = DuplicateCaseItems
@@ -284,6 +287,25 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             .Where(file => file.CanDelete)
             .ToList();
 
+        return DeleteItemsAsync(items, "all groups");
+    }
+
+    private Task DeleteSelectedNonKeepersAsync()
+    {
+        if (!Finished || _isDeletingNonKeepers || DuplicateCase is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        List<DuplicateCaseItemViewModel> items = DuplicateCase.Files
+            .Where(file => file.CanDelete)
+            .ToList();
+
+        return DeleteItemsAsync(items, "the selected group");
+    }
+
+    private async Task DeleteItemsAsync(List<DuplicateCaseItemViewModel> items, string scope)
+    {
         if (items.Count == 0)
         {
             return;
@@ -291,13 +313,14 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
         if (DryRun)
         {
-            SearchLog = $"{SearchLog}{Environment.NewLine}Dry run: would move {items.Count} duplicate(s) to the trash.";
+            SearchLog = $"{SearchLog}{Environment.NewLine}Dry run: would move {items.Count} duplicate(s) " +
+                        $"from {scope} to the trash.";
             return;
         }
 
         bool confirmed = await _deleteConfirmation.ConfirmAsync(
             SearchPath,
-            $"Move {items.Count} non-keeper file(s) to the trash?");
+            $"Move {items.Count} non-keeper file(s) from {scope} to the trash?");
 
         if (!confirmed)
         {

@@ -394,6 +394,101 @@ public class DuplicateViewModelTests
         });
     }
 
+    [Test]
+    public async Task DeleteSelectedNonKeepersOnlyTouchesTheSelectedGroup()
+    {
+        using TempDirectory temp = new();
+        string keeperA = temp.CreateFile("keeper-a.jpg", "content-a");
+        string duplicateA = temp.CreateFile("duplicate-a.jpg", "content-a");
+        string keeperB = temp.CreateFile("keeper-b.jpg", "content-b");
+        string duplicateB = temp.CreateFile("duplicate-b.jpg", "content-b");
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+
+        DuplicateCaseViewModel caseA = CreateCase(viewModel, trash, confirmation, keeperA, duplicateA);
+        DuplicateCaseViewModel caseB = CreateCase(viewModel, trash, confirmation, keeperB, duplicateB);
+        viewModel.DuplicateCaseItems.Add(caseA);
+        viewModel.DuplicateCaseItems.Add(caseB);
+        viewModel.DuplicateCase = caseA;
+
+        await viewModel.DeleteSelectedNonKeepersCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(keeperA), Is.True);
+            Assert.That(File.Exists(duplicateA), Is.False);
+            Assert.That(File.Exists(keeperB), Is.True);
+            Assert.That(File.Exists(duplicateB), Is.True);
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task DeleteSelectedNonKeepersHonorsDryRun()
+    {
+        using TempDirectory temp = new();
+        string keeper = temp.CreateFile("keeper.jpg", "content");
+        string duplicate = temp.CreateFile("duplicate.jpg", "content");
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+
+        DuplicateCaseViewModel duplicateCase = CreateCase(
+            viewModel,
+            trash,
+            confirmation,
+            keeper,
+            duplicate);
+        viewModel.DuplicateCaseItems.Add(duplicateCase);
+        viewModel.DuplicateCase = duplicateCase;
+        viewModel.DryRun = true;
+
+        await viewModel.DeleteSelectedNonKeepersCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(duplicate), Is.True);
+            Assert.That(trash.GetEntries(), Is.Empty);
+            Assert.That(viewModel.SearchLog, Does.Contain("Dry run"));
+        });
+    }
+
+    private static DuplicateCaseViewModel CreateCase(TestDuplicateInFolderViewModel viewModel,
+        Trash trash, IDeleteConfirmation confirmation, string keeperPath, string duplicatePath)
+    {
+        FileInfo keeperInfo = new(keeperPath);
+        FileInfo duplicateInfo = new(duplicatePath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(keeperPath, keeperInfo.Length, keeperInfo.LastWriteTimeUtc),
+            new DuplicateFile(duplicatePath, duplicateInfo.Length, duplicateInfo.LastWriteTimeUtc)
+        };
+
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+
+        duplicateCase.SetKeeper(duplicateCase.Files.First(file => file.FilePath == keeperPath));
+        return duplicateCase;
+    }
+
     private sealed class TestDuplicateInFolderViewModel : DuplicateInFolderViewModel
     {
         public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,

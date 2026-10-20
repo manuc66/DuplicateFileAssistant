@@ -99,11 +99,13 @@
             </StackPanel>
         </Expander>
 
-        <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+        <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,6,0,0">
             <TextBlock Grid.Column="0" Text="{Binding Summary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
             <CheckBox Grid.Column="1" Content="Dry run" IsChecked="{Binding DryRun}" Margin="6,0,0,0" />
-            <Button Grid.Column="2" Content="Delete non-keepers"
+            <Button Grid.Column="2" Content="Delete selected group"
+                    Command="{Binding DeleteSelectedNonKeepersCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="3" Content="Delete all groups"
                     Command="{Binding DeleteNonKeepersCommand}" Margin="6,0,0,0" />
         </Grid>
     </Grid>
