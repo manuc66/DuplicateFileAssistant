@@ -15,13 +15,16 @@ public class EmptyFolderViewModel : ViewModelBase
 {
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
+    private readonly Trash _trash;
     private string _searchPath;
 
-    public EmptyFolderViewModel(string searchPath, IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker)
+    public EmptyFolderViewModel(string searchPath, IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
+        Trash trash)
     {
         _searchPath = searchPath;
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
+        _trash = trash;
         EmptyDirectories = new ObservableCollection<string>();
 
         SelectFolderCommand = ReactiveCommand.CreateFromTask(SelectFolderAsync);
@@ -68,7 +71,10 @@ public class EmptyFolderViewModel : ViewModelBase
         await RunOperationAsync(async cancellationToken =>
         {
             IReadOnlyList<string> directories = await Task.Run(
-                () => EmptyDirectoryService.FindEmptyDirectories(SearchPath, cancellationToken),
+                () => EmptyDirectoryService.FindEmptyDirectories(
+                    SearchPath,
+                    cancellationToken,
+                    directory => !PathUtilities.IsUnder(directory, _trash.TrashFolder)),
                 cancellationToken);
 
             OnUiThread(() =>
@@ -105,7 +111,15 @@ public class EmptyFolderViewModel : ViewModelBase
         await RunOperationAsync(async cancellationToken =>
         {
             int deleted = await Task.Run(
-                () => EmptyDirectoryService.DeleteEmptyDirectories(directories, cancellationToken),
+                () => EmptyDirectoryService.DeleteEmptyDirectories(
+                    directories,
+                    cancellationToken,
+                    (directory, success) => _trash.Journal.Write(
+                        "delete-empty-folder",
+                        directory,
+                        null,
+                        success ? "ok" : "failed",
+                        null)),
                 cancellationToken);
 
             OnUiThread(() =>

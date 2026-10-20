@@ -40,6 +40,9 @@
         <TabItem Header="Remove empty folder" VerticalContentAlignment="Center">
             <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
         </TabItem>
+        <TabItem Header="Trash" VerticalContentAlignment="Center">
+            <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
+        </TabItem>
     </TabControl>
 
 

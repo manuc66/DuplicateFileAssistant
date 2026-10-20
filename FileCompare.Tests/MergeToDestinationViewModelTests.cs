@@ -10,6 +10,40 @@ namespace FileCompare.Tests;
 public class MergeToDestinationViewModelTests
 {
     [AvaloniaTest]
+    public async Task DryRunDoesNotMoveOrTrashAnything()
+    {
+        using TempDirectory temp = new();
+        string source = Path.Combine(temp.Root, "source");
+        string destination = Path.Combine(temp.Root, "destination");
+        string sourceFile = temp.CreateFile(Path.Combine("source", "move.txt"), "move");
+        Directory.CreateDirectory(destination);
+
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        MergeToDestinationViewModel viewModel = new(
+            trash,
+            source,
+            new FakeDeleteConfirmation { Result = true },
+            new FakeFolderPicker())
+        {
+            DestinationPath = destination,
+            DryRun = true
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+        await viewModel.MergeCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(sourceFile), Is.True);
+            Assert.That(File.Exists(Path.Combine(destination, "move.txt")), Is.False);
+            Assert.That(trash.GetEntries(), Is.Empty);
+            Assert.That(viewModel.Status, Does.Contain("Dry run"));
+        });
+    }
+
+    [AvaloniaTest]
     public async Task ScanAndMergeMovesFilesAndLeavesConflictsUntouched()
     {
         using TempDirectory temp = new();

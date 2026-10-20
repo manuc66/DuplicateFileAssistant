@@ -23,6 +23,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private readonly BehaviorSubject<bool> _isSearching = new(false);
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
+    private readonly Trash _trash;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
@@ -105,6 +106,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     {
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
+        _trash = trash;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         SubFolder = true;
@@ -169,6 +171,11 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
     protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
+
+    protected bool IsInTrash(string path)
+    {
+        return PathUtilities.IsUnder(path, _trash.TrashFolder);
+    }
 
     protected FileSearchFilter CreateSearchFilter()
     {

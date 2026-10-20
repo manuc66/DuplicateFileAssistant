@@ -23,6 +23,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     public long FileSize { get; }
     public bool IsKeeper => _isKeeper;
     public bool IsDeleted => _isDeleted;
+    public bool CanDelete => !IsDeleted && !IsKeeper;
     public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
     public ReactiveCommand<string, Unit> DeleteCommand { get; }
@@ -51,16 +52,18 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     internal void ApplyKeeper(bool value)
     {
         this.RaiseAndSetIfChanged(ref _isKeeper, value, nameof(IsKeeper));
+        this.RaisePropertyChanged(nameof(CanDelete));
     }
 
     internal void SetDeleted(bool value)
     {
         this.RaiseAndSetIfChanged(ref _isDeleted, value, nameof(IsDeleted));
+        this.RaisePropertyChanged(nameof(CanDelete));
     }
 
     private async Task DeleteDuplicateItem(string x)
     {
-        if (IsDeleted || !await _deleteConfirmation.ConfirmAsync(FilePath))
+        if (!CanDelete || !await _deleteConfirmation.ConfirmAsync(FilePath))
         {
             return;
         }

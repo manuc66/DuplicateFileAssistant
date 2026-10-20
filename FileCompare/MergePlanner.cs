@@ -17,7 +17,7 @@ public sealed record MergePlanItem(
 public static class MergePlanner
 {
     public static IReadOnlyList<MergePlanItem> CreatePlan(string sourceRoot, string destinationRoot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Func<string, bool>? sourcePathFilter = null)
     {
         if (!Directory.Exists(sourceRoot))
         {
@@ -43,6 +43,11 @@ public static class MergePlanner
         foreach (string sourcePath in Directory.EnumerateFiles(sourceRoot, "*", options))
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (sourcePathFilter != null && !sourcePathFilter(sourcePath))
+            {
+                continue;
+            }
 
             if (!DuplicateFile.TryCreate(sourcePath, out DuplicateFile? source) || source is null)
             {

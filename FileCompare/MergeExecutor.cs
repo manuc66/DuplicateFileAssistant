@@ -5,7 +5,7 @@ public sealed record MergeResult(int Moved, int TrashedDuplicates, int Conflicts
 public static class MergeExecutor
 {
     public static async Task<MergeResult> ExecuteAsync(IReadOnlyList<MergePlanItem> plan, Trash trash,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, OperationJournal? journal = null)
     {
         int moved = 0;
         int trashed = 0;
@@ -27,31 +27,37 @@ public static class MergeExecutor
                             Directory.CreateDirectory(directory);
                         }
 
-                        await MoveAsync(item.SourcePath, item.DestinationPath, cancellationToken);
+                        await MoveAsync(item.SourcePath, item.DestinationPath, new FileInfo(item.SourcePath),
+                            cancellationToken);
                         moved++;
+                        journal?.Write("move", item.SourcePath, item.DestinationPath, "ok", null);
                         break;
 
                     case MergeAction.TrashDuplicate:
                         await trash.DeleteAsync(item.SourcePath, item.Source.Length, item.Source.LastWriteTimeUtc,
                             cancellationToken);
                         trashed++;
+                        journal?.Write("trash-duplicate", item.SourcePath, item.DestinationPath, "ok", null);
                         break;
 
                     case MergeAction.Conflict:
                         conflicts++;
+                        journal?.Write("conflict", item.SourcePath, item.DestinationPath, "skipped", null);
                         break;
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 failed++;
+                journal?.Write(item.Action.ToString(), item.SourcePath, item.DestinationPath, "failed", ex.Message);
             }
         }
 
         return new MergeResult(moved, trashed, conflicts, failed);
     }
 
-    private static async Task MoveAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+    private static async Task MoveAsync(string sourcePath, string destinationPath, FileInfo sourceInfo,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -67,6 +73,7 @@ public static class MergeExecutor
                 await source.CopyToAsync(destination, cancellationToken);
             }
 
+            FileMetadata.Copy(sourceInfo, destinationPath);
             File.Delete(sourcePath);
         }
     }

@@ -64,6 +64,37 @@ public class MergePlannerTests
     }
 
     [Test]
+    public async Task ContinuesAfterAnIndividualFailure()
+    {
+        string sourceRoot = Path.Combine(_temp.Root, "source");
+        string destinationRoot = Path.Combine(_temp.Root, "destination");
+        string validSource = _temp.CreateFile(Path.Combine("source", "valid.txt"), "valid");
+        string missingSource = Path.Combine(sourceRoot, "missing.txt");
+        Directory.CreateDirectory(destinationRoot);
+
+        List<MergePlanItem> plan = new()
+        {
+            new MergePlanItem(MergeAction.Move, missingSource,
+                Path.Combine(destinationRoot, "missing.txt"),
+                new DuplicateFile(missingSource, 1, DateTime.UtcNow), null),
+            new MergePlanItem(MergeAction.Move, validSource,
+                Path.Combine(destinationRoot, "valid.txt"),
+                new DuplicateFile(validSource, 5, File.GetLastWriteTimeUtc(validSource)), null)
+        };
+
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+        MergeResult result = await MergeExecutor.ExecuteAsync(plan, trash, CancellationToken.None, trash.Journal);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Failed, Is.EqualTo(1));
+            Assert.That(result.Moved, Is.EqualTo(1));
+            Assert.That(File.Exists(Path.Combine(destinationRoot, "valid.txt")), Is.True);
+            Assert.That(File.ReadAllText(Path.Combine(trash.TrashFolder, "operations.jsonl")), Does.Contain("failed"));
+        });
+    }
+
+    [Test]
     public async Task ExecutesThePlanWithoutOverwritingConflicts()
     {
         string source = Path.Combine(_temp.Root, "source");
@@ -89,7 +120,7 @@ public class MergePlannerTests
             Assert.That(File.Exists(duplicateSource), Is.False);
             Assert.That(File.Exists(conflictSource), Is.True);
             Assert.That(File.ReadAllText(conflictDestination), Is.EqualTo("destination content"));
-            Assert.That(Directory.GetFiles(trash.TrashFolder), Has.Length.EqualTo(1));
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
         });
     }
 }

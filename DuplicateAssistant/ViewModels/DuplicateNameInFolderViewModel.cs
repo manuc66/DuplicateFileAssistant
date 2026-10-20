@@ -20,6 +20,6 @@ public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
         using ControlWriter textDisplayProgress = new(this);
         FileSearchFilter searchFilter = CreateSearchFilter();
         return DupProvider.FindDuplicateByFileName(SearchPath, searchOption, searchFilter.MatchesFile, textDisplayProgress,
-            UpdateProgress, ct, searchFilter.MatchesPath);
+            UpdateProgress, ct, path => searchFilter.MatchesPath(path) && !IsInTrash(path));
     }
 }

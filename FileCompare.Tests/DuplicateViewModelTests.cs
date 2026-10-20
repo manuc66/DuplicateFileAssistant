@@ -56,6 +56,49 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task KeeperCannotBeDeleted()
+    {
+        using TempDirectory temp = new();
+        string firstPath = temp.CreateFile("first.jpg", "content");
+        string secondPath = temp.CreateFile("second.jpg", "content");
+        FileInfo firstInfo = new(firstPath);
+        FileInfo secondInfo = new(secondPath);
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(firstPath, firstInfo.Length, firstInfo.LastWriteTimeUtc),
+            new DuplicateFile(secondPath, secondInfo.Length, secondInfo.LastWriteTimeUtc)
+        };
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+
+        DuplicateCaseItemViewModel keeper = duplicateCase.Keeper!;
+
+        await keeper.DeleteCommand.Execute(keeper.FilePath).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(keeper.CanDelete, Is.False);
+            Assert.That(keeper.IsDeleted, Is.False);
+            Assert.That(File.Exists(keeper.FilePath), Is.True);
+            Assert.That(confirmation.LastPath, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task DeleteAndRestore_MovesFileAndCanUndo()
     {
         using TempDirectory temp = new();
@@ -86,6 +129,7 @@ public class DuplicateViewModelTests
             new FileManagerHandler(),
             confirmation);
 
+        duplicateCase.SetKeeper(duplicateCase.Files[1]);
         DuplicateCaseItemViewModel item = duplicateCase.Files[0];
 
         await item.DeleteCommand.Execute(firstPath).FirstAsync();

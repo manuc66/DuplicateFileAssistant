@@ -635,6 +635,7 @@ public class DupProvider
         {
             RecurseSubdirectories = aSearchOption == SearchOption.AllDirectories,
             IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
             MatchType = OperatingSystem.IsWindows() ? MatchType.Win32 : MatchType.Simple,
             ReturnSpecialDirectories = false,
         })

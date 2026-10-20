@@ -20,6 +20,7 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
     private string _sourcePath;
     private string _otherPath;
     private string _hashAlgorithm = "Blake3";
+    private bool _dryRun;
 
     public DeleteIfElsewhereViewModel(Trash trash, string sourcePath, IDeleteConfirmation deleteConfirmation,
         IFolderPicker folderPicker)
@@ -59,6 +60,12 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
     {
         get => _hashAlgorithm;
         set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
+    }
+
+    public bool DryRun
+    {
+        get => _dryRun;
+        set => this.RaiseAndSetIfChanged(ref _dryRun, value);
     }
 
     public string SourcePath
@@ -112,7 +119,8 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
                     path => hashing.Hash(path, cancellationToken),
                     TextWriter.Null,
                     UpdateProgress,
-                    cancellationToken),
+                    cancellationToken,
+                    path => !PathUtilities.IsUnder(path, _trash.TrashFolder)),
                 cancellationToken);
 
             OnUiThread(() =>
@@ -133,6 +141,12 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
     {
         if (IsBusy || Duplicates.Count == 0)
         {
+            return;
+        }
+
+        if (DryRun)
+        {
+            Status = $"Dry run: would move {Duplicates.Count} file(s) to the trash.";
             return;
         }
 

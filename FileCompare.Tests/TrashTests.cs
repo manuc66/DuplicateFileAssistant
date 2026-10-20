@@ -32,8 +32,54 @@ public class TrashTests
         {
             Assert.That(File.Exists(source), Is.False);
             Assert.That(Directory.Exists(trashFolder), Is.True);
-            Assert.That(Directory.GetFiles(trashFolder), Has.Length.EqualTo(1));
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
         });
+    }
+
+    [Test]
+    public async Task RestoreAfterRestartUsesThePersistentManifest()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        string trashFolder = Path.Combine(_temp.Root, "trash");
+        Trash firstInstance = new(trashFolder);
+        await firstInstance.DeleteAsync(source);
+
+        Trash secondInstance = new(trashFolder);
+        TrashEntry entry = secondInstance.GetEntries().Single();
+
+        await secondInstance.RestoreAsync(entry);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(source), Is.True);
+            Assert.That(secondInstance.GetEntries(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task RestoreRejectsATamperedTrashFile()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+        await trash.DeleteAsync(source);
+
+        TrashEntry entry = trash.GetEntries().Single();
+        File.WriteAllText(entry.TrashedPath, "tampered");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => trash.RestoreAsync(entry));
+        Assert.That(File.Exists(source), Is.False);
+    }
+
+    [Test]
+    public async Task DeleteWritesAnOperationJournal()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+
+        await trash.DeleteAsync(source);
+
+        string journal = File.ReadAllText(Path.Combine(trash.TrashFolder, "operations.jsonl"));
+        Assert.That(journal, Does.Contain("\"Action\":\"delete\""));
     }
 
     [Test]

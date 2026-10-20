@@ -2,7 +2,8 @@ namespace FileCompare;
 
 public static class EmptyDirectoryService
 {
-    public static IReadOnlyList<string> FindEmptyDirectories(string root, CancellationToken cancellationToken)
+    public static IReadOnlyList<string> FindEmptyDirectories(string root, CancellationToken cancellationToken,
+        Func<string, bool>? directoryFilter = null)
     {
         if (!Directory.Exists(root))
         {
@@ -28,6 +29,11 @@ public static class EmptyDirectoryService
         foreach (string directory in directories)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (directoryFilter != null && !directoryFilter(directory))
+            {
+                continue;
+            }
 
             bool isEmpty = true;
 
@@ -58,7 +64,8 @@ public static class EmptyDirectoryService
         return directories.Where(removable.Contains).ToList();
     }
 
-    public static int DeleteEmptyDirectories(IReadOnlyList<string> directories, CancellationToken cancellationToken)
+    public static int DeleteEmptyDirectories(IReadOnlyList<string> directories, CancellationToken cancellationToken,
+        Action<string, bool>? result = null)
     {
         int deleted = 0;
 
@@ -70,12 +77,15 @@ public static class EmptyDirectoryService
             {
                 Directory.Delete(directory, recursive: false);
                 deleted++;
+                result?.Invoke(directory, true);
             }
             catch (IOException)
             {
+                result?.Invoke(directory, false);
             }
             catch (UnauthorizedAccessException)
             {
+                result?.Invoke(directory, false);
             }
         }
 

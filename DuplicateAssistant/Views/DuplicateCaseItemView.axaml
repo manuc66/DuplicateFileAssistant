@@ -36,7 +36,7 @@
                 CommandParameter="{Binding FilePath}">
         </Button>
         <Button Grid.Column="4" Content="Delete"
-                IsVisible="{Binding !IsDeleted}"
+                IsVisible="{Binding CanDelete}"
                 Command="{Binding DeleteCommand}"
                 CommandParameter="{Binding FilePath}">
         </Button>

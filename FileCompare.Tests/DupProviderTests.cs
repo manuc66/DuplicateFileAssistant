@@ -89,6 +89,31 @@ public class DupProviderTests
     }
 
     [Test]
+    public void FindDuplicateByHash_DoesNotFollowDirectorySymlinks()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Directory symlink creation is tested on Linux.");
+        }
+
+        using TempDirectory outside = new();
+        outside.CreateFile("outside.txt", "same");
+        _temp.CreateFile("inside.txt", "same");
+        Directory.CreateSymbolicLink(Path.Combine(_temp.Root, "link"), outside.Root);
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.AllDirectories,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
     public void FindDuplicateByHash_IgnoresHardLinks()
     {
         if (!OperatingSystem.IsLinux())

@@ -18,6 +18,7 @@ public class MergeToDestinationViewModel : ViewModelBase
     private readonly IFolderPicker _folderPicker;
     private string _sourcePath;
     private string _destinationPath;
+    private bool _dryRun;
 
     public MergeToDestinationViewModel(Trash trash, string sourcePath, IDeleteConfirmation deleteConfirmation,
         IFolderPicker folderPicker)
@@ -62,6 +63,12 @@ public class MergeToDestinationViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _destinationPath, value);
     }
 
+    public bool DryRun
+    {
+        get => _dryRun;
+        set => this.RaiseAndSetIfChanged(ref _dryRun, value);
+    }
+
     public ObservableCollection<MergePlanItem> Plan { get; }
 
     public int MoveCount => Plan.Count(item => item.Action == MergeAction.Move);
@@ -96,7 +103,11 @@ public class MergeToDestinationViewModel : ViewModelBase
         await RunOperationAsync(async cancellationToken =>
         {
             IReadOnlyList<MergePlanItem> plan = await Task.Run(
-                () => MergePlanner.CreatePlan(SourcePath, DestinationPath, cancellationToken),
+                () => MergePlanner.CreatePlan(
+                    SourcePath,
+                    DestinationPath,
+                    cancellationToken,
+                    path => !PathUtilities.IsUnder(path, _trash.TrashFolder)),
                 cancellationToken);
 
             OnUiThread(() =>
@@ -119,6 +130,12 @@ public class MergeToDestinationViewModel : ViewModelBase
             return;
         }
 
+        if (DryRun)
+        {
+            Status = $"Dry run: would move {MoveCount}, trash {TrashCount} duplicate(s) and leave {ConflictCount} conflict(s).";
+            return;
+        }
+
         bool confirmed = await _deleteConfirmation.ConfirmAsync(
             SourcePath,
             $"Move {MoveCount} file(s), trash {TrashCount} duplicate(s) and leave {ConflictCount} conflict(s)?");
@@ -132,7 +149,7 @@ public class MergeToDestinationViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken);
+            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken, _trash.Journal);
 
             IReadOnlyList<string> emptyDirectories = await Task.Run(
                 () => EmptyDirectoryService.FindEmptyDirectories(SourcePath, cancellationToken),
