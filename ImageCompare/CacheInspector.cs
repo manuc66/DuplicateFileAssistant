@@ -48,7 +48,7 @@ public static class CacheInspector
                 path,
                 dimensions,
                 count,
-                new FileInfo(path).Length));
+                GetFileSize(path)));
         }
 
         foreach (string path in EnumerateCacheFiles(directory, "quality-*.bin"))
@@ -64,7 +64,7 @@ public static class CacheInspector
                 path,
                 1,
                 count,
-                new FileInfo(path).Length));
+                GetFileSize(path)));
         }
 
         string models = modelsDirectory ?? CachePaths.ModelsDirectory;
@@ -159,12 +159,24 @@ public static class CacheInspector
                      .Concat(EnumerateCacheFiles(directory, "embeddings-*.bin"))
                      .Concat(EnumerateCacheFiles(directory, "quality-*.bin")))
         {
-            bytes += new FileInfo(path).Length;
+            bytes += GetFileSize(path);
             File.Delete(path);
             files++;
         }
 
         return new CacheCleanupResult(files, bytes);
+    }
+
+    private static long GetFileSize(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? new FileInfo(path).Length : 0;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
     }
 
     private static IEnumerable<string> EnumerateCacheFiles(string directory, string pattern)

@@ -43,7 +43,20 @@ public sealed class EmbeddingCache
         }
     }
 
-    public long FileSize => File.Exists(_path) ? new FileInfo(_path).Length : 0;
+    public long FileSize
+    {
+        get
+        {
+            try
+            {
+                return File.Exists(_path) ? new FileInfo(_path).Length : 0;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return 0;
+            }
+        }
+    }
 
     public static string DefaultPath(string modelId)
     {
