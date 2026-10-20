@@ -8,7 +8,8 @@ nav_order: 3
 `DuplicateAssistant` is the Avalonia front end. It has fourteen tabs, each a self-contained
 scan over one folder (or several, for the multi-folder tab). Most tabs show a path and a
 **Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
-report progress in the log below the list and can be stopped at any point.
+report progress in the log below the list and can be stopped at any point. The last folder
+used by a scan is remembered and restored on the next launch.
 
 ![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 
@@ -36,7 +37,10 @@ The **Similar images** tab uses the same finder as the CLI and is described in
 
 ## Duplicate groups
 
-Each group is a **keeper** plus its duplicates. Every row offers:
+Each group is a **keeper** plus its duplicates. Duplicate tabs filter by minimum size,
+extension and excluded folders. **Extensions** opens a multi-select list with common types;
+leaving every box unchecked means **all files**. The last folder used by a scan is restored
+on the next launch. Every row offers:
 
 - **Keep**: make this file the keeper. Exactly one file per group is the keeper.
 - **Reveal in folder** and **Open**: check the file before deciding. This is the habit the

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
+using DuplicateAssistant.Controls;
 using DuplicateAssistant.ViewModels;
 using DuplicateAssistant.Views;
 
@@ -58,6 +59,14 @@ public class HeadlessUiTests
     public void SimilarImageUserControl_Loads()
     {
         SimilarImageUserControl control = new();
+
+        Assert.That(control.Content, Is.Not.Null);
+    }
+
+    [AvaloniaTest]
+    public void ExtensionPicker_Loads()
+    {
+        ExtensionPicker control = new() { DataContext = new ExtensionSelectionViewModel() };
 
         Assert.That(control.Content, Is.Not.Null);
     }

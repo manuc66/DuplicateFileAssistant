@@ -119,15 +119,15 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _minimumFileSizeText, value);
     }
 
-    private string _fileExtensions = string.Empty;
+    private string _excludedFolders = string.Empty;
+
+    public ExtensionSelectionViewModel ExtensionSelection { get; }
 
     public string FileExtensions
     {
-        get => _fileExtensions;
-        set => this.RaiseAndSetIfChanged(ref _fileExtensions, value);
+        get => ExtensionSelection.ToFilterString();
+        set => ExtensionSelection.SetFromFilterString(value);
     }
-
-    private string _excludedFolders = string.Empty;
 
     public string ExcludedFolders
     {
@@ -146,6 +146,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         _lastFolderStore = lastFolderStore;
         _searchPath = searchPath;
         _searchLog = string.Empty;
+        ExtensionSelection = new ExtensionSelectionViewModel();
+        ExtensionSelection.SelectionChanged += (_, _) => this.RaisePropertyChanged(nameof(FileExtensions));
         HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
         SubFolder = true;
         Finished = true;

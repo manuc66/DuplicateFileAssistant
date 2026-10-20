@@ -256,6 +256,28 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public void FileExtensionsRoundTripThroughTheSelection()
+    {
+        using TempDirectory temp = new();
+        TestDuplicateInFolderViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            temp.Root,
+            new FileManagerHandler(),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker());
+
+        viewModel.FileExtensions = "jpg,png";
+
+        Assert.That(viewModel.ExtensionSelection.ToFilterString(), Is.EqualTo(".jpg,.png"));
+
+        viewModel.ExtensionSelection.Options
+            .Single(option => option.Extension == ".pdf")
+            .IsSelected = true;
+
+        Assert.That(viewModel.FileExtensions, Does.Contain(".pdf"));
+    }
+
+    [Test]
     public async Task SearchRemembersTheLastUsedFolder()
     {
         using TempDirectory temp = new();
