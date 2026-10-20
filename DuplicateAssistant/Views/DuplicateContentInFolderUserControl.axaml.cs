@@ -28,7 +28,7 @@ namespace DuplicateAssistant.Views
         {
             if (_searchLog == null || eventArgs.Property.Name != nameof(_searchLog.Text))
                 return;
-            
+
             // https://github.com/AvaloniaUI/Avalonia/issues/3036
             string searchLogText = _searchLog.Text ?? string.Empty;
             if (_lastSearchLogSize != searchLogText.Length)

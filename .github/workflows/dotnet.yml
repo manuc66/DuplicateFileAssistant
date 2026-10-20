@@ -10,9 +10,13 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v7
@@ -22,7 +26,47 @@ jobs:
         dotnet-version: 10.0.x
     - name: Restore dependencies
       run: dotnet restore
+    - name: Verify formatting
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet format FindDuplicate.sln --verify-no-changes --no-restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+    - name: Upload coverage
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: coverage-${{ matrix.os }}
+        path: TestResults/**/coverage.cobertura.xml
+        if-no-files-found: ignore
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+    - name: Publish
+      run: dotnet publish DuplicateAssistant/DuplicateAssistant.csproj -c Release -r ${{ matrix.rid }} --self-contained true -o publish/${{ matrix.rid }}
+    - name: Upload application
+      uses: actions/upload-artifact@v7
+      with:
+        name: duplicate-assistant-${{ matrix.rid }}
+        path: publish/${{ matrix.rid }}/

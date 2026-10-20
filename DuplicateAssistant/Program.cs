@@ -28,8 +28,8 @@ namespace DuplicateAssistant
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("appsettings.json");
                 IConfigurationRoot config = configBuilder.Build();
-                
-                TaskScheduler.UnobservedTaskException +=  (sender, eventArgs) => Console.WriteLine(eventArgs.Exception.ToString());
+
+                TaskScheduler.UnobservedTaskException += (sender, eventArgs) => Console.WriteLine(eventArgs.Exception.ToString());
 
 
                 AppBootstrapper.Register(Locator.CurrentMutable, Locator.Current, config);
@@ -60,10 +60,10 @@ public class MyCoolObservableExceptionHandler : IObserver<Exception>
     public void OnNext(Exception value)
     {
         if (Debugger.IsAttached) Debugger.Break();
-        
+
         Console.WriteLine(value.ToString());
 
-        RxSchedulers.MainThreadScheduler.Schedule(() => { throw value; }) ;
+        RxSchedulers.MainThreadScheduler.Schedule(() => { throw value; });
     }
 
     public void OnError(Exception error)

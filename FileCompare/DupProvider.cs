@@ -585,12 +585,12 @@ public class DupProvider
     private static IEnumerable<string> EnumeratePath(string a, SearchOption aSearchOption, CancellationToken ct)
     {
         return Directory.EnumerateFiles(a, "*", new EnumerationOptions
-            {
-                RecurseSubdirectories = aSearchOption == SearchOption.AllDirectories,
-                IgnoreInaccessible = true,
-                MatchType = OperatingSystem.IsWindows() ? MatchType.Win32 : MatchType.Simple,
-                ReturnSpecialDirectories = false,
-            })
+        {
+            RecurseSubdirectories = aSearchOption == SearchOption.AllDirectories,
+            IgnoreInaccessible = true,
+            MatchType = OperatingSystem.IsWindows() ? MatchType.Win32 : MatchType.Simple,
+            ReturnSpecialDirectories = false,
+        })
             .TakeWhile(_ => !ct.IsCancellationRequested);
     }
 }
