@@ -95,6 +95,30 @@ public class MergePlannerTests
     }
 
     [Test]
+    public async Task DoesNotTrashADuplicateWhoseDestinationChanged()
+    {
+        string source = Path.Combine(_temp.Root, "source");
+        string destination = Path.Combine(_temp.Root, "destination");
+        string duplicateSource = _temp.CreateFile(Path.Combine("source", "duplicate.txt"), "duplicate");
+        string duplicateDestination = _temp.CreateFile(Path.Combine("destination", "duplicate.txt"), "duplicate");
+
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+        IReadOnlyList<MergePlanItem> plan = MergePlanner.CreatePlan(source, destination, CancellationToken.None);
+
+        File.WriteAllText(duplicateDestination, "changed after the plan");
+
+        MergeResult result = await MergeExecutor.ExecuteAsync(plan, trash, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.TrashedDuplicates, Is.Zero);
+            Assert.That(result.Failed, Is.EqualTo(1));
+            Assert.That(File.Exists(duplicateSource), Is.True);
+            Assert.That(trash.GetEntries(), Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task ExecutesThePlanWithoutOverwritingConflicts()
     {
         string source = Path.Combine(_temp.Root, "source");

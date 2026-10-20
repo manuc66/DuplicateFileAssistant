@@ -34,6 +34,18 @@ public static class MergeExecutor
                         break;
 
                     case MergeAction.TrashDuplicate:
+                        // The destination may have disappeared or changed since the plan
+                        // was built. Never trash the source unless a verified duplicate is
+                        // still present.
+                        if (!File.Exists(item.DestinationPath) ||
+                            !FastFileCompare.AreFilesEqual(
+                                new FileInfo(item.SourcePath),
+                                new FileInfo(item.DestinationPath)))
+                        {
+                            throw new IOException(
+                                $"The duplicate destination changed since the plan was created: {item.DestinationPath}");
+                        }
+
                         await trash.DeleteAsync(item.SourcePath, item.Source.Length, item.Source.LastWriteTimeUtc,
                             cancellationToken);
                         trashed++;
