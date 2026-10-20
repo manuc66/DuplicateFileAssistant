@@ -86,7 +86,7 @@ public class FileListViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _maximumSizeText, value);
     }
 
-    public bool ShowSizeFilters => _mode == FileListMode.BigFiles;
+    public bool ShowSizeFilters => _mode is FileListMode.BigFiles or FileListMode.TemporaryFiles;
 
     public ObservableCollection<DuplicateFile> Files { get; }
     public bool HasResults => Files.Count > 0;
@@ -126,7 +126,7 @@ public class FileListViewModel : ViewModelBase
         long minimumSize = 0;
         long maximumSize = long.MaxValue;
 
-        if (_mode == FileListMode.BigFiles)
+        if (_mode is FileListMode.BigFiles or FileListMode.TemporaryFiles)
         {
             if (!string.IsNullOrWhiteSpace(MinimumSizeText) &&
                 !FileSizeParser.TryParse(MinimumSizeText, out minimumSize))
@@ -162,7 +162,7 @@ public class FileListViewModel : ViewModelBase
                 {
                     FileListMode.EmptyFiles => EmptyFileFinder.Find(SearchPath, filter, cancellationToken),
                     FileListMode.BigFiles => BigFileFinder.Find(SearchPath, MaximumFiles, filter, maximumSize, cancellationToken),
-                    FileListMode.TemporaryFiles => TemporaryFileFinder.Find(SearchPath, filter, cancellationToken),
+                    FileListMode.TemporaryFiles => TemporaryFileFinder.Find(SearchPath, filter, maximumSize, cancellationToken),
                     _ => throw new ArgumentOutOfRangeException()
                 },
                 cancellationToken);

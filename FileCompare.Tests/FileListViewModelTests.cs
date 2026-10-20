@@ -10,6 +10,31 @@ namespace FileCompare.Tests;
 public class FileListViewModelTests
 {
     [AvaloniaTest]
+    public async Task TemporaryFilesRespectMinimumAndMaximumSize()
+    {
+        using TempDirectory temp = new();
+        temp.CreateFile("small.tmp", new string('a', 1024));
+        string medium = temp.CreateFile("medium.tmp", new string('b', 10 * 1024));
+        temp.CreateFile("large.tmp", new string('c', 100 * 1024));
+
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.TemporaryFiles,
+            temp.Root)
+        {
+            MinimumSizeText = "5 KB",
+            MaximumSizeText = "50 KB"
+        };
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { medium }));
+    }
+
+    [AvaloniaTest]
     public async Task BigFilesRespectMinimumAndMaximumSize()
     {
         using TempDirectory temp = new();
