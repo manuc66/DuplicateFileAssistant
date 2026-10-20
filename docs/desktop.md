@@ -29,7 +29,7 @@ report progress in the log below the list and can be stopped at any point.
 | **Temporary files** | Files with temporary or backup extensions and names. |
 | **Invalid symlinks** | Symbolic links whose target no longer resolves. |
 | **Trash** | Everything deleted through the app, with **Restore**, **Discard** and **Refresh**. |
-| **Settings** | Chooses between the application trash folder and the system trash, and changes the folder. |
+| **Settings** | Chooses between the application trash folder and the system trash, changes the trash folder, and chooses the model folder. |
 
 The **Similar images** tab uses the same finder as the CLI and is described in
 [Similar images](similar-images.md).
@@ -129,3 +129,8 @@ The **Settings** tab chooses where deleted files go:
 
 The choice is saved in the user profile, so it survives a restart. The defaults come from
 `DuplicateAssistant/appsettings.json` (`trashMode` and `trashFolder`) on the first run.
+
+The same tab also chooses the **models folder**. It defaults to
+`LocalApplicationData/DuplicateFileAssistant/models`; **Browse...** points it at another
+disk or a pre-provisioned folder. The model directory is stored in `model-settings.json`
+next to the application settings.

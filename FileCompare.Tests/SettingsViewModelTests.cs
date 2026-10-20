@@ -9,6 +9,32 @@ namespace FileCompare.Tests;
 public class SettingsViewModelTests
 {
     [Test]
+    public async Task SavePersistsTheModelsFolder()
+    {
+        using TempDirectory temp = new();
+        string trashFolder = Path.Combine(temp.Root, "custom-trash");
+        string modelsFolder = Path.Combine(temp.Root, "models");
+        TrashSettingsStore trashStore = new(
+            Path.Combine(temp.Root, "settings.json"),
+            new TrashSettings(TrashMode.Application, trashFolder));
+        ModelSettingsStore modelStore = new(
+            Path.Combine(temp.Root, "model-settings.json"),
+            new ModelSettings(Path.Combine(temp.Root, "default-models")));
+        SettingsViewModel viewModel = new(trashStore, new FakeFolderPicker(), modelStore)
+        {
+            ModelsFolder = modelsFolder
+        };
+
+        await viewModel.SaveCommand.Execute(Unit.Default).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(modelStore.Current.ModelsFolder, Is.EqualTo(modelsFolder));
+            Assert.That(viewModel.Status, Does.Contain("Saved"));
+        });
+    }
+
+    [Test]
     public async Task SavePersistsTheSelectedModeAndFolder()
     {
         using TempDirectory temp = new();

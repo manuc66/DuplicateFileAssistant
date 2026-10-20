@@ -35,6 +35,9 @@ public class AppBootstrapper
         TrashSettingsStore trashSettings = new(
             ApplicationPaths.SettingsFile,
             new TrashSettings(configuredTrashMode, trashFolder));
+        ModelSettingsStore modelSettings = new(
+            ApplicationPaths.ModelSettingsFile,
+            new ModelSettings(CachePaths.ModelsDirectory));
 
         services
             .RegisterConstant<IConfiguration>(configurationRoot);
@@ -54,13 +57,13 @@ public class AppBootstrapper
         services.Register(() => new DuplicateContentInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
         services.Register(() => new DuplicateSizeInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker));
-        services.Register(() => new SimilarImageViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
+        services.Register(() => new SimilarImageViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache, modelSettings));
         services.Register(() => new MultiFolderDuplicateViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new EmptyFolderViewModel(searchPath, deleteConfirmation, folderPicker, trash));
         services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation, folderPicker, scanCache));
         services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation, folderPicker));
         services.Register(() => new TrashViewModel(trash, deleteConfirmation, trashSettings));
-        services.Register(() => new SettingsViewModel(trashSettings, folderPicker));
+        services.Register(() => new SettingsViewModel(trashSettings, folderPicker, modelSettings));
 
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),

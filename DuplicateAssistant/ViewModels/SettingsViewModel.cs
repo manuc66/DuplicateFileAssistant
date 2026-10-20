@@ -11,19 +11,25 @@ namespace DuplicateAssistant.ViewModels;
 public class SettingsViewModel : ViewModelBase
 {
     private readonly TrashSettingsStore _settingsStore;
+    private readonly ModelSettingsStore? _modelSettingsStore;
     private readonly IFolderPicker _folderPicker;
     private TrashMode _mode;
     private string _trashFolder;
+    private string _modelsFolder;
 
-    public SettingsViewModel(TrashSettingsStore settingsStore, IFolderPicker folderPicker)
+    public SettingsViewModel(TrashSettingsStore settingsStore, IFolderPicker folderPicker,
+        ModelSettingsStore? modelSettingsStore = null)
     {
         _settingsStore = settingsStore;
+        _modelSettingsStore = modelSettingsStore;
         _folderPicker = folderPicker;
         _mode = settingsStore.Current.Mode;
         _trashFolder = settingsStore.Current.TrashFolder;
+        _modelsFolder = modelSettingsStore?.Current.ModelsFolder ?? CachePaths.ModelsDirectory;
 
         SaveCommand = ReactiveCommand.Create(Save);
         BrowseFolderCommand = ReactiveCommand.CreateFromTask(BrowseFolderAsync);
+        BrowseModelsFolderCommand = ReactiveCommand.CreateFromTask(BrowseModelsFolderAsync);
     }
 
     public bool UseApplicationTrash
@@ -72,8 +78,21 @@ public class SettingsViewModel : ViewModelBase
         ? $"Files are moved to {TrashFolder}. The folder is excluded from scans. Files on another volume are copied to it."
         : $"Files are moved to the {SystemTrashName}. The application still records its own entries so they can be restored from the Trash tab.";
 
+    public string ModelsFolder
+    {
+        get => _modelsFolder;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _modelsFolder, value);
+            this.RaisePropertyChanged(nameof(ModelsFolderDescription));
+        }
+    }
+
+    public string ModelsFolderDescription => $"Models are downloaded to {ModelsFolder}.";
+
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseFolderCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowseModelsFolderCommand { get; }
 
     private void SetMode(TrashMode mode)
     {
@@ -99,6 +118,16 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    private async Task BrowseModelsFolderAsync()
+    {
+        string? selected = await _folderPicker.PickFolderAsync(ModelsFolder);
+
+        if (selected != null)
+        {
+            ModelsFolder = selected;
+        }
+    }
+
     private void Save()
     {
         try
@@ -107,18 +136,26 @@ public class SettingsViewModel : ViewModelBase
 
             if (_mode == TrashMode.Application)
             {
-                Directory.CreateDirectory(folder);
+                EnsureWritableDirectory(folder);
+            }
 
-                string probe = Path.Combine(folder, $".write-test-{Guid.NewGuid():N}.tmp");
-                using (File.Create(probe))
-                {
-                }
+            string? modelsFolder = null;
 
-                File.Delete(probe);
+            if (_modelSettingsStore is not null)
+            {
+                modelsFolder = ModelSettingsStore.NormalizeFolder(ModelsFolder);
+                EnsureWritableDirectory(modelsFolder);
             }
 
             _settingsStore.Save(new TrashSettings(_mode, folder));
             TrashFolder = folder;
+
+            if (_modelSettingsStore is not null && modelsFolder is not null)
+            {
+                _modelSettingsStore.Save(new ModelSettings(modelsFolder));
+                ModelsFolder = modelsFolder;
+            }
+
             Status = IsApplicationTrash
                 ? $"Saved. New deletions go to {folder}."
                 : $"Saved. New deletions use the {SystemTrashName}.";
@@ -128,5 +165,17 @@ public class SettingsViewModel : ViewModelBase
         {
             Status = ex.Message;
         }
+    }
+
+    private static void EnsureWritableDirectory(string folder)
+    {
+        Directory.CreateDirectory(folder);
+
+        string probe = Path.Combine(folder, $".write-test-{Guid.NewGuid():N}.tmp");
+        using (File.Create(probe))
+        {
+        }
+
+        File.Delete(probe);
     }
 }

@@ -18,6 +18,7 @@ namespace DuplicateAssistant.ViewModels;
 public class SimilarImageViewModel : DuplicateInFolderViewModel
 {
     private readonly ScanCache? _scanCache;
+    private readonly ModelSettingsStore? _modelSettings;
     private readonly Dictionary<HashKey, SimilarGroupMetadata> _metadata = new();
 
     private bool _useSemantic;
@@ -31,10 +32,12 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
     public bool LoadThumbnails { get; set; } = true;
 
     public SimilarImageViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null) :
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
+        ModelSettingsStore? modelSettings = null) :
         base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
     {
         _scanCache = scanCache;
+        _modelSettings = modelSettings;
         ShowHashOptions = false;
         DryRun = true;
         FileExtensions = "jpg,jpeg,png,gif,bmp,webp,ico";
@@ -45,7 +48,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         OpenModelFolderCommand = ReactiveCommand.Create(OpenModelFolder);
     }
 
-    public string ModelDirectory => CachePaths.ModelsDirectory;
+    public string ModelDirectory => _modelSettings?.Current.ModelsFolder ?? CachePaths.ModelsDirectory;
 
     public string CacheDirectory => CachePaths.RootDirectory;
 
@@ -128,7 +131,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
 
         try
         {
-            OnnxModelStore? store = NeedsModelDownload ? new OnnxModelStore() : null;
+            OnnxModelStore? store = NeedsModelDownload ? new OnnxModelStore(ModelDirectory) : null;
             IProgress<double> modelProgress = new InlineProgress(value =>
                 UpdateProgress((int)Math.Clamp(value, 0, 100)));
 
@@ -298,7 +301,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         try
         {
             CacheSnapshot snapshot = await Task.Run(() =>
-                CacheInspector.Inspect(CachePaths.RootDirectory, CachePaths.ModelsDirectory));
+                CacheInspector.Inspect(CachePaths.RootDirectory, ModelDirectory));
 
             OnUiThread(() => CacheSummary = FormatCacheSummary(snapshot));
         }
@@ -353,10 +356,10 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
     {
         try
         {
-            Directory.CreateDirectory(CachePaths.ModelsDirectory);
+            Directory.CreateDirectory(ModelDirectory);
             Process.Start(new ProcessStartInfo
             {
-                FileName = CachePaths.ModelsDirectory,
+                FileName = ModelDirectory,
                 UseShellExecute = true
             });
         }

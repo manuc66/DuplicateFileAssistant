@@ -109,7 +109,8 @@ member when it scores better.
 
 Models are downloaded on first use to
 `%LOCALAPPDATA%/DuplicateFileAssistant/models` (on Linux and macOS, the equivalent
-`LocalApplicationData` directory), verified with SHA-256, and reused offline.
+`LocalApplicationData` directory), verified with SHA-256, and reused offline. In the
+desktop app, **Settings → Models** changes that folder.
 
 | Id | Role | Licence | Size |
 |---|---|---|---|
