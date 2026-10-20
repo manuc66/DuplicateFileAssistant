@@ -32,7 +32,7 @@
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
         </TabItem>
         <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center">
-            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <views:DeleteIfElsewhereUserControl DataContext="{Binding DeleteIfElsewhereViewModel}" />
         </TabItem>
         <TabItem Header="Merge to destination" VerticalContentAlignment="Center">
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>

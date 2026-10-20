@@ -31,8 +31,8 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         IDeleteConfirmation deleteConfirmation) :
         base(trash, searchPath, fileManagerHandler, deleteConfirmation)
     {
-        HashAlgorithms = new List<string> { "MD5", "Blake3", "XXHash" };
-        HashAlgorithm = HashAlgorithms[1];
+        HashAlgorithms = new List<string>(HashAlgorithmFactory.Names);
+        HashAlgorithm = "Blake3";
     }
 
     protected override Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
@@ -40,35 +40,13 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         using ControlWriter textDisplayProgress = new(this);
 
-        IHashFile fileHashing = GetFileHashing();
+        IHashFile fileHashing = HashAlgorithmFactory.Create(HashAlgorithm);
         FileSearchFilter searchFilter = CreateSearchFilter();
 
         Func<string, byte[]> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
 
         return DupProvider.FindDuplicateByHash(SearchPath, searchOption, searchFilter.MatchesFile, textDisplayProgress,
             UpdateProgress, hash, ct, searchFilter.MatchesPath);
-    }
-
-    private IHashFile GetFileHashing()
-    {
-        IHashFile fileHashing;
-        switch (HashAlgorithm)
-        {
-            case "MD5":
-                fileHashing = new Md5FileHashing();
-                break;
-            case "Blake3":
-                fileHashing = new Blake3FileHashing();
-                break;
-            case "XXHash":
-                fileHashing = new XXHashFileHashing();
-                break;
-            default:
-                fileHashing = new XXHashFileHashing();
-                break;
-        }
-
-        return fileHashing;
     }
 
     static byte[] Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
