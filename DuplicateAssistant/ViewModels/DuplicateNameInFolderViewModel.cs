@@ -13,7 +13,7 @@ public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
     {
     }
 
-    protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
+    protected override Dictionary<string, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         using ControlWriter textDisplayProgress = new(this);

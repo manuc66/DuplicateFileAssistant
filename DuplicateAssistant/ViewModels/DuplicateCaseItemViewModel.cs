@@ -16,28 +16,20 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private readonly long _fileLength;
     private readonly DateTime _lastWriteTimeUtc;
     public string FilePath { get; }
+    public long FileSize { get; }
     public ReactiveCommand<string, Unit> RevealInFolderCommand { get; }
     public ReactiveCommand<string, Unit> OpenCommand { get; }
     public ReactiveCommand<string, Unit> DeleteCommand { get; }
 
-    public DuplicateCaseItemViewModel(DuplicateCaseViewModel duplicateCase, string filePath, FileManagerHandler fileManagerHandler, Trash trash)
+    public DuplicateCaseItemViewModel(DuplicateCaseViewModel duplicateCase, DuplicateFile file, FileManagerHandler fileManagerHandler, Trash trash)
     {
         _duplicateCase = duplicateCase;
-        FilePath = filePath;
+        FilePath = file.Path;
+        FileSize = file.Length;
         _trash = trash;
         _fileManagerHandler = fileManagerHandler;
-
-        FileInfo fileInfo = new(filePath);
-        if (fileInfo.Exists)
-        {
-            _fileLength = fileInfo.Length;
-            _lastWriteTimeUtc = fileInfo.LastWriteTimeUtc;
-        }
-        else
-        {
-            _fileLength = -1;
-            _lastWriteTimeUtc = DateTime.MinValue;
-        }
+        _fileLength = file.Length;
+        _lastWriteTimeUtc = file.LastWriteTimeUtc;
 
         RevealInFolderCommand = ReactiveCommand.CreateFromTask<string>(fileManagerHandler.RevealFileInFolder);
         OpenCommand = ReactiveCommand.CreateFromTask<string>(_fileManagerHandler.OpenFile);

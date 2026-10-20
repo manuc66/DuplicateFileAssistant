@@ -28,11 +28,11 @@ public class DuplicateCaseViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _files, value);
     }
 
-    public DuplicateCaseViewModel(DuplicateInFolderViewModel duplicateInFolderViewModel, HashSet<string> argValue, Trash trash, FileManagerHandler fileManagerHandler)
+    public DuplicateCaseViewModel(DuplicateInFolderViewModel duplicateInFolderViewModel, IEnumerable<DuplicateFile> files, Trash trash, FileManagerHandler fileManagerHandler)
     {
         _duplicateInFolderViewModel = duplicateInFolderViewModel;
-        _name = String.Join(" - ", argValue.Select(Path.GetFileName).Distinct(StringComparer.OrdinalIgnoreCase));
-        _files = new ObservableCollection<DuplicateCaseItemViewModel>(argValue.Select(x => new DuplicateCaseItemViewModel(this, x, fileManagerHandler, trash)));
+        _name = String.Join(" - ", files.Select(file => Path.GetFileName(file.Path)).Distinct(StringComparer.OrdinalIgnoreCase));
+        _files = new ObservableCollection<DuplicateCaseItemViewModel>(files.Select(file => new DuplicateCaseItemViewModel(this, file, fileManagerHandler, trash)));
     }
 
     public void Remove(DuplicateCaseItemViewModel duplicateCaseItem)

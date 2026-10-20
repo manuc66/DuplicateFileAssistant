@@ -17,10 +17,10 @@ public class DuplicateViewModelTests
             temp.Root,
             new FileManagerHandler());
 
-        HashSet<string> files = new()
+        HashSet<DuplicateFile> files = new()
         {
-            Path.Combine(temp.Root, "first.jpg"),
-            Path.Combine(temp.Root, "second.jpg")
+            new DuplicateFile(Path.Combine(temp.Root, "first.jpg"), 0, DateTime.MinValue),
+            new DuplicateFile(Path.Combine(temp.Root, "second.jpg"), 0, DateTime.MinValue)
         };
 
         DuplicateCaseViewModel duplicateCase = new(
@@ -47,9 +47,9 @@ public class DuplicateViewModelTests
         {
         }
 
-        protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
+        protected override Dictionary<string, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
         {
-            return new Dictionary<string, HashSet<string>>();
+            return new Dictionary<string, HashSet<DuplicateFile>>();
         }
     }
 }

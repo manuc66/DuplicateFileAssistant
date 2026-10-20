@@ -2,6 +2,11 @@ namespace FileCompare;
 
 public static class PathUtilities
 {
+    public static StringComparer PathComparer { get; } =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+
     public static string ExpandPath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

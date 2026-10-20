@@ -28,7 +28,7 @@ public class DupProviderTests
         _temp.CreateFile("a.txt", "same content");
         _temp.CreateFile("A.txt", "same content");
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -50,7 +50,7 @@ public class DupProviderTests
         string first = _temp.CreateFile("a.txt", "aaaa");
         string second = _temp.CreateFile("b.txt", "bbbb");
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -69,7 +69,7 @@ public class DupProviderTests
         string second = _temp.CreateFile("b.txt", "same");
         _temp.CreateFile("c.txt", "diff");
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -81,7 +81,31 @@ public class DupProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(result, Has.Count.EqualTo(1));
-            Assert.That(result.Values.Single(), Is.EquivalentTo(new[] { first, second }));
+            Assert.That(result.Values.Single().Select(file => file.Path), Is.EquivalentTo(new[] { first, second }));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_ReturnsFileMetadata()
+    {
+        string first = _temp.CreateFile("a.txt", "same");
+        string second = _temp.CreateFile("b.txt", "same");
+
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllText,
+            CancellationToken.None);
+
+        HashSet<DuplicateFile> files = result.Values.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(files.Select(file => file.Path), Is.EquivalentTo(new[] { first, second }));
+            Assert.That(files.Select(file => file.Length), Is.All.EqualTo(4));
         });
     }
 
@@ -122,7 +146,7 @@ public class DupProviderTests
         _temp.CreateFile("second.bin", second);
         int fullHashCalls = 0;
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -152,7 +176,7 @@ public class DupProviderTests
         _temp.CreateFile("second.bin", content);
         int fullHashCalls = 0;
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -229,7 +253,7 @@ public class DupProviderTests
             return File.ReadAllText(path);
         }
 
-        Dictionary<string, HashSet<string>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,

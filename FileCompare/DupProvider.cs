@@ -16,10 +16,7 @@ public class DupProvider
     private const ulong FnvOffsetBasis = 14695981039346656037UL;
     private const ulong FnvPrime = 1099511628211UL;
 
-    private static readonly StringComparer PathComparer =
-        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+    private static readonly StringComparer PathComparer = PathUtilities.PathComparer;
 
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, Func<string, T> getHash,
@@ -184,7 +181,7 @@ public class DupProvider
             NormalizeFileName, textDisplayProgress, cancellationToken);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+    public static Dictionary<string, HashSet<DuplicateFile>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
     {
         Dictionary<string, HashSet<string>> candidates =
@@ -193,10 +190,13 @@ public class DupProvider
         return VerifyContentGroups(candidates);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+    public static Dictionary<string, HashSet<DuplicateFile>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
-        return FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+        Dictionary<string, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+
+        return AttachMetadata(candidates);
     }
 
     private static List<string> RefineByPartialHash(IReadOnlyCollection<string> paths, TextWriter textDisplayProgress,
@@ -372,20 +372,46 @@ public class DupProvider
         return new Dictionary<string, T>(hashes, PathComparer);
     }
 
-    private static Dictionary<string, HashSet<string>> VerifyContentGroups(
+    private static Dictionary<string, HashSet<DuplicateFile>> VerifyContentGroups(
         Dictionary<string, HashSet<string>> candidates)
     {
-        Dictionary<string, HashSet<string>> verified = new(StringComparer.Ordinal);
+        Dictionary<string, HashSet<DuplicateFile>> verified = new(StringComparer.Ordinal);
 
         foreach ((string hash, HashSet<string> paths) in candidates)
         {
             int index = 0;
 
-            foreach (HashSet<string> group in PartitionByContent(paths).Where(group => group.Count > 1))
+            foreach (HashSet<DuplicateFile> group in PartitionByContent(paths))
             {
                 string key = index == 0 ? hash : $"{hash}:{index}";
                 verified[key] = group;
                 index++;
+            }
+        }
+
+        return verified;
+    }
+
+    private static Dictionary<string, HashSet<DuplicateFile>> AttachMetadata(
+        Dictionary<string, HashSet<string>> candidates)
+    {
+        Dictionary<string, HashSet<DuplicateFile>> verified = new(StringComparer.Ordinal);
+
+        foreach ((string key, HashSet<string> paths) in candidates)
+        {
+            HashSet<DuplicateFile> files = new(DuplicateFile.Comparer);
+
+            foreach (string path in paths)
+            {
+                if (DuplicateFile.TryCreate(path, out DuplicateFile? file) && file is not null)
+                {
+                    files.Add(file);
+                }
+            }
+
+            if (files.Count > 1)
+            {
+                verified[key] = files;
             }
         }
 
@@ -447,19 +473,24 @@ public class DupProvider
         groups.Add((path, newInA, newInB));
     }
 
-    private static List<HashSet<string>> PartitionByContent(IEnumerable<string> paths)
+    private static List<HashSet<DuplicateFile>> PartitionByContent(IEnumerable<string> paths)
     {
-        List<(string Representative, List<string> Paths)> groups = new();
+        List<(DuplicateFile Representative, List<DuplicateFile> Files)> groups = new();
 
         foreach (string path in paths)
         {
+            if (!DuplicateFile.TryCreate(path, out DuplicateFile? file) || file is null)
+            {
+                continue;
+            }
+
             bool added = false;
 
-            foreach ((string representative, List<string> groupPaths) in groups)
+            foreach ((DuplicateFile representative, List<DuplicateFile> groupFiles) in groups)
             {
-                if (FilesAreEqual(representative, path))
+                if (FilesAreEqual(representative.Path, file.Path))
                 {
-                    groupPaths.Add(path);
+                    groupFiles.Add(file);
                     added = true;
                     break;
                 }
@@ -467,13 +498,13 @@ public class DupProvider
 
             if (!added)
             {
-                groups.Add((path, new List<string>(1) { path }));
+                groups.Add((file, new List<DuplicateFile>(1) { file }));
             }
         }
 
         return groups
-            .Where(group => group.Paths.Count > 1)
-            .Select(group => new HashSet<string>(group.Paths, PathComparer))
+            .Where(group => group.Files.Count > 1)
+            .Select(group => new HashSet<DuplicateFile>(group.Files, DuplicateFile.Comparer))
             .ToList();
     }
 
