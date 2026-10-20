@@ -16,7 +16,7 @@ public partial class SimilarImageUserControl : UserControl
     {
         if (DataContext is SimilarImageViewModel { DuplicateCase.Keeper: { } keeper })
         {
-            OpenPreview(keeper.FilePath);
+            OpenPreview(keeper.FilePath, (DataContext as SimilarImageViewModel)?.DuplicateCase?.SelectedFile?.FilePath);
         }
     }
 
@@ -24,13 +24,13 @@ public partial class SimilarImageUserControl : UserControl
     {
         if (DataContext is SimilarImageViewModel { DuplicateCase.SelectedFile: { } selected })
         {
-            OpenPreview(selected.FilePath);
+            OpenPreview(selected.FilePath, (DataContext as SimilarImageViewModel)?.DuplicateCase?.Keeper?.FilePath);
         }
     }
 
-    private void OpenPreview(string path)
+    private void OpenPreview(string path, string? comparisonPath)
     {
-        PreviewWindow window = new(new PreviewViewModel(path));
+        PreviewWindow window = new(new PreviewViewModel(path, comparisonPath));
 
         if (TopLevel.GetTopLevel(this) is Window owner)
         {

@@ -32,7 +32,12 @@ passes refine it:
 - Each file row shows its dHash distance, cosine similarity and quality score when those
   values are available.
 - Selecting a file shows it side by side with the keeper in a larger preview. The
-  **Zoom** button opens a full-screen viewer with zoom in/out, actual size and F11.
+  **Zoom** button opens a full-screen viewer with zoom in/out, actual size and F11. Drag
+  the image to pan when zoomed.
+- In the viewer, the **Overlay** slider blends the two pictures (0 = first, 1 = second),
+  and **Difference** shows a normalized absolute-difference heatmap. The heatmap is
+  meaningful for the same framing (resize, recompression); a crop or rotation is not
+  aligned, so it appears as a large difference.
 
 Perceptual matches are not byte-identical, so the **Hardlink** action is disabled for image
 groups in the desktop tab.

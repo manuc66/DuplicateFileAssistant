@@ -85,8 +85,11 @@ The threshold field tunes the semantic pass (0.80 by default); a higher value is
 **Dry run** is checked by default. Review the group, then **Delete non-keepers** moves the
 other copies to the trash after confirmation. Selecting a file shows it side by side with
 the keeper, so a crop or edit can be checked before acting. The **Zoom** button opens a
-full-screen viewer with zoom in/out, actual size and F11. Hard links are disabled for
-image groups because a perceptual match is not guaranteed to be byte-identical.
+full-screen viewer with zoom in/out, actual size and F11. Drag to pan when zoomed. The
+viewer can blend the two pictures with an **Overlay** slider and show a normalized
+**Difference** heatmap; the heatmap is approximate for crops because the images are not
+geometrically aligned. Hard links are disabled for image groups because a perceptual match
+is not guaranteed to be byte-identical.
 
 ## Delete if elsewhere and Merge to destination
 

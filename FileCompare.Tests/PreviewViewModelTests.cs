@@ -66,6 +66,42 @@ public class PreviewViewModelTests
     }
 
     [AvaloniaTest]
+    public async Task LoadsComparisonAndDifference()
+    {
+        using SKBitmap image = TestImages.CreatePattern(800, 600);
+        using SKBitmap edited = image.Copy();
+
+        using (SKCanvas canvas = new(edited))
+        using (SKPaint paint = new() { Color = SKColors.Black })
+        {
+            canvas.DrawRect(100, 80, 180, 120, paint);
+        }
+
+        string first = _temp.CreateFile("first.png", TestImages.Encode(image, png: true));
+        string second = _temp.CreateFile("second.png", TestImages.Encode(edited, png: true));
+        PreviewViewModel viewModel = new(first, second);
+
+        await viewModel.LoadAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.HasComparison, Is.True);
+            Assert.That(viewModel.ComparisonImage, Is.Not.Null);
+            Assert.That(viewModel.DifferenceImage, Is.Not.Null);
+            Assert.That(viewModel.DifferenceText, Is.Not.Empty);
+        });
+    }
+
+    [Test]
+    public void SingleImageHasNoComparison()
+    {
+        PreviewViewModel viewModel = new("unused.png");
+
+        Assert.That(viewModel.HasComparison, Is.False);
+    }
+
+    [AvaloniaTest]
     public void WindowLoads()
     {
         PreviewWindow window = new(new PreviewViewModel("unused.png"));
