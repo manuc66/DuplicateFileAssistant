@@ -30,6 +30,7 @@
     <ItemGroup>
       <ProjectReference Include="..\FileCompare\FileCompare.csproj" />
       <ProjectReference Include="..\DuplicateAssistant\DuplicateAssistant.csproj" />
+      <ProjectReference Include="..\Cli\Cli.csproj" />
     </ItemGroup>
 
 </Project>

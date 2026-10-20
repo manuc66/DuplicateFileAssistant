@@ -23,6 +23,23 @@ Different kind of file hashing are supported as well as fast file compare with S
 The trash is a safety net against manipulation errors, not a backup. Keep an independent
 backup of irreplaceable files.
 
+## CLI
+
+The `Cli` project provides a JSON-capable command-line frontend. Destructive commands are
+dry-run by default; add `--apply` explicitly.
+
+```bash
+dotnet run --project Cli -- duplicates --path ~/Pictures --json
+dotnet run --project Cli -- empty-files --path ~/Downloads --json
+dotnet run --project Cli -- big-files --path ~/Videos --max 20 --json
+dotnet run --project Cli -- temporary --path ~/Projects --json
+dotnet run --project Cli -- invalid-symlinks --path ~/data --json
+dotnet run --project Cli -- empty-folders --path ~/Projects --apply
+```
+
+Common options: `--path`, `--json`, `--apply`, `--trash`, `--exclude`, `--max`,
+`--algorithm sha256|md5`.
+
 ## Storage formats
 
 - `trash-manifest.json` stores the mutable trash index as a JSON array.
