@@ -2,8 +2,13 @@ namespace FileCompare;
 
 public static class PathUtilities
 {
-    public static StringComparer PathComparer { get; } =
+    public static StringComparison PathComparison { get; } =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+    public static StringComparer PathComparer { get; } =
+        PathComparison == StringComparison.OrdinalIgnoreCase
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
 

@@ -22,17 +22,17 @@ public class DupProvider
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, Func<string, T> getHash,
         TextWriter textDisplayProgress,
-        CancellationToken ct) where T : notnull
+        CancellationToken ct, Func<string, bool>? pathFilter) where T : notnull
     {
         HashSet<FileIdentity> seenIdentities = new();
 
-        Dictionary<long, List<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct, seenIdentities);
+        Dictionary<long, List<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct, seenIdentities, pathFilter);
         if (ct.IsCancellationRequested)
         {
             return new(0);
         }
 
-        Dictionary<long, List<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct, seenIdentities);
+        Dictionary<long, List<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct, seenIdentities, pathFilter);
         if (ct.IsCancellationRequested)
         {
             return new(0);
@@ -114,10 +114,10 @@ public class DupProvider
 
     private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption, Func<IFileInfo, bool> filter,
         Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress,
-        CancellationToken ct) where T : notnull
+        CancellationToken ct, Func<string, bool>? pathFilter) where T : notnull
     {
         List<KeyValuePair<long, List<string>>> potentialDup =
-            GetFileGroupThatHaveSameSize(inputPath, searchOption, filter, textDisplayProgress, ct);
+            GetFileGroupThatHaveSameSize(inputPath, searchOption, filter, textDisplayProgress, ct, pathFilter);
 
         if (ct.IsCancellationRequested)
         {
@@ -172,10 +172,12 @@ public class DupProvider
     }
 
     private static List<KeyValuePair<long, List<string>>> GetFileGroupThatHaveSameSize(string inputPath,
-        SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct)
+        SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct,
+        Func<string, bool>? pathFilter)
     {
         Dictionary<long, List<string>> fileBySize =
-            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct, new HashSet<FileIdentity>());
+            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct,
+                new HashSet<FileIdentity>(), pathFilter);
 
         if (ct.IsCancellationRequested)
         {
@@ -187,38 +189,40 @@ public class DupProvider
 
     public static Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, byte[]> hash,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Func<string, bool>? pathFilter = null)
     {
         Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> candidates = FindDuplicate(a, searchOption, b, bSearchOption,
-            filter, path => HashKey.FromOwned(hash(path)), textDisplayProgress, cancellationToken);
+            filter, path => HashKey.FromOwned(hash(path)), textDisplayProgress, cancellationToken, pathFilter);
 
         return VerifyCrossContentGroups(candidates);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Func<string, bool>? pathFilter = null)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, filter,
-            NormalizeFileName, textDisplayProgress, cancellationToken);
+            NormalizeFileName, textDisplayProgress, cancellationToken, pathFilter);
     }
 
     public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, byte[]> hash, CancellationToken ct)
+        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, byte[]> hash, CancellationToken ct,
+        Func<string, bool>? pathFilter = null)
     {
         Dictionary<HashKey, HashSet<string>> candidates =
-            FindDuplicate(path, searchOption, filter, p => HashKey.FromOwned(hash(p)), textDisplayProgress, updateProgress, ct);
+            FindDuplicate(path, searchOption, filter, p => HashKey.FromOwned(hash(p)), textDisplayProgress, updateProgress, ct, pathFilter);
 
         return VerifyContentGroups(candidates);
     }
 
     public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
+        TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken,
+        Func<string, bool>? pathFilter = null)
     {
         Dictionary<HashKey, HashSet<string>> candidates =
             FindDuplicate(path, searchOption, filter,
                 p => HashKey.FromOwned(Encoding.UTF8.GetBytes(NormalizeFileName(p))),
-                textDisplayProgress, updateProgress, cancellationToken);
+                textDisplayProgress, updateProgress, cancellationToken, pathFilter);
 
         return AttachMetadata(candidates);
     }
@@ -574,7 +578,7 @@ public class DupProvider
 
     private static Dictionary<long, List<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
         Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
-        CancellationToken ct, ISet<FileIdentity> seenIdentities)
+        CancellationToken ct, ISet<FileIdentity> seenIdentities, Func<string, bool>? pathFilter)
     {
         Dictionary<long, List<string>> afileWithSameSize = new();
 
@@ -582,6 +586,12 @@ public class DupProvider
         Stopwatch estimateElapsedTime = Stopwatch.StartNew();
         foreach (string entryPath in EnumeratePath(a, aSearchOption, ct))
         {
+            if (pathFilter != null && !pathFilter(entryPath))
+            {
+                itemCrawled++;
+                continue;
+            }
+
             if (estimateElapsedTime.ElapsedMilliseconds > 1000)
             {
                 estimateElapsedTime = Stopwatch.StartNew();

@@ -90,6 +90,30 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         set => this.RaiseAndSetIfChanged(ref _searchLog, value);
     }
 
+    private string _minimumFileSizeText = string.Empty;
+
+    public string MinimumFileSizeText
+    {
+        get => _minimumFileSizeText;
+        set => this.RaiseAndSetIfChanged(ref _minimumFileSizeText, value);
+    }
+
+    private string _fileExtensions = string.Empty;
+
+    public string FileExtensions
+    {
+        get => _fileExtensions;
+        set => this.RaiseAndSetIfChanged(ref _fileExtensions, value);
+    }
+
+    private string _excludedFolders = string.Empty;
+
+    public string ExcludedFolders
+    {
+        get => _excludedFolders;
+        set => this.RaiseAndSetIfChanged(ref _excludedFolders, value);
+    }
+
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation)
     {
@@ -178,6 +202,19 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
     protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
+
+    protected FileSearchFilter CreateSearchFilter()
+    {
+        long minimumSize = 0;
+
+        if (!string.IsNullOrWhiteSpace(MinimumFileSizeText) &&
+            !long.TryParse(MinimumFileSizeText, out minimumSize))
+        {
+            throw new FormatException("Minimum file size must be a number of bytes.");
+        }
+
+        return FileSearchFilter.FromText(minimumSize, FileExtensions, ExcludedFolders);
+    }
 
     protected void UpdateProgress(int progress)
     {

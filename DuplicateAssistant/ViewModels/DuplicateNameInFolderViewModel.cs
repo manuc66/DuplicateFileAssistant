@@ -18,7 +18,8 @@ public class DuplicateNameInFolderViewModel : DuplicateInFolderViewModel
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         using ControlWriter textDisplayProgress = new(this);
-        return DupProvider.FindDuplicateByFileName(SearchPath, searchOption, _ => true, textDisplayProgress,
-            UpdateProgress, ct);
+        FileSearchFilter searchFilter = CreateSearchFilter();
+        return DupProvider.FindDuplicateByFileName(SearchPath, searchOption, searchFilter.MatchesFile, textDisplayProgress,
+            UpdateProgress, ct, searchFilter.MatchesPath);
     }
 }

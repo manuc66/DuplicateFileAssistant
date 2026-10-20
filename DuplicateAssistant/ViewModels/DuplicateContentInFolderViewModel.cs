@@ -41,11 +41,12 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         using ControlWriter textDisplayProgress = new(this);
 
         IHashFile fileHashing = GetFileHashing();
+        FileSearchFilter searchFilter = CreateSearchFilter();
 
         Func<string, byte[]> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
 
-        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => !fi.IsLink() && !fi.IsFifoFile(), textDisplayProgress,
-            UpdateProgress, hash, ct);
+        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, searchFilter.MatchesFile, textDisplayProgress,
+            UpdateProgress, hash, ct, searchFilter.MatchesPath);
     }
 
     private IHashFile GetFileHashing()

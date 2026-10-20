@@ -20,6 +20,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
@@ -29,9 +30,26 @@
         <Button Content="Search" Grid.Row="0" Grid.Column="3" Command="{Binding SearchCommand}" HorizontalAlignment="Right"/>
         <Button Content="Stop" Grid.Row="0" Grid.Column="4" Command="{Binding StopSearchCommand}" HorizontalAlignment="Right"/>
         
-        <ProgressBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="5" Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="120"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Min bytes" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Text="{Binding MinimumFileSizeText}" PlaceholderText="0" />
+            <TextBlock Grid.Column="2" Text="Extensions" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <TextBox Grid.Column="3" Text="{Binding FileExtensions}" PlaceholderText=".jpg,.png" />
+            <TextBlock Grid.Column="4" Text="Exclude folders" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
+        </Grid>
+
+        <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Minimum="0" Maximum="100" Value="{Binding ProgressValue}"/>
         
-        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Name="DuplicateCases"
+        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
@@ -39,7 +57,7 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <DockPanel IsVisible="{Binding Finished}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5">
+        <DockPanel IsVisible="{Binding Finished}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="5">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="16" Margin="4">
                 <TextBlock Text="{Binding DuplicateCase.ReclaimableSizeText}" />
                 <TextBlock Text="{Binding DuplicateCase.KeeperText}" />
@@ -49,7 +67,7 @@
                      ItemsSource="{Binding DuplicateCase.Files}">
             </ListBox>
         </DockPanel>
-        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="5" Text="{Binding SearchLog}" >
+        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace" IsVisible="{Binding !Finished}" Grid.Row="3" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="5" Text="{Binding SearchLog}" >
 
         </TextBox>
     </Grid>
