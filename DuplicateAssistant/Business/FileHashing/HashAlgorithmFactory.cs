@@ -9,12 +9,19 @@ public static class HashAlgorithmFactory
 
     public static IHashFile Create(string? name)
     {
-        return name switch
+        if (string.IsNullOrWhiteSpace(name))
         {
-            "MD5" => new Md5FileHashing(),
-            "XXHash" => new XXHashFileHashing(),
-            "Blake3" => new Blake3FileHashing(),
-            _ => new Blake3FileHashing()
+            return new Blake3FileHashing();
+        }
+
+        return name.Trim().ToLowerInvariant() switch
+        {
+            "md5" => new Md5FileHashing(),
+            "xxhash" => new XXHashFileHashing(),
+            "blake3" => new Blake3FileHashing(),
+            _ => throw new ArgumentException(
+                $"Unknown hash algorithm: {name}. Supported algorithms: {string.Join(", ", Names)}.",
+                nameof(name))
         };
     }
 }

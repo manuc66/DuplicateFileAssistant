@@ -19,11 +19,11 @@ public static class InvalidSymbolicLinkFinder
             cancellationToken.ThrowIfCancellationRequested();
             string directory = pendingDirectories.Pop();
 
-            IEnumerable<string> entries;
+            string[] entries;
 
             try
             {
-                entries = Directory.EnumerateFileSystemEntries(directory, "*", new EnumerationOptions
+                entries = Directory.GetFileSystemEntries(directory, "*", new EnumerationOptions
                 {
                     RecurseSubdirectories = false,
                     IgnoreInaccessible = true,

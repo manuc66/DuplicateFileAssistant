@@ -27,8 +27,8 @@ public static class MergeExecutor
                             Directory.CreateDirectory(directory);
                         }
 
-                        await MoveAsync(item.SourcePath, item.DestinationPath, new FileInfo(item.SourcePath),
-                            cancellationToken);
+                        await TrashFileOperations.MoveAsync(item.SourcePath, item.DestinationPath,
+                            new FileInfo(item.SourcePath), cancellationToken);
                         moved++;
                         journal?.Write("move", item.SourcePath, item.DestinationPath, "ok", null);
                         break;
@@ -54,27 +54,5 @@ public static class MergeExecutor
         }
 
         return new MergeResult(moved, trashed, conflicts, failed);
-    }
-
-    private static async Task MoveAsync(string sourcePath, string destinationPath, FileInfo sourceInfo,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            File.Move(sourcePath, destinationPath);
-        }
-        catch (IOException) when (File.Exists(sourcePath) && !File.Exists(destinationPath))
-        {
-            await using (FileStream source = new(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
-                             FileOptions.Asynchronous | FileOptions.SequentialScan))
-            await using (FileStream destination = new(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                             81920, FileOptions.Asynchronous))
-            {
-                await source.CopyToAsync(destination, cancellationToken);
-            }
-
-            FileMetadata.Copy(sourceInfo, destinationPath);
-            File.Delete(sourcePath);
-        }
     }
 }
