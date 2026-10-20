@@ -27,9 +27,14 @@ passes refine it:
 - The numeric field next to the semantic checkbox is the cosine threshold (0.80 by default).
 - **Dry run** is checked by default. **Delete non-keepers** moves the other copies to the
   trash after confirmation.
+- Each group shows a thumbnail of the suggested keeper, decoded at a small size.
 
 Perceptual matches are not byte-identical, so the **Hardlink** action is disabled for image
 groups in the desktop tab.
+
+The **Models and caches** expander at the bottom of the tab shows the size of the hash,
+embedding, quality and model caches. It can refresh the summary, prune entries for deleted
+files, clear the computed caches (downloaded models are kept), and open the model folder.
 
 ## The perceptual pass
 

@@ -50,4 +50,6 @@ changing its size or timestamp (for example with `touch -r`) can reuse a stale v
 Deleting the caches is always safe: the next run recomputes what it needs.
 
 The desktop app uses the same scan cache for its content-hash tabs. The CLI and the app
-share the cache directory, so a folder scanned by one is faster in the other.
+share the cache directory, so a folder scanned by one is faster in the other. In the
+**Similar images** tab, the **Models and caches** expander shows the same totals and offers
+**Refresh**, **Prune**, **Clear caches** and **Open model folder**.

@@ -1,3 +1,5 @@
+using ImageCompare;
+
 namespace FileCompare.Tests;
 
 [TestFixture]
@@ -77,6 +79,27 @@ public class ScanCacheTests
         {
             Assert.That(removed, Is.EqualTo(1));
             Assert.That(cache.Count, Is.Zero);
+        });
+    }
+
+    [Test]
+    public void CacheInspectorPrunesMissingFiles()
+    {
+        string file = _temp.CreateFile("file.bin", "content");
+        string directory = Path.Combine(_temp.Root, "cache");
+        Directory.CreateDirectory(directory);
+        string cachePath = Path.Combine(directory, "scan-cache.json");
+        ScanCache cache = new(cachePath);
+        cache.GetOrCompute("Blake3", file, File.ReadAllBytes);
+        cache.Save();
+
+        File.Delete(file);
+        int removed = CacheInspector.Prune(directory);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(removed, Is.EqualTo(1));
+            Assert.That(new ScanCache(cachePath).Count, Is.Zero);
         });
     }
 

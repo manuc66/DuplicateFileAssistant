@@ -96,7 +96,7 @@ public static class CliRunner
                 return 1;
             }
 
-            CacheCleanup cleanup = ClearCaches(directory);
+            CacheCleanupResult cleanup = CacheInspector.Clear(directory);
 
             if (json)
             {
@@ -118,8 +118,8 @@ public static class CliRunner
             return 0;
         }
 
-        int pruned = prune ? PruneCaches(directory) : 0;
-        CacheSnapshot snapshot = ReadCacheSnapshot(directory, options.GetSingle("model-dir"));
+        int pruned = prune ? CacheInspector.Prune(directory) : 0;
+        CacheSnapshot snapshot = CacheInspector.Inspect(directory, options.GetSingle("model-dir"));
 
         if (json)
         {
@@ -158,148 +158,6 @@ public static class CliRunner
 
         output.WriteLine($"Total: {FormatBytes(snapshot.TotalBytes)}");
         return 0;
-    }
-
-    private static int PruneCaches(string directory)
-    {
-        if (!Directory.Exists(directory))
-        {
-            return 0;
-        }
-
-        int removed = 0;
-        string scanPath = Path.Combine(directory, "scan-cache.json");
-
-        if (File.Exists(scanPath))
-        {
-            ScanCache scan = new(scanPath);
-            removed += scan.PruneMissingFiles();
-            scan.Save();
-        }
-
-        foreach (string path in EnumerateCacheFiles(directory, "embeddings-*.bin"))
-        {
-            if (!EmbeddingCache.TryReadHeader(path, out int dimensions, out _))
-            {
-                continue;
-            }
-
-            EmbeddingCache cache = new(path, dimensions);
-            removed += cache.PruneMissingFiles();
-            cache.Save();
-        }
-
-        foreach (string path in EnumerateCacheFiles(directory, "quality-*.bin"))
-        {
-            EmbeddingCache cache = new(path, dimensions: 1);
-            removed += cache.PruneMissingFiles();
-            cache.Save();
-        }
-
-        return removed;
-    }
-
-    private static CacheCleanup ClearCaches(string directory)
-    {
-        if (!Directory.Exists(directory))
-        {
-            return new CacheCleanup(0, 0);
-        }
-
-        int files = 0;
-        long bytes = 0;
-
-        foreach (string path in EnumerateCacheFiles(directory, "scan-cache.json")
-                     .Concat(EnumerateCacheFiles(directory, "embeddings-*.bin"))
-                     .Concat(EnumerateCacheFiles(directory, "quality-*.bin")))
-        {
-            bytes += new FileInfo(path).Length;
-            File.Delete(path);
-            files++;
-        }
-
-        return new CacheCleanup(files, bytes);
-    }
-
-    private static CacheSnapshot ReadCacheSnapshot(string directory, string? modelDirectory)
-    {
-        List<CacheEntry> entries = new();
-        string scanPath = Path.Combine(directory, "scan-cache.json");
-
-        if (File.Exists(scanPath))
-        {
-            ScanCache scan = new(scanPath);
-            entries.Add(new CacheEntry("scan", "hashes", scanPath, null, scan.Count, scan.FileSize));
-        }
-
-        foreach (string path in EnumerateCacheFiles(directory, "embeddings-*.bin"))
-        {
-            if (!EmbeddingCache.TryReadHeader(path, out int dimensions, out int count))
-            {
-                continue;
-            }
-
-            entries.Add(new CacheEntry(
-                "embeddings",
-                ExtractCacheName(path, "embeddings-"),
-                path,
-                dimensions,
-                count,
-                new FileInfo(path).Length));
-        }
-
-        foreach (string path in EnumerateCacheFiles(directory, "quality-*.bin"))
-        {
-            if (!EmbeddingCache.TryReadHeader(path, out _, out int count))
-            {
-                continue;
-            }
-
-            entries.Add(new CacheEntry(
-                "quality",
-                ExtractCacheName(path, "quality-"),
-                path,
-                1,
-                count,
-                new FileInfo(path).Length));
-        }
-
-        string modelsDirectory = modelDirectory ?? CachePaths.ModelsDirectory;
-
-        if (Directory.Exists(modelsDirectory))
-        {
-            foreach (string path in Directory.EnumerateDirectories(modelsDirectory))
-            {
-                long bytes = Directory
-                    .EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                    .Sum(file => new FileInfo(file).Length);
-
-                entries.Add(new CacheEntry(
-                    "models",
-                    Path.GetFileName(path),
-                    path,
-                    null,
-                    0,
-                    bytes));
-            }
-        }
-
-        return new CacheSnapshot(entries, entries.Sum(entry => entry.Bytes));
-    }
-
-    private static IEnumerable<string> EnumerateCacheFiles(string directory, string pattern)
-    {
-        return Directory.Exists(directory)
-            ? Directory.EnumerateFiles(directory, pattern)
-            : Array.Empty<string>();
-    }
-
-    private static string ExtractCacheName(string path, string prefix)
-    {
-        string name = Path.GetFileNameWithoutExtension(path);
-        return name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-            ? name[prefix.Length..]
-            : name;
     }
 
     private static string FormatBytes(long bytes)
@@ -694,17 +552,6 @@ public static class CliRunner
         return 1;
     }
 
-    private sealed record CacheCleanup(int Files, long Bytes);
-
-    private sealed record CacheSnapshot(IReadOnlyList<CacheEntry> Entries, long TotalBytes);
-
-    private sealed record CacheEntry(
-        string Kind,
-        string Name,
-        string Path,
-        int? Dimensions,
-        int Entries,
-        long Bytes);
 
     private static byte[] HashFile(string path, string algorithm)
     {

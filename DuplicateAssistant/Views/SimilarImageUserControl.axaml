@@ -8,7 +8,7 @@
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="DuplicateAssistant.Views.SimilarImageUserControl"
              x:DataType="vm:SimilarImageViewModel">
-    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,0,0,4">
             <TextBox Grid.Column="0" Text="{Binding SearchPath}" VerticalAlignment="Center" />
             <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}" Margin="6,0,0,0" />
@@ -81,10 +81,25 @@
 
         <controls:AutoScrollTextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap"
                                     Name="SearchLog" FontFamily="monospace"
-                                    IsVisible="{Binding !Finished}" Grid.Row="4" Grid.RowSpan="2"
+                                    IsVisible="{Binding !Finished}" Grid.Row="4" Grid.RowSpan="3"
                                     Text="{Binding SearchLog}" />
 
-        <Grid Grid.Row="5" ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+        <Expander Grid.Row="5" Header="Models and caches" IsExpanded="False" Margin="0,4,0,0">
+            <StackPanel Spacing="4" Margin="4">
+                <TextBlock Text="{Binding CacheSummary}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ModelDirectory}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+                <WrapPanel>
+                    <Button Content="Refresh" Command="{Binding RefreshCacheSummaryCommand}" Margin="0,0,6,0" />
+                    <Button Content="Prune" Command="{Binding PruneCachesCommand}" Margin="0,0,6,0" />
+                    <Button Content="Clear caches" Command="{Binding ClearCachesCommand}" Margin="0,0,6,0" />
+                    <Button Content="Open model folder" Command="{Binding OpenModelFolderCommand}" />
+                </WrapPanel>
+                <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap"
+                           Text="Clear removes cached hashes, embeddings and quality scores. Downloaded models are kept." />
+            </StackPanel>
+        </Expander>
+
+        <Grid Grid.Row="6" ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
             <TextBlock Grid.Column="0" Text="{Binding Summary}" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
             <CheckBox Grid.Column="1" Content="Dry run" IsChecked="{Binding DryRun}" Margin="6,0,0,0" />

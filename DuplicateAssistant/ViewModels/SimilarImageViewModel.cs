@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Threading;
+using System.Threading.Tasks;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ImageCompare;
@@ -22,6 +26,7 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
     private bool _allowModelDownload = true;
     private decimal _semanticThreshold = 0.80m;
     private string _summary = string.Empty;
+    private string _cacheSummary = "Click Refresh to inspect the caches.";
 
     public bool LoadThumbnails { get; set; } = true;
 
@@ -34,7 +39,29 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         DryRun = true;
         FileExtensions = "jpg,jpeg,png,gif,bmp,webp,ico";
         MinimumFileSizeText = "10240";
+        RefreshCacheSummaryCommand = ReactiveCommand.CreateFromTask(RefreshCacheSummaryAsync);
+        PruneCachesCommand = ReactiveCommand.CreateFromTask(PruneCachesAsync);
+        ClearCachesCommand = ReactiveCommand.CreateFromTask(ClearCachesAsync);
+        OpenModelFolderCommand = ReactiveCommand.Create(OpenModelFolder);
     }
+
+    public string ModelDirectory => CachePaths.ModelsDirectory;
+
+    public string CacheDirectory => CachePaths.RootDirectory;
+
+    public string CacheSummary
+    {
+        get => _cacheSummary;
+        private set => this.RaiseAndSetIfChanged(ref _cacheSummary, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> RefreshCacheSummaryCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> PruneCachesCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ClearCachesCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenModelFolderCommand { get; }
 
     public bool UseSemantic
     {
@@ -246,6 +273,92 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
         }
 
         return groups;
+    }
+
+    private async Task RefreshCacheSummaryAsync()
+    {
+        try
+        {
+            CacheSnapshot snapshot = await Task.Run(() =>
+                CacheInspector.Inspect(CachePaths.RootDirectory, CachePaths.ModelsDirectory));
+
+            OnUiThread(() => CacheSummary = FormatCacheSummary(snapshot));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            OnUiThread(() => CacheSummary = exception.Message);
+        }
+    }
+
+    private async Task PruneCachesAsync()
+    {
+        int removed = await Task.Run(() => CacheInspector.Prune(CachePaths.RootDirectory));
+        await RefreshCacheSummaryAsync();
+
+        OnUiThread(() => Summary =
+            $"Pruned {removed} cache entr{(removed == 1 ? "y" : "ies")} for missing files.");
+    }
+
+    private async Task ClearCachesAsync()
+    {
+        bool confirmed = await DeleteConfirmation.ConfirmAsync(
+            CachePaths.RootDirectory,
+            "Delete cached hashes, embeddings and quality scores? Downloaded models are kept.");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        CacheCleanupResult cleanup = await Task.Run(() => CacheInspector.Clear(CachePaths.RootDirectory));
+        await RefreshCacheSummaryAsync();
+
+        OnUiThread(() => Summary =
+            $"Cleared {cleanup.Files} cache file(s), {FormatBytes(cleanup.Bytes)}.");
+    }
+
+    private void OpenModelFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(CachePaths.ModelsDirectory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = CachePaths.ModelsDirectory,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                              or InvalidOperationException or Win32Exception)
+        {
+            OnUiThread(() => Summary = exception.Message);
+        }
+    }
+
+    private static string FormatCacheSummary(CacheSnapshot snapshot)
+    {
+        if (snapshot.Entries.Count == 0)
+        {
+            return "Caches are empty.";
+        }
+
+        string[] parts = snapshot.Entries
+            .GroupBy(entry => entry.Kind)
+            .Select(group => $"{group.Key} {FormatBytes(group.Sum(entry => entry.Bytes))}")
+            .ToArray();
+
+        return $"{FormatBytes(snapshot.TotalBytes)} total | {string.Join(", ", parts)}";
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        return bytes switch
+        {
+            < 1024 => $"{bytes} B",
+            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+            < 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024.0:F1} MB",
+            _ => $"{bytes / 1024.0 / 1024.0 / 1024.0:F1} GB"
+        };
     }
 
     private static void TrySave(ScanCache? cache)

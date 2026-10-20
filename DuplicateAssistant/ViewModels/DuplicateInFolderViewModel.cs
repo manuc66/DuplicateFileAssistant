@@ -209,6 +209,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
 
+    protected IDeleteConfirmation DeleteConfirmation => _deleteConfirmation;
+
     protected virtual DuplicateCaseViewModel CreateDuplicateCase(HashKey key, IEnumerable<DuplicateFile> files)
     {
         return new DuplicateCaseViewModel(this, files, _trash, _fileManagerHandler, _deleteConfirmation);
