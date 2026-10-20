@@ -38,17 +38,23 @@
             <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
         </Grid>
 
-        <ProgressBar Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        <ProgressBar Classes="pageProgress" Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
 
         <Grid Grid.Row="4" ColumnDefinitions="1*,2*" IsVisible="{Binding Finished}">
             <ListBox Grid.Column="0" Name="SimilarGroups" BorderThickness="1" Margin="0,0,6,0"
                      ItemsSource="{Binding DuplicateCaseItems}" SelectedItem="{Binding DuplicateCase}">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
-                        <StackPanel>
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding Detail}" FontSize="12" Opacity="0.7" />
-                        </StackPanel>
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Grid.Column="0" Width="96" Height="72" Margin="0,0,8,0"
+                                    Background="#22808080" CornerRadius="4" ClipToBounds="True">
+                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Detail}" FontSize="12" Opacity="0.7" />
+                            </StackPanel>
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

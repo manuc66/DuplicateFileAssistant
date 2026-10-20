@@ -23,6 +23,8 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
     private decimal _semanticThreshold = 0.80m;
     private string _summary = string.Empty;
 
+    public bool LoadThumbnails { get; set; } = true;
+
     public SimilarImageViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null) :
         base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
@@ -198,6 +200,11 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
                 metadata.MinimumSimilarity,
                 metadata.KeeperPath,
                 metadata.KeeperQuality);
+
+            if (LoadThumbnails)
+            {
+                _ = duplicateCase.LoadThumbnailAsync(metadata.KeeperPath);
+            }
         }
 
         return duplicateCase;

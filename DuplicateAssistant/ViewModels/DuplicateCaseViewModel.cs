@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ImageCompare;
@@ -47,6 +49,14 @@ public class DuplicateCaseViewModel : ViewModelBase
     public string SimilarityText { get; private set; } = string.Empty;
 
     public string KeeperQualityText { get; private set; } = string.Empty;
+
+    private Bitmap? _thumbnail;
+
+    public Bitmap? Thumbnail
+    {
+        get => _thumbnail;
+        private set => this.RaiseAndSetIfChanged(ref _thumbnail, value);
+    }
 
     public long ReclaimableSize
     {
@@ -131,6 +141,28 @@ public class DuplicateCaseViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(Detail));
         this.RaisePropertyChanged(nameof(SimilarityText));
         this.RaisePropertyChanged(nameof(KeeperQualityText));
+    }
+
+    public async Task LoadThumbnailAsync(string path)
+    {
+        byte[]? png = await Task.Run(() => ThumbnailLoader.LoadPng(path, 192, 144));
+
+        if (png is null)
+        {
+            return;
+        }
+
+        OnUiThread(() =>
+        {
+            try
+            {
+                using MemoryStream stream = new(png);
+                Thumbnail = new Bitmap(stream);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+            }
+        });
     }
 
     private void OnFilePropertyChanged(object? sender, PropertyChangedEventArgs args)

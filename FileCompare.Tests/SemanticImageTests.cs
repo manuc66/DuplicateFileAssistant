@@ -228,6 +228,27 @@ public class SemanticImageTests
         });
     }
 
+    [Test]
+    public void ThumbnailIsSmallAndDecodable()
+    {
+        using SKBitmap original = TestImages.CreatePattern(800, 600);
+        string path = _temp.CreateFile("thumbnail-source.png", TestImages.Encode(original, png: true));
+
+        byte[]? png = ThumbnailLoader.LoadPng(path, 192, 144);
+
+        Assert.That(png, Is.Not.Null);
+
+        using SKBitmap thumbnail = SKBitmap.Decode(png);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(thumbnail.Width, Is.LessThanOrEqualTo(192));
+            Assert.That(thumbnail.Height, Is.LessThanOrEqualTo(144));
+            Assert.That(thumbnail.Width, Is.GreaterThan(0));
+            Assert.That(thumbnail.Height, Is.GreaterThan(0));
+        });
+    }
+
     [AvaloniaTest]
     public async Task GuiFindsVariantsAndSelectsTheLargestAsKeeper()
     {
@@ -248,6 +269,7 @@ public class SemanticImageTests
         {
             UseSemantic = false,
             UseKeeper = true,
+            LoadThumbnails = false,
             SubFolder = true,
             MinimumFileSizeText = "0",
             FileExtensions = "png,jpg"
