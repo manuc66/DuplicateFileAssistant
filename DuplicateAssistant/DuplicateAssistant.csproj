@@ -2,16 +2,19 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
+        <RuntimeIdentifier>$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
         <Nullable>enable</Nullable>
         <!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
         <TrimMode>copyused</TrimMode>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationIcon>..\assets\icon.ico</ApplicationIcon>
     </PropertyGroup>
     <ItemGroup>
         <None Remove=".gitignore" />
         <None Update="appsettings.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <AvaloniaResource Include="..\assets\icon.png" Link="Assets\icon.png" />
     </ItemGroup>
     <ItemGroup>
         <!--This helps with theme dll-s trimming.
@@ -35,5 +38,7 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FileCompare\FileCompare.csproj" />
+      <ProjectReference Include="..\ImageCompare\ImageCompare.csproj" />
+      <ProjectReference Include="..\ImageCompare.Onnx\ImageCompare.Onnx.csproj" />
     </ItemGroup>
 </Project>

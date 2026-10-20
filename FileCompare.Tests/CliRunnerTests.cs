@@ -44,6 +44,84 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task CacheCommandReportsAndClears()
+    {
+        string cacheDirectory = Path.Combine(_temp.Root, "cache");
+        string modelsDirectory = Path.Combine(cacheDirectory, "models");
+        Directory.CreateDirectory(cacheDirectory);
+
+        string file = _temp.CreateFile("a.txt", "a");
+        ScanCache scan = new(Path.Combine(cacheDirectory, "scan-cache.json"));
+        scan.GetOrCompute("sha256", file, _ => new byte[] { 1, 2, 3 });
+        scan.Save();
+
+        StringWriter output = new();
+        int exitCode = await CliRunner.RunAsync(
+            new[]
+            {
+                "cache", "--json", "--cache-dir", cacheDirectory, "--model-dir", modelsDirectory
+            },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(document.RootElement.GetProperty("entries").GetArrayLength(), Is.EqualTo(1));
+            Assert.That(document.RootElement.GetProperty("totalBytes").GetInt64(), Is.GreaterThan(0));
+        });
+
+        output = new StringWriter();
+        exitCode = await CliRunner.RunAsync(
+            new[] { "cache", "--clear", "--apply", "--cache-dir", cacheDirectory },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(File.Exists(Path.Combine(cacheDirectory, "scan-cache.json")), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task CacheClearRequiresApply()
+    {
+        string cacheDirectory = Path.Combine(_temp.Root, "cache");
+        Directory.CreateDirectory(cacheDirectory);
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "cache", "--clear", "--cache-dir", cacheDirectory },
+            output);
+
+        Assert.That(exitCode, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task DuplicatesCommandUsesTheScanCache()
+    {
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+        string cachePath = Path.Combine(_temp.Root, "hashes.json");
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "duplicates", "--path", _temp.Root, "--json", "--cache-path", cachePath },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(File.Exists(cachePath), Is.True);
+            Assert.That(new FileInfo(cachePath).Length, Is.GreaterThan(2));
+            Assert.That(document.RootElement.GetProperty("affected").GetInt32(), Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task EmptyFilesCommandIsDryRunByDefaultAndAppliesWithFlag()
     {
         string empty = _temp.CreateFile("empty.txt", string.Empty);

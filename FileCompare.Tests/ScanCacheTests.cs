@@ -63,6 +63,24 @@ public class ScanCacheTests
     }
 
     [Test]
+    public void PruneRemovesDeletedFiles()
+    {
+        string file = _temp.CreateFile("file.bin", "content");
+        string cachePath = Path.Combine(_temp.Root, "cache.json");
+        ScanCache cache = new(cachePath);
+        cache.GetOrCompute("Blake3", file, File.ReadAllBytes);
+
+        File.Delete(file);
+        int removed = cache.PruneMissingFiles();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(removed, Is.EqualTo(1));
+            Assert.That(cache.Count, Is.Zero);
+        });
+    }
+
+    [Test]
     public void CacheSurvivesANewInstance()
     {
         string file = _temp.CreateFile("file.bin", "content");

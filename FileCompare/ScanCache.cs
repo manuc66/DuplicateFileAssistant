@@ -18,6 +18,7 @@ public sealed class ScanCache
     private readonly object _sync = new();
     private readonly string _path;
     private Dictionary<string, ScanCacheEntry> _entries;
+    private bool _dirty;
 
     public ScanCache(string path)
     {
@@ -25,18 +26,26 @@ public sealed class ScanCache
         _entries = Load();
     }
 
+    public string FilePath => _path;
+
+    public int Count
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _entries.Count;
+            }
+        }
+    }
+
+    public long FileSize => File.Exists(_path) ? new FileInfo(_path).Length : 0;
+
     public static string DefaultPath
     {
         get
         {
-            string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-            if (string.IsNullOrWhiteSpace(root))
-            {
-                root = Path.GetTempPath();
-            }
-
-            return Path.Combine(root, "DuplicateFileAssistant", "scan-cache.json");
+            return CachePaths.ScanCacheFile;
         }
     }
 
@@ -70,15 +79,55 @@ public sealed class ScanCache
                 fileInfo.Length,
                 fileInfo.LastWriteTimeUtc,
                 Convert.ToHexStringLower(hash));
+            _dirty = true;
         }
 
         return hash;
+    }
+
+    public int PruneMissingFiles()
+    {
+        lock (_sync)
+        {
+            string[] missing = _entries.Keys.Where(path => !File.Exists(path)).ToArray();
+
+            foreach (string path in missing)
+            {
+                _entries.Remove(path);
+            }
+
+            if (missing.Length > 0)
+            {
+                _dirty = true;
+            }
+
+            return missing.Length;
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_sync)
+        {
+            if (_entries.Count == 0)
+            {
+                return;
+            }
+
+            _entries.Clear();
+            _dirty = true;
+        }
     }
 
     public void Save()
     {
         lock (_sync)
         {
+            if (!_dirty)
+            {
+                return;
+            }
+
             string? directory = Path.GetDirectoryName(_path);
             if (directory != null)
             {
@@ -89,6 +138,7 @@ public sealed class ScanCache
             string temporaryPath = _path + ".tmp";
             File.WriteAllText(temporaryPath, json);
             File.Move(temporaryPath, _path, overwrite: true);
+            _dirty = false;
         }
     }
 

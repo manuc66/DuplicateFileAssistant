@@ -5,7 +5,14 @@ internal sealed class CliOptions
     private static readonly HashSet<string> Flags = new(StringComparer.OrdinalIgnoreCase)
     {
         "json",
-        "apply"
+        "apply",
+        "no-cache",
+        "semantic",
+        "keeper",
+        "no-download",
+        "prune-cache",
+        "prune",
+        "clear"
     };
 
     private readonly Dictionary<string, List<string>> _values = new(StringComparer.OrdinalIgnoreCase);
@@ -87,5 +94,21 @@ internal sealed class CliOptions
     public int GetInt(string key, int fallback)
     {
         return int.TryParse(GetSingle(key), out int value) ? value : fallback;
+    }
+
+    public long GetLong(string key, long fallback)
+    {
+        return long.TryParse(GetSingle(key), out long value) ? value : fallback;
+    }
+
+    public double GetDouble(string key, double fallback)
+    {
+        return double.TryParse(
+            GetSingle(key),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out double value)
+            ? value
+            : fallback;
     }
 }
