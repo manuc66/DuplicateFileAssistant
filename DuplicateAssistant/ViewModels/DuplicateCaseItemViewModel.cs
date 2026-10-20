@@ -25,6 +25,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private string _matchDetail = string.Empty;
     public string FilePath { get; }
     public long FileSize => _fileLength;
+    public string FileSizeText => FileSizeFormatter.Format(_fileLength);
     public long FileLength => _fileLength;
     public DateTime LastWriteTimeUtc => _lastWriteTimeUtc;
     public bool IsKeeper => _isKeeper;

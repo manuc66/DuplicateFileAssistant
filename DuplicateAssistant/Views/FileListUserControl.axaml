@@ -35,7 +35,7 @@
                 <DataTemplate x:DataType="fileCompare:DuplicateFile">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="{Binding Path}" />
-                        <TextBlock Text="{Binding Length}" Opacity="0.7" />
+                        <TextBlock Text="{Binding SizeText}" Opacity="0.7" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>

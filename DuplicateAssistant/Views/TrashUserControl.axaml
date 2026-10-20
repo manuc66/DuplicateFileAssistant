@@ -21,7 +21,7 @@
                 <DataTemplate x:DataType="fileCompare:TrashEntry">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="{Binding OriginalPath}" />
-                        <TextBlock Text="{Binding Length}" Opacity="0.7" />
+                        <TextBlock Text="{Binding SizeText}" Opacity="0.7" />
                         <TextBlock Text="{Binding DeletedAtUtc}" Opacity="0.7" />
                     </StackPanel>
                 </DataTemplate>

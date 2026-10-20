@@ -2,6 +2,8 @@ namespace FileCompare;
 
 public sealed record DuplicateFile(string Path, long Length, DateTime LastWriteTimeUtc)
 {
+    public string SizeText => FileSizeFormatter.Format(Length);
+
     public static IEqualityComparer<DuplicateFile> Comparer { get; } = new DuplicateFileComparer();
 
     public static bool TryCreate(string path, out DuplicateFile? file)

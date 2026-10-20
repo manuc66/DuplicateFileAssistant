@@ -24,6 +24,8 @@ public sealed record TrashEntry(
     /// </summary>
     public TrashBackend Backend { get; init; } = TrashBackend.Application;
 
+    public string SizeText => FileSizeFormatter.Format(Length);
+
     /// <summary>
     /// Optional OS-specific metadata file (an XDG <c>.trashinfo</c> file or a Windows
     /// <c>$I</c> record) that must be removed when the entry is restored or discarded.

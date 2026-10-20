@@ -104,7 +104,7 @@ public class DuplicateCaseViewModel : ViewModelBase
         }
     }
 
-    public string ReclaimableSizeText => $"Reclaimable: {ReclaimableSize:N0} bytes";
+    public string ReclaimableSizeText => $"Reclaimable: {FileSizeFormatter.Format(ReclaimableSize)}";
 
     public string KeeperText => Keeper is null ? "Keep: none" : $"Keep: {Keeper.FilePath}";
 
