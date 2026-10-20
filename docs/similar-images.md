@@ -27,7 +27,8 @@ passes refine it:
 - The numeric field next to the semantic checkbox is the cosine threshold (0.80 by default).
 - The progress bar reports model downloads, then the scan itself.
 - **Dry run** is checked by default. **Delete non-keepers** moves the other copies to the
-  trash after confirmation.
+  trash after confirmation. Deleting the keeper from its row promotes another copy, so you
+  can choose either image to remove.
 - Each group shows a thumbnail of the suggested keeper, decoded at a small size.
 - Each file row shows its dHash distance, cosine similarity and quality score when those
   values are available.

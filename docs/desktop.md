@@ -44,8 +44,9 @@ Each group is a **keeper** plus its duplicates. Every row offers:
 - **Hardlink**: replace a duplicate with a hard link to the keeper. The bytes exist once on
   disk and both paths remain usable. This only works on a filesystem that supports hard
   links and only within one filesystem.
-- **Delete**: move this file to the trash. The keeper has no **Delete** button: switch the
-  keeper first if the file you want gone is the current one.
+- **Delete**: move this file to the trash. Deleting the keeper automatically promotes another
+  copy, so a group always keeps at least one file; switch the keeper first if you want a
+  specific survivor.
 - **Restore**: appears after a deletion, and puts the file back at its original path.
 
 Deletion asks for confirmation and moves the file to the trash; the file is not unlinked.

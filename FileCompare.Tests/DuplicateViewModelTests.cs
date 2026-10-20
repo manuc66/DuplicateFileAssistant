@@ -256,7 +256,7 @@ public class DuplicateViewModelTests
     }
 
     [Test]
-    public async Task KeeperCannotBeDeleted()
+    public async Task DeletingTheKeeperPromotesAnotherCopyAndTrashesIt()
     {
         using TempDirectory temp = new();
         string firstPath = temp.CreateFile("first.jpg", "content");
@@ -286,15 +286,19 @@ public class DuplicateViewModelTests
             confirmation);
 
         DuplicateCaseItemViewModel keeper = duplicateCase.Keeper!;
+        DuplicateCaseItemViewModel other = duplicateCase.Files.First(file => !ReferenceEquals(file, keeper));
+
+        Assert.That(keeper.CanDelete, Is.True);
 
         await keeper.DeleteCommand.Execute(keeper.FilePath).FirstAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(keeper.CanDelete, Is.False);
-            Assert.That(keeper.IsDeleted, Is.False);
-            Assert.That(File.Exists(keeper.FilePath), Is.True);
-            Assert.That(confirmation.LastPath, Is.Null);
+            Assert.That(keeper.IsDeleted, Is.True);
+            Assert.That(File.Exists(keeper.FilePath), Is.False);
+            Assert.That(duplicateCase.Keeper, Is.SameAs(other));
+            Assert.That(other.IsKeeper, Is.True);
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
         });
     }
 

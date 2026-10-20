@@ -284,7 +284,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
         List<DuplicateCaseItemViewModel> items = DuplicateCaseItems
             .SelectMany(duplicateCase => duplicateCase.Files)
-            .Where(file => file.CanDelete)
+            .Where(file => file.CanDelete && !file.IsKeeper)
             .ToList();
 
         return DeleteItemsAsync(items, "all groups");
@@ -298,7 +298,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }
 
         List<DuplicateCaseItemViewModel> items = DuplicateCase.Files
-            .Where(file => file.CanDelete)
+            .Where(file => file.CanDelete && !file.IsKeeper)
             .ToList();
 
         return DeleteItemsAsync(items, "the selected group");
@@ -336,7 +336,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
             foreach (DuplicateCaseItemViewModel item in items)
             {
-                if (!item.CanDelete)
+                if (item.IsKeeper || !item.CanDelete)
                 {
                     continue;
                 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using DuplicateAssistant.Business;
@@ -30,8 +31,8 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     public DateTime LastWriteTimeUtc => _lastWriteTimeUtc;
     public bool IsKeeper => _isKeeper;
     public bool IsDeleted => _isDeleted;
-    public bool CanDelete => !IsDeleted && !IsKeeper;
-    public bool CanHardlink => CanDelete && _hardlinkAllowed;
+    public bool CanDelete => !IsDeleted && (!IsKeeper || HasAnotherLiveCopy());
+    public bool CanHardlink => !IsKeeper && CanDelete && _hardlinkAllowed;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
     public string MatchDetail
@@ -186,6 +187,19 @@ public class DuplicateCaseItemViewModel : ViewModelBase
 
         try
         {
+            if (IsKeeper)
+            {
+                DuplicateCaseItemViewModel? replacement = _duplicateCase.Files.FirstOrDefault(file =>
+                    !ReferenceEquals(file, this) && !file.IsDeleted);
+
+                if (replacement is null)
+                {
+                    return;
+                }
+
+                _duplicateCase.SetKeeper(replacement);
+            }
+
             _trashedPath = await _trash.DeleteAsync(x, _fileLength, _lastWriteTimeUtc);
             SetDeleted(true);
             ErrorMessage = string.Empty;
@@ -194,6 +208,11 @@ public class DuplicateCaseItemViewModel : ViewModelBase
         {
             ErrorMessage = ex.Message;
         }
+    }
+
+    private bool HasAnotherLiveCopy()
+    {
+        return _duplicateCase.Files.Any(file => !ReferenceEquals(file, this) && !file.IsDeleted);
     }
 
     private async Task RestoreFile()
