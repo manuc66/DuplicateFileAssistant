@@ -75,8 +75,6 @@ public class Trash
         string destination = GetAvailableDestination(
             $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(filePath)}");
 
-        await MoveFileAsync(filePath, destination, fileInfo, cancellationToken).ConfigureAwait(false);
-
         TrashEntry entry = new(
             destination,
             Path.GetFullPath(filePath),
@@ -86,29 +84,34 @@ public class Trash
             fileInfo.Attributes,
             DateTime.UtcNow);
 
+        // Register the entry before moving the file. If the process crashes after the move,
+        // the restore mapping is already persisted.
         lock (_sync)
         {
             _entries.Add(entry);
+            SaveManifestLocked();
+        }
 
-            try
-            {
-                SaveManifestLocked();
-            }
-            catch
+        try
+        {
+            await MoveFileAsync(filePath, destination, fileInfo, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (_sync)
             {
                 _entries.Remove(entry);
 
                 try
                 {
-                    MoveFileAsync(destination, filePath, new FileInfo(destination), cancellationToken)
-                        .ConfigureAwait(false).GetAwaiter().GetResult();
+                    SaveManifestLocked();
                 }
                 catch
                 {
                 }
-
-                throw;
             }
+
+            throw;
         }
 
         _journal.Write("delete", entry.OriginalPath, entry.TrashedPath, "ok", null);
@@ -116,6 +119,11 @@ public class Trash
     }
 
     public void Restore(string trashedPath, string originalPath)
+    {
+        RestoreAsync(trashedPath, originalPath, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+    }
+
+    public async Task RestoreAsync(string trashedPath, string originalPath, CancellationToken cancellationToken = default)
     {
         TrashEntry? entry = GetEntries().FirstOrDefault(candidate =>
             PathUtilities.PathComparer.Equals(candidate.TrashedPath, trashedPath));
@@ -126,7 +134,7 @@ public class Trash
             return;
         }
 
-        RestoreAsync(entry, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        await RestoreAsync(entry, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RestoreAsync(TrashEntry entry, CancellationToken cancellationToken = default)

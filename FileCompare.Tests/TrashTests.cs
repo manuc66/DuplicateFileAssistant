@@ -71,6 +71,31 @@ public class TrashTests
     }
 
     [Test]
+    public void CorruptManifestFailsClosed()
+    {
+        string trashFolder = Path.Combine(_temp.Root, "trash");
+        Directory.CreateDirectory(trashFolder);
+        File.WriteAllText(Path.Combine(trashFolder, "trash-manifest.json"), "{not valid json");
+
+        Assert.That(() => new Trash(trashFolder), Throws.InvalidOperationException);
+    }
+
+    [Test]
+    public async Task RestoreRefusesToOverwriteAnExistingOriginal()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+        await trash.DeleteAsync(source);
+        File.WriteAllText(source, "new file");
+
+        TrashEntry entry = trash.GetEntries().Single();
+
+        await Assert.ThrowsAsync<IOException>(() => trash.RestoreAsync(entry));
+        Assert.That(File.ReadAllText(source), Is.EqualTo("new file"));
+        Assert.That(File.Exists(entry.TrashedPath), Is.True);
+    }
+
+    [Test]
     public async Task DeleteWritesAnOperationJournal()
     {
         string source = _temp.CreateFile("photo.jpg", "content");

@@ -79,9 +79,8 @@ public class DuplicateCaseItemViewModel : ViewModelBase
             return;
         }
 
-        _trash.Restore(_trashedPath, FilePath);
+        await _trash.RestoreAsync(_trashedPath, FilePath);
         _trashedPath = null;
         SetDeleted(false);
-        await Task.CompletedTask;
     }
 }
