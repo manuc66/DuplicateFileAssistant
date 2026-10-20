@@ -49,6 +49,9 @@
         <TabItem Header="Temporary files" VerticalContentAlignment="Center">
             <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}" />
         </TabItem>
+        <TabItem Header="Invalid symlinks" VerticalContentAlignment="Center">
+            <views:InvalidLinkUserControl DataContext="{Binding InvalidLinkViewModel}" />
+        </TabItem>
         <TabItem Header="Trash" VerticalContentAlignment="Center">
             <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
         </TabItem>

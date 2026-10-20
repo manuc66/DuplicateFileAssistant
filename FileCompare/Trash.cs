@@ -97,7 +97,8 @@ public class Trash
             sha256,
             fileInfo.Attributes,
             unixFileMode,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            IsSymbolicLink: false);
 
         // Register the entry before moving the file. If the process crashes after the move,
         // the restore mapping is already persisted.
@@ -138,6 +139,63 @@ public class Trash
         RestoreAsync(trashedPath, originalPath, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
+    public async Task<string> DeleteSymbolicLinkAsync(string linkPath, CancellationToken cancellationToken = default)
+    {
+        FileInfo linkInfo = new(linkPath);
+        string? target = linkInfo.LinkTarget;
+
+        if (target is null)
+        {
+            throw new InvalidOperationException($"Not a symbolic link: {linkPath}");
+        }
+
+        string destination = GetAvailableDestination(
+            $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}-{Path.GetFileName(linkPath)}");
+
+        TrashEntry entry = new(
+            destination,
+            Path.GetFullPath(linkPath),
+            0,
+            linkInfo.LastWriteTimeUtc,
+            linkInfo.CreationTimeUtc,
+            string.Empty,
+            linkInfo.Attributes,
+            null,
+            DateTime.UtcNow,
+            IsSymbolicLink: true);
+
+        lock (_sync)
+        {
+            _entries.Add(entry);
+            SaveManifestLocked();
+        }
+
+        try
+        {
+            await MoveFileAsync(linkPath, destination, linkInfo, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (_sync)
+            {
+                _entries.Remove(entry);
+
+                try
+                {
+                    SaveManifestLocked();
+                }
+                catch
+                {
+                }
+            }
+
+            throw;
+        }
+
+        _journal.Write("delete-symlink", entry.OriginalPath, entry.TrashedPath, "ok", null);
+        return destination;
+    }
+
     public async Task RestoreAsync(string trashedPath, string originalPath, CancellationToken cancellationToken = default)
     {
         TrashEntry? entry = GetEntries().FirstOrDefault(candidate =>
@@ -167,11 +225,14 @@ public class Trash
             throw new FileNotFoundException("The trashed file is missing.", registered.TrashedPath);
         }
 
-        string currentHash = await ComputeSha256Async(registered.TrashedPath, cancellationToken).ConfigureAwait(false);
-
-        if (!string.Equals(currentHash, registered.Sha256, StringComparison.OrdinalIgnoreCase))
+        if (!registered.IsSymbolicLink)
         {
-            throw new InvalidOperationException("The trashed file has changed since it was deleted.");
+            string currentHash = await ComputeSha256Async(registered.TrashedPath, cancellationToken).ConfigureAwait(false);
+
+            if (!string.Equals(currentHash, registered.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("The trashed file has changed since it was deleted.");
+            }
         }
 
         if (File.Exists(registered.OriginalPath))
@@ -187,7 +248,11 @@ public class Trash
 
         await MoveFileAsync(registered.TrashedPath, registered.OriginalPath, new FileInfo(registered.TrashedPath),
             cancellationToken).ConfigureAwait(false);
-        FileMetadata.Apply(registered, registered.OriginalPath);
+
+        if (!registered.IsSymbolicLink)
+        {
+            FileMetadata.Apply(registered, registered.OriginalPath);
+        }
 
         lock (_sync)
         {

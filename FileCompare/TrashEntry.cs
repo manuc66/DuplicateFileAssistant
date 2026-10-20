@@ -9,4 +9,5 @@ public sealed record TrashEntry(
     string Sha256,
     FileAttributes Attributes,
     UnixFileMode? UnixFileMode,
-    DateTime DeletedAtUtc);
+    DateTime DeletedAtUtc,
+    bool IsSymbolicLink);

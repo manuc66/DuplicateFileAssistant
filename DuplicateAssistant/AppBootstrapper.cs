@@ -54,6 +54,7 @@ public class AppBootstrapper
         FileListViewModel emptyFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.EmptyFiles, searchPath);
         FileListViewModel bigFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.BigFiles, searchPath);
         FileListViewModel temporaryFiles = new(trash, deleteConfirmation, folderPicker, FileListMode.TemporaryFiles, searchPath);
+        InvalidLinkViewModel invalidLinks = new(trash, deleteConfirmation, folderPicker, searchPath);
 
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
@@ -64,7 +65,8 @@ public class AppBootstrapper
             resolver.GetService<TrashViewModel>() ?? throw new InvalidOperationException("TrashViewModel service is not registered."),
             emptyFiles,
             bigFiles,
-            temporaryFiles));
+            temporaryFiles,
+            invalidLinks));
     }
 
     private static string ResolvePath(string? configuredPath, string fallbackPath)

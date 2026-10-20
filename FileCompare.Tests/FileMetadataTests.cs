@@ -18,7 +18,8 @@ public class FileMetadataTests
             "hash",
             FileAttributes.Normal,
             null,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            IsSymbolicLink: false);
 
         FileMetadata.Apply(entry, destination);
 

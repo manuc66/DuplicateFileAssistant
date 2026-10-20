@@ -39,11 +39,12 @@ public sealed class FileSearchFilter
 
     public bool MatchesPath(string path)
     {
-        if (_extensions.Count > 0 && !_extensions.Contains(Path.GetExtension(path)))
-        {
-            return false;
-        }
+        return MatchesDirectory(path) &&
+               (_extensions.Count == 0 || _extensions.Contains(Path.GetExtension(path)));
+    }
 
+    public bool MatchesDirectory(string path)
+    {
         if (_excludedFolders.Length == 0)
         {
             return true;
