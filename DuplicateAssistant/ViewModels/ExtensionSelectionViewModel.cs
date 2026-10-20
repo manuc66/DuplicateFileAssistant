@@ -52,6 +52,7 @@ public class ExtensionSelectionViewModel : ViewModelBase
 
     private bool _suppressChanged;
     private bool _isOpen;
+    private string _newExtension = string.Empty;
 
     public ExtensionSelectionViewModel()
     {
@@ -59,6 +60,7 @@ public class ExtensionSelectionViewModel : ViewModelBase
             CommonExtensions.Select(extension => new ExtensionOption(extension, OnOptionChanged)));
 
         ClearCommand = ReactiveCommand.Create(Clear);
+        AddExtensionCommand = ReactiveCommand.Create(AddCustomExtension);
     }
 
     public event EventHandler? SelectionChanged;
@@ -72,6 +74,14 @@ public class ExtensionSelectionViewModel : ViewModelBase
     }
 
     public ReactiveCommand<Unit, Unit> ClearCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> AddExtensionCommand { get; }
+
+    public string NewExtension
+    {
+        get => _newExtension;
+        set => this.RaiseAndSetIfChanged(ref _newExtension, value);
+    }
 
     public string Summary
     {
@@ -139,6 +149,29 @@ public class ExtensionSelectionViewModel : ViewModelBase
         }
 
         NotifyChanged();
+    }
+
+    public void AddExtension(string extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return;
+        }
+
+        string normalized = Normalize(extension);
+        EnsureOption(normalized).IsSelected = true;
+        NotifyChanged();
+    }
+
+    private void AddCustomExtension()
+    {
+        if (string.IsNullOrWhiteSpace(NewExtension))
+        {
+            return;
+        }
+
+        AddExtension(NewExtension);
+        NewExtension = string.Empty;
     }
 
     private void OnOptionChanged()

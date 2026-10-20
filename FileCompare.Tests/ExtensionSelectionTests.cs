@@ -60,6 +60,21 @@ public class ExtensionSelectionTests
     }
 
     [Test]
+    public void AddsAndSelectsACustomExtension()
+    {
+        ExtensionSelectionViewModel selection = new();
+
+        selection.AddExtension("psd");
+
+        Assert.Multiple(() =>
+        {
+            ExtensionOption option = selection.Options.Single(candidate => candidate.Extension == ".psd");
+            Assert.That(option.IsSelected, Is.True);
+            Assert.That(selection.ToFilterString(), Is.EqualTo(".psd"));
+        });
+    }
+
+    [Test]
     public void ClearReturnsToAllFiles()
     {
         ExtensionSelectionViewModel selection = new();

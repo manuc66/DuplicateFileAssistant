@@ -16,9 +16,16 @@
                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                     BorderThickness="1" CornerRadius="4" Padding="8" Width="240">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
-                        <Button Content="All files" Command="{Binding ClearCommand}" />
-                        <Button Content="Close" Click="Close_Click" />
+                    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Content="All files" Command="{Binding ClearCommand}" />
+                            <Button Content="Close" Click="Close_Click" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding NewExtension}" Watermark=".psd" />
+                            <Button Grid.Column="1" Content="Add" Command="{Binding AddExtensionCommand}"
+                                    Margin="6,0,0,0" />
+                        </Grid>
                     </StackPanel>
                     <ScrollViewer MaxHeight="320">
                         <ItemsControl ItemsSource="{Binding Options}">
