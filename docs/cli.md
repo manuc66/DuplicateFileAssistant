@@ -41,7 +41,10 @@ After publishing the CLI as a self-contained executable, the same command is
 | `--algorithm sha256\|md5` | Content hash for `duplicates`. Defaults to `sha256`. |
 
 Every destructive command supports `--apply`; `similar-images` rejects it with a message
-rather than pretending to support it.
+rather than pretending to support it. Paths may start with `~`. Invalid paths, unknown
+algorithms and malformed numeric options are rejected with an error instead of being
+silently replaced by a default. Exclusions and `similar-images --extensions` accept both
+`jpg` and `*.jpg`; a bare `*` means every extension.
 
 ## Examples
 

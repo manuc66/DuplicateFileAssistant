@@ -43,6 +43,10 @@ reference types are enabled. `global.json` pins .NET 10 and refuses prereleases.
 ## Guidelines
 
 - Destructive operations are dry runs by default in the CLI, and confirmed in the app.
+- Persisted state (settings, caches, manifests) goes through `AtomicFile`. A corrupt or
+  truncated file must fall back to a safe default instead of preventing startup.
+- Validate user input (paths, sizes, numeric options) and report an error; do not silently
+  substitute a default.
 - A new cache belongs in `CachePaths`, with a key that includes everything that can change
   the value.
 - A new image model is a catalogue entry (URL, SHA-256, preprocessing, output tensor,

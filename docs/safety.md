@@ -20,10 +20,14 @@ and that a wrong deletion must be recoverable.
   multi-folder bulk action all have a dry-run mode.
 - **No overwrite.** Merge never replaces an existing destination file. A conflict is left
   untouched and reported.
+- **Duplicates are re-checked.** Before merge trashes a duplicate, it verifies that the
+  destination still exists and still has the same bytes. If it changed after the plan was
+  built, the source is kept and the item is reported as failed.
 - **No symlinked directories.** Directory symbolic links and reparse points are not
   followed during scans, so a scan cannot escape the tree the user chose.
 - **Trash excluded.** The application trash folder is added to the exclusions of every scan.
-  In system mode the OS trash directories are excluded too.
+  In system mode the OS trash directories are excluded too. Merge and empty-folder cleanup
+  also skip the trash locations.
 
 ## Where deleted files go
 
