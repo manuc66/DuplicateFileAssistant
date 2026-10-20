@@ -22,7 +22,7 @@
                             <Button Content="Close" Click="Close_Click" />
                         </StackPanel>
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0" Text="{Binding NewExtension}" Watermark=".psd" />
+                            <TextBox Grid.Column="0" Text="{Binding NewExtension}" PlaceholderText=".psd" />
                             <Button Grid.Column="1" Content="Add" Command="{Binding AddExtensionCommand}"
                                     Margin="6,0,0,0" />
                         </Grid>
