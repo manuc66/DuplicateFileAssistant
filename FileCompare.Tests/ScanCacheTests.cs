@@ -104,17 +104,15 @@ public class ScanCacheTests
     }
 
     [Test]
-    public void CacheSurvivesANewInstance()
+    public void CorruptJsonFallsBackToAnEmptyCache()
     {
-        string file = _temp.CreateFile("file.bin", "content");
         string cachePath = Path.Combine(_temp.Root, "cache.json");
-        ScanCache first = new(cachePath);
-        first.GetOrCompute("Blake3", file, File.ReadAllBytes);
-        first.Save();
+        File.WriteAllText(cachePath, "{not valid json");
+        string file = _temp.CreateFile("file.bin", "content");
 
-        ScanCache second = new(cachePath);
+        ScanCache cache = new(cachePath);
         int calls = 0;
-        byte[] result = second.GetOrCompute("Blake3", file, path =>
+        cache.GetOrCompute("Blake3", file, path =>
         {
             calls++;
             return File.ReadAllBytes(path);
@@ -122,8 +120,116 @@ public class ScanCacheTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(calls, Is.Zero);
+            Assert.That(calls, Is.EqualTo(1));
+            Assert.That(cache.Count, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void NullEntriesInTheCacheAreIgnored()
+    {
+        string cachePath = Path.Combine(_temp.Root, "cache.json");
+        string file = _temp.CreateFile("file.bin", "content");
+        File.WriteAllText(cachePath,
+            System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?> { [file] = null }));
+
+        ScanCache cache = new(cachePath);
+        int calls = 0;
+        byte[] result = cache.GetOrCompute("Blake3", file, path =>
+        {
+            calls++;
+            return File.ReadAllBytes(path);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(calls, Is.EqualTo(1));
             Assert.That(result, Is.EqualTo(File.ReadAllBytes(file)));
         });
     }
+
+    [Test]
+    public void AnEntryWithoutAHashIsRecomputed()
+    {
+        string cachePath = Path.Combine(_temp.Root, "cache.json");
+        string file = _temp.CreateFile("file.bin", "content");
+        FileInfo info = new(file);
+        string json = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            [file] = new
+            {
+                Algorithm = "Blake3",
+                Length = info.Length,
+                LastWriteTimeUtc = info.LastWriteTimeUtc,
+                Hash = (string?)null
+            }
+        });
+        File.WriteAllText(cachePath, json);
+
+        ScanCache cache = new(cachePath);
+        int calls = 0;
+        cache.GetOrCompute("Blake3", file, path =>
+        {
+            calls++;
+            return File.ReadAllBytes(path);
+        });
+
+        // The unusable entry is dropped at load time, so the file is hashed again.
+        Assert.That(calls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void AnEntryWithInvalidHexIsRecomputed()
+    {
+        string cachePath = Path.Combine(_temp.Root, "cache.json");
+        string file = _temp.CreateFile("file.bin", "content");
+        FileInfo info = new(file);
+        string json = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            [file] = new
+            {
+                Algorithm = "Blake3",
+                Length = info.Length,
+                LastWriteTimeUtc = info.LastWriteTimeUtc,
+                Hash = "not-hex"
+            }
+        });
+        File.WriteAllText(cachePath, json);
+
+        ScanCache cache = new(cachePath);
+        int calls = 0;
+        cache.GetOrCompute("Blake3", file, path =>
+        {
+            calls++;
+            return File.ReadAllBytes(path);
+        });
+
+        Assert.That(calls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PathsAreComparedWithThePlatformRules()
+    {
+        string file = _temp.CreateFile("file.bin", "content");
+        string cachePath = Path.Combine(_temp.Root, "cache.json");
+        ScanCache cache = new(cachePath);
+        cache.GetOrCompute("Blake3", file, File.ReadAllBytes);
+
+        string alternateCase = file.ToUpperInvariant();
+
+        if (!PathUtilities.PathComparer.Equals(file, alternateCase))
+        {
+            Assert.Ignore("The filesystem is case-sensitive on this platform.");
+        }
+
+        int calls = 0;
+        cache.GetOrCompute("Blake3", alternateCase, path =>
+        {
+            calls++;
+            return File.ReadAllBytes(path);
+        });
+
+        Assert.That(calls, Is.Zero);
+    }
 }
+

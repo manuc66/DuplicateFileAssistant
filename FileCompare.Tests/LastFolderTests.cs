@@ -102,4 +102,29 @@ public class LastFolderTests
 
         Assert.That(changed, Is.EqualTo(1));
     }
+
+    [Test]
+    public void AnUnwritableSettingsLocationDoesNotPreventSavingInMemory()
+    {
+        string first = Path.Combine(_temp.Root, "first");
+        string second = Path.Combine(_temp.Root, "second");
+        Directory.CreateDirectory(first);
+        Directory.CreateDirectory(second);
+
+        // Using a directory as the settings file makes the atomic rename fail.
+        string settingsFile = Directory.CreateDirectory(Path.Combine(_temp.Root, "settings.json")).FullName;
+        LastFolderStore store = new(settingsFile, new LastFolderSettings(first));
+        int changed = 0;
+        store.Changed += (_, _) => changed++;
+
+        Assert.That(() => store.Save(second), Throws.Nothing);
+        Assert.Multiple(() =>
+        {
+            Assert.That(store.Current.LastFolder, Is.EqualTo(second));
+            Assert.That(changed, Is.EqualTo(1));
+            Assert.That(
+                Directory.GetFiles(_temp.Root, "*.tmp", SearchOption.AllDirectories),
+                Is.Empty);
+        });
+    }
 }

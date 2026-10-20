@@ -60,17 +60,8 @@ public sealed class ModelSettingsStore
         ArgumentNullException.ThrowIfNull(settings);
 
         ModelSettings normalized = Normalize(settings, Current);
-        string? directory = Path.GetDirectoryName(_settingsFile);
-
-        if (directory != null)
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         string json = JsonSerializer.Serialize(normalized, JsonOptions);
-        string temporaryPath = _settingsFile + ".tmp";
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _settingsFile, overwrite: true);
+        AtomicFile.WriteAllText(_settingsFile, json);
 
         lock (_sync)
         {

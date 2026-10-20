@@ -73,17 +73,17 @@ public sealed class LastFolderStore
         }
 
         LastFolderSettings settings = new(normalized);
-        string? directory = Path.GetDirectoryName(_settingsFile);
-
-        if (directory != null)
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         string json = JsonSerializer.Serialize(settings, JsonOptions);
-        string temporaryPath = _settingsFile + ".tmp";
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _settingsFile, overwrite: true);
+
+        try
+        {
+            AtomicFile.WriteAllText(_settingsFile, json);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Remembering the last folder is a convenience. A read-only or broken
+            // settings location must not prevent a scan from running.
+        }
 
         lock (_sync)
         {

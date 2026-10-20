@@ -125,18 +125,9 @@ public sealed class EmbeddingCache
                 return;
             }
 
-            string? directory = Path.GetDirectoryName(_path);
-
-            if (directory != null)
+            AtomicFile.Write(_path, output =>
             {
-                Directory.CreateDirectory(directory);
-            }
-
-            string temporaryPath = _path + ".tmp";
-
-            using (FileStream stream = File.Create(temporaryPath))
-            using (BinaryWriter writer = new(stream, Encoding.UTF8))
-            {
+                using BinaryWriter writer = new(output, Encoding.UTF8, leaveOpen: true);
                 writer.Write(Magic);
                 writer.Write(Version);
                 writer.Write(_dimensions);
@@ -153,9 +144,8 @@ public sealed class EmbeddingCache
                         writer.Write(value);
                     }
                 }
-            }
+            });
 
-            File.Move(temporaryPath, _path, overwrite: true);
             _dirty = false;
         }
     }
@@ -185,8 +175,8 @@ public sealed class EmbeddingCache
 
             return dimensions > 0 && count >= 0;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
-                                              or EndOfStreamException or FormatException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or EndOfStreamException
+                                              or FormatException or ArgumentException)
         {
             return false;
         }
@@ -236,8 +226,8 @@ public sealed class EmbeddingCache
 
             return entries;
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
-                                              or EndOfStreamException or FormatException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or EndOfStreamException
+                                              or FormatException or ArgumentException)
         {
             return new Dictionary<string, Entry>(PathUtilities.PathComparer);
         }

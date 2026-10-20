@@ -96,6 +96,25 @@ public class TrashTests
     }
 
     [Test]
+    public async Task RestoreRefusesToOverwriteAnExistingDirectory()
+    {
+        string source = _temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(_temp.Root, "trash"));
+        await trash.DeleteAsync(source);
+        Directory.CreateDirectory(source);
+
+        TrashEntry entry = trash.GetEntries().Single();
+
+        await Assert.ThrowsAsync<IOException>(() => trash.RestoreAsync(entry));
+        Assert.Multiple(() =>
+        {
+            Assert.That(Directory.Exists(source), Is.True);
+            Assert.That(File.Exists(entry.TrashedPath), Is.True);
+            Assert.That(trash.GetEntries(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task DeleteWritesAnOperationJournal()
     {
         string source = _temp.CreateFile("photo.jpg", "content");

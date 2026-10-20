@@ -4,6 +4,25 @@ namespace FileCompare;
 
 internal static class TrashFileOperations
 {
+    /// <summary>
+    /// True when any filesystem entry exists at the path, including a symbolic link
+    /// whose target is missing.
+    /// </summary>
+    public static bool EntryExists(string path)
+    {
+        try
+        {
+            return File.Exists(path) ||
+                   Directory.Exists(path) ||
+                   new FileInfo(path).LinkTarget is not null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException
+                                              or ArgumentException)
+        {
+            return false;
+        }
+    }
+
     public static void VerifyUnchanged(FileInfo fileInfo, long? expectedLength, DateTime? expectedLastWriteTimeUtc)
     {
         if (expectedLength.HasValue && fileInfo.Length != expectedLength.Value)

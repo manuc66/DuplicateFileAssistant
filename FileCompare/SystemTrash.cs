@@ -258,8 +258,6 @@ internal sealed class SystemTrash
     private void SaveManifestLocked()
     {
         string json = JsonSerializer.Serialize(_entries, JsonOptions);
-        string temporaryPath = _manifestPath + ".tmp";
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _manifestPath, overwrite: true);
+        AtomicFile.WriteAllText(_manifestPath, json);
     }
 }

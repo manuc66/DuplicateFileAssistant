@@ -39,7 +39,20 @@ public sealed class ScanCache
         }
     }
 
-    public long FileSize => File.Exists(_path) ? new FileInfo(_path).Length : 0;
+    public long FileSize
+    {
+        get
+        {
+            try
+            {
+                return File.Exists(_path) ? new FileInfo(_path).Length : 0;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return 0;
+            }
+        }
+    }
 
     public static string DefaultPath
     {
@@ -51,6 +64,9 @@ public sealed class ScanCache
 
     public byte[] GetOrCompute(string algorithm, string path, Func<string, byte[]> compute)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(algorithm);
+        ArgumentNullException.ThrowIfNull(compute);
+
         FileInfo fileInfo = new(path);
 
         lock (_sync)
@@ -128,36 +144,52 @@ public sealed class ScanCache
                 return;
             }
 
-            string? directory = Path.GetDirectoryName(_path);
-            if (directory != null)
-            {
-                Directory.CreateDirectory(directory);
-            }
-
             string json = JsonSerializer.Serialize(_entries, JsonOptions);
-            string temporaryPath = _path + ".tmp";
-            File.WriteAllText(temporaryPath, json);
-            File.Move(temporaryPath, _path, overwrite: true);
+            AtomicFile.WriteAllText(_path, json);
             _dirty = false;
         }
     }
 
     private Dictionary<string, ScanCacheEntry> Load()
     {
+        Dictionary<string, ScanCacheEntry> empty = new(PathUtilities.PathComparer);
+
         if (!File.Exists(_path))
         {
-            return new Dictionary<string, ScanCacheEntry>();
+            return empty;
         }
 
         try
         {
             string json = File.ReadAllText(_path);
-            return JsonSerializer.Deserialize<Dictionary<string, ScanCacheEntry>>(json, JsonOptions)
-                   ?? new Dictionary<string, ScanCacheEntry>();
+            Dictionary<string, ScanCacheEntry>? loaded =
+                JsonSerializer.Deserialize<Dictionary<string, ScanCacheEntry>>(json, JsonOptions);
+
+            if (loaded is null)
+            {
+                return empty;
+            }
+
+            Dictionary<string, ScanCacheEntry> entries = new(PathUtilities.PathComparer);
+
+            foreach ((string path, ScanCacheEntry? entry) in loaded)
+            {
+                // Hand-edited or truncated caches can contain null values. Ignore the
+                // unusable entries instead of failing the whole scan later.
+                if (!string.IsNullOrEmpty(path) &&
+                    entry is not null &&
+                    entry.Algorithm is not null &&
+                    entry.Hash is not null)
+                {
+                    entries[path] = entry;
+                }
+            }
+
+            return entries;
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
         {
-            return new Dictionary<string, ScanCacheEntry>();
+            return empty;
         }
     }
 }

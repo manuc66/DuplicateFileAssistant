@@ -146,11 +146,10 @@ internal sealed class ApplicationTrash
             throw new InvalidOperationException("This trash entry is not present in the manifest.");
         }
 
-        if (File.Exists(entry.TrashedPath))
+        if (TrashFileOperations.EntryExists(entry.TrashedPath))
         {
             File.Delete(entry.TrashedPath);
         }
-
         lock (_sync)
         {
             _entries.Remove(entry);
@@ -238,7 +237,7 @@ internal sealed class ApplicationTrash
             throw new InvalidOperationException("This trash entry is not present in the manifest.");
         }
 
-        if (!File.Exists(registered.TrashedPath))
+        if (!TrashFileOperations.EntryExists(registered.TrashedPath))
         {
             throw new FileNotFoundException("The trashed file is missing.", registered.TrashedPath);
         }
@@ -254,7 +253,7 @@ internal sealed class ApplicationTrash
             }
         }
 
-        if (File.Exists(registered.OriginalPath))
+        if (TrashFileOperations.EntryExists(registered.OriginalPath))
         {
             throw new IOException($"The original path already exists: {registered.OriginalPath}");
         }
@@ -303,8 +302,6 @@ internal sealed class ApplicationTrash
     private void SaveManifestLocked()
     {
         string json = JsonSerializer.Serialize(_entries, JsonOptions);
-        string temporaryPath = _manifestPath + ".tmp";
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _manifestPath, overwrite: true);
+        AtomicFile.WriteAllText(_manifestPath, json);
     }
 }
