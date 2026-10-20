@@ -80,10 +80,16 @@ public class PathUtilitiesTests
         {
             Assert.That(PathUtilities.TryExpandPath(null, out _), Is.False);
             Assert.That(PathUtilities.TryExpandPath("   ", out _), Is.False);
-            Assert.That(PathUtilities.TryExpandPath("invalid\0path", out _), Is.False);
             Assert.That(PathUtilities.TryExpandPath(_temp.Root, out string expanded), Is.True);
             Assert.That(expanded, Is.EqualTo(Path.GetFullPath(_temp.Root)));
         });
+
+        // A NUL character is rejected by the Unix path APIs. Windows accepts it in
+        // .NET 10, so only assert the failure where the runtime guarantees it.
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.That(PathUtilities.TryExpandPath("invalid\0path", out _), Is.False);
+        }
     }
 
     [Test]
