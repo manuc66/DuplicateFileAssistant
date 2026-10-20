@@ -5,6 +5,7 @@ public class XamlStructureTests
 {
     [TestCase("DuplicateContentInFolderUserControl.axaml")]
     [TestCase("DuplicateNameInFolderUserControl.axaml")]
+    [TestCase("SimilarImageUserControl.axaml")]
     public void DuplicateFileListsUseAVirtualizingControl(string fileName)
     {
         string viewsDirectory = Path.Combine(FindRepositoryRoot(), "DuplicateAssistant", "Views");

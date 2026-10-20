@@ -1,3 +1,9 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using Avalonia.Headless.NUnit;
+using Avalonia.Threading;
+using DuplicateAssistant.Business;
+using DuplicateAssistant.ViewModels;
 using FileCompare;
 using ImageCompare;
 using SkiaSharp;
@@ -219,6 +225,47 @@ public class SemanticImageTests
             Assert.That(sharpScore, Is.GreaterThan(blurredScore));
             Assert.That(sharpScore, Is.GreaterThan(smallScore));
             Assert.That(sharpScore, Is.InRange(0.0, 1.0));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task GuiFindsVariantsAndSelectsTheLargestAsKeeper()
+    {
+        using SKBitmap original = TestImages.CreatePattern();
+        using SKBitmap resized = TestImages.Resize(original, 600, 450);
+
+        // The small copy sorts first, so it becomes the group leader. The
+        // suggested keeper must still be the larger original.
+        string copyPath = _temp.CreateFile("aa-copy.jpg", TestImages.Encode(resized, png: false, quality: 40));
+        string originalPath = _temp.CreateFile("zz-original.png", TestImages.Encode(original, png: true));
+
+        SimilarImageViewModel viewModel = new(
+            new Trash(Path.Combine(_temp.Root, "trash")),
+            _temp.Root,
+            new FileManagerHandler(),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker())
+        {
+            UseSemantic = false,
+            UseKeeper = true,
+            SubFolder = true,
+            MinimumFileSizeText = "0",
+            FileExtensions = "png,jpg"
+        };
+
+        await viewModel.SearchCommand.Execute(Unit.Default).LastAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.DuplicateCaseItems, Has.Count.EqualTo(1));
+            Assert.That(viewModel.DuplicateCase, Is.Not.Null);
+            Assert.That(viewModel.DuplicateCase!.Keeper!.FilePath, Is.EqualTo(originalPath));
+            Assert.That(viewModel.DuplicateCase.Files.Select(file => file.FilePath),
+                Is.EquivalentTo(new[] { copyPath, originalPath }));
+            Assert.That(viewModel.DuplicateCase.Kind, Is.EqualTo(SimilarImageKind.Perceptual));
+            Assert.That(viewModel.DuplicateCase.Files.All(file => !file.CanHardlink), Is.True);
+            Assert.That(viewModel.Summary, Does.Contain("group"));
         });
     }
 

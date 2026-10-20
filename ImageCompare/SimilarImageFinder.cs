@@ -362,7 +362,7 @@ public static class SimilarImageFinder
                 continue;
             }
 
-            int keeper = ChooseKeeper(images, leaderIndex, members, quality);
+            int keeper = ChooseKeeper(images, members, quality);
             SimilarImage leaderImage = ToSimilarImage(images[leaderIndex]);
             SimilarImage keeperImage = ToSimilarImage(images[keeper]);
 
@@ -507,21 +507,30 @@ public static class SimilarImageFinder
 
     private static int ChooseKeeper(
         List<(DuplicateFile File, PerceptualHash Hash)> images,
-        int leaderIndex,
         List<int> members,
         double?[]? quality)
     {
-        if (quality is null)
-        {
-            return leaderIndex;
-        }
-
-        long maximumPixels = 0;
+        int largest = members[0];
 
         foreach (int index in members)
         {
-            maximumPixels = Math.Max(maximumPixels, PixelCount(images[index].Hash));
+            long pixels = PixelCount(images[index].Hash);
+            long largestPixels = PixelCount(images[largest].Hash);
+
+            if (pixels > largestPixels ||
+                pixels == largestPixels &&
+                PathUtilities.PathComparer.Compare(images[index].File.Path, images[largest].File.Path) < 0)
+            {
+                largest = index;
+            }
         }
+
+        if (quality is null)
+        {
+            return largest;
+        }
+
+        long maximumPixels = PixelCount(images[largest].Hash);
 
         // Never promote a thumbnail over a full-resolution original. Quality
         // only arbitrates between copies that are within 5% of the resolution
@@ -560,7 +569,7 @@ public static class SimilarImageFinder
             }
         }
 
-        return best >= 0 ? best : leaderIndex;
+        return best >= 0 ? best : largest;
     }
 
     private static long PixelCount(PerceptualHash hash)

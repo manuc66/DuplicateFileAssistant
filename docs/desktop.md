@@ -5,14 +5,14 @@ nav_order: 3
 
 # Desktop app
 
-`DuplicateAssistant` is the Avalonia front end. It has twelve tabs, each a self-contained
+`DuplicateAssistant` is the Avalonia front end. It has thirteen tabs, each a self-contained
 scan over one folder (or several, for the multi-folder tab). Most tabs show a path and a
 **Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
 report progress in the log below the list and can be stopped at any point.
 
 ![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 
-## The twelve tabs
+## The thirteen tabs
 
 | Tab | What it finds |
 |---|---|
@@ -20,6 +20,7 @@ report progress in the log below the list and can be stopped at any point.
 | **Same name in folder** | Files that share a name, wherever they are below the root. Useful for photo libraries and scanned documents. |
 | **Same size in folder** | Files of equal length. Fast and approximate: a starting point, not a duplicate proof. |
 | **Multi-folder duplicates** | The same content-based search over an explicit list of folders, with an auto-keeper rule. |
+| **Similar images** | The same picture resized, recompressed, cropped or edited; suggests a keeper by quality. |
 | **Delete if elsewhere** | Files in a source folder that already exist, by content, under another folder. |
 | **Merge to destination** | Moves a source tree into a destination without overwriting conflicts. |
 | **Remove empty folder** | Directories left with no files. |
@@ -29,8 +30,8 @@ report progress in the log below the list and can be stopped at any point.
 | **Invalid symlinks** | Symbolic links whose target no longer resolves. |
 | **Trash** | Everything deleted through the app, with **Restore** and **Refresh**. |
 
-Similar-image detection is not in the window yet; it lives in the CLI
-([Similar images](similar-images.md)).
+The **Similar images** tab uses the same finder as the CLI and is described in
+[Similar images](similar-images.md).
 
 ## Duplicate groups
 
@@ -65,6 +66,24 @@ convenience, not a substitute for looking at the results; a shorter path is not
 automatically the better copy.
 
 The same tab filters by minimum size, extension list and excluded folders.
+
+## Similar images
+
+This tab compares pictures rather than bytes. The default pass uses a 64-bit difference hash
+and finds resized or recompressed copies. Two optional passes refine it:
+
+- **Detect crops and edits (DINOv2)** computes a small embedding for every picture and
+  catches the same scene cropped or retouched. The model (~85 MB) is downloaded on first use
+  and cached; leave **Allow model download** unchecked to stay offline.
+- **Suggest a keeper by quality** scores the pictures in each group. The default scorer is
+  model-free (sharpness and resolution); **Use DBCNN quality model** (~60 MB) uses a trained
+  no-reference quality model instead. The keeper is chosen among copies within 5% of the
+  largest resolution, so a thumbnail never wins over the original.
+
+The threshold field tunes the semantic pass (0.80 by default); a higher value is stricter.
+**Dry run** is checked by default. Review the group, then **Delete non-keepers** moves the
+other copies to the trash after confirmation. Hard links are disabled for image groups
+because a perceptual match is not guaranteed to be byte-identical.
 
 ## Delete if elsewhere and Merge to destination
 

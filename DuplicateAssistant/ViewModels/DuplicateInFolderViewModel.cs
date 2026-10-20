@@ -25,6 +25,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private readonly IDeleteConfirmation _deleteConfirmation;
     private readonly IFolderPicker _folderPicker;
     private readonly Trash _trash;
+    private readonly FileManagerHandler _fileManagerHandler;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
@@ -138,6 +139,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
         _trash = trash;
+        _fileManagerHandler = fileManagerHandler;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
@@ -151,7 +153,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         SearchCommand.Subscribe(x => OnUiThread(() =>
         {
             DuplicateCaseItems =
-                new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => new DuplicateCaseViewModel(this, y.Value, trash, fileManagerHandler, _deleteConfirmation)));
+                new ObservableCollection<DuplicateCaseViewModel>(x.Select(y => CreateDuplicateCase(y.Key, y.Value)));
             DuplicateCase = DuplicateCaseItems.FirstOrDefault();
             Finished = true;
         }));
@@ -206,6 +208,11 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
     protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
+
+    protected virtual DuplicateCaseViewModel CreateDuplicateCase(HashKey key, IEnumerable<DuplicateFile> files)
+    {
+        return new DuplicateCaseViewModel(this, files, _trash, _fileManagerHandler, _deleteConfirmation);
+    }
 
     protected bool IsInTrash(string path)
     {

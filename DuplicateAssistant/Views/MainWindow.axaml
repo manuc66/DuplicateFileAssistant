@@ -61,6 +61,14 @@
                 <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}" />
             </DockPanel>
         </TabItem>
+        <TabItem Header="Similar images" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Finds the same picture resized, recompressed, cropped or edited.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Finds the same picture at another size, recompressed, cropped or edited. Semantic matching and keeper quality are optional; Dry run is on by default and every deletion goes to the trash after confirmation." />
+                <views:SimilarImageUserControl DataContext="{Binding SimilarImageViewModel}" />
+            </DockPanel>
+        </TabItem>
         <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center"
                  ToolTip.Tip="Trashes source files that also exist in another folder.">
             <DockPanel>

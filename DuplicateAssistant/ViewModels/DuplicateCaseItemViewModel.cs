@@ -19,6 +19,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     private string? _trashedPath;
     private bool _isKeeper;
     private bool _isDeleted;
+    private bool _hardlinkAllowed = true;
     private string _errorMessage = string.Empty;
     public string FilePath { get; }
     public long FileSize => _fileLength;
@@ -27,7 +28,7 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     public bool IsKeeper => _isKeeper;
     public bool IsDeleted => _isDeleted;
     public bool CanDelete => !IsDeleted && !IsKeeper;
-    public bool CanHardlink => CanDelete;
+    public bool CanHardlink => CanDelete && _hardlinkAllowed;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
     public string ErrorMessage
@@ -76,6 +77,17 @@ public class DuplicateCaseItemViewModel : ViewModelBase
     {
         this.RaiseAndSetIfChanged(ref _isDeleted, value, nameof(IsDeleted));
         this.RaisePropertyChanged(nameof(CanDelete));
+        this.RaisePropertyChanged(nameof(CanHardlink));
+    }
+
+    public void DisableHardlink()
+    {
+        if (!_hardlinkAllowed)
+        {
+            return;
+        }
+
+        _hardlinkAllowed = false;
         this.RaisePropertyChanged(nameof(CanHardlink));
     }
 

@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:views="clr-namespace:DuplicateAssistant.Views"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="DuplicateAssistant.Views.SimilarImageUserControl"
+             x:DataType="vm:SimilarImageViewModel">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,0,0,4">
+            <TextBox Grid.Column="0" Text="{Binding SearchPath}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}" Margin="6,0,0,0" />
+            <ToggleSwitch Grid.Column="2" Content="Subfolder" IsChecked="{Binding SubFolder}" Margin="12,0,0,0" />
+            <Button Grid.Column="3" Content="Search" Command="{Binding SearchCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="4" Content="Stop" Command="{Binding StopSearchCommand}" Margin="6,0,0,0" />
+        </Grid>
+
+        <WrapPanel Grid.Row="1" Margin="0,0,0,4">
+            <CheckBox Content="Detect crops and edits (DINOv2)" IsChecked="{Binding UseSemantic}" />
+            <NumericUpDown Value="{Binding SemanticThreshold}" Minimum="0.5" Maximum="1"
+                           Increment="0.01" FormatString="0.00" Width="90"
+                           IsEnabled="{Binding UseSemantic}" Margin="6,0,12,0" />
+            <CheckBox Content="Suggest a keeper by quality" IsChecked="{Binding UseKeeper}" />
+            <CheckBox Content="Use DBCNN quality model" IsChecked="{Binding UseKeeperModel}"
+                      IsEnabled="{Binding UseKeeper}" Margin="12,0,0,0" />
+            <CheckBox Content="Allow model download" IsChecked="{Binding AllowModelDownload}"
+                      IsVisible="{Binding NeedsModelDownload}" Margin="12,0,0,0" />
+        </WrapPanel>
+
+        <Grid Grid.Row="2" Margin="0,0,0,4" ColumnDefinitions="Auto,120,Auto,*,Auto,2*">
+            <TextBlock Grid.Column="0" Text="Min bytes" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Text="{Binding MinimumFileSizeText}" PlaceholderText="10240" />
+            <TextBlock Grid.Column="2" Text="Extensions" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <TextBox Grid.Column="3" Text="{Binding FileExtensions}" PlaceholderText=".jpg,.png" />
+            <TextBlock Grid.Column="4" Text="Exclude folders" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
+        </Grid>
+
+        <ProgressBar Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+
+        <Grid Grid.Row="4" ColumnDefinitions="1*,2*" IsVisible="{Binding Finished}">
+            <ListBox Grid.Column="0" Name="SimilarGroups" BorderThickness="1" Margin="0,0,6,0"
+                     ItemsSource="{Binding DuplicateCaseItems}" SelectedItem="{Binding DuplicateCase}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Detail}" FontSize="12" Opacity="0.7" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <DockPanel Grid.Column="1">
+                <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="6,0,0,4">
+                    <TextBlock Text="{Binding DuplicateCase.KindText}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DuplicateCase.Detail}" />
+                    <TextBlock Text="{Binding DuplicateCase.ReclaimableSizeText}" />
+                    <TextBlock Text="{Binding DuplicateCase.KeeperText}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding DuplicateCase.SimilarityText}" />
+                    <TextBlock Text="{Binding DuplicateCase.KeeperQualityText}" />
+                </StackPanel>
+
+                <ListBox Name="SimilarImageItems" BorderThickness="1" ItemsSource="{Binding DuplicateCase.Files}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DuplicateCaseItemViewModel">
+                            <views:DuplicateCaseItemView />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+
+        <controls:AutoScrollTextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap"
+                                    Name="SearchLog" FontFamily="monospace"
+                                    IsVisible="{Binding !Finished}" Grid.Row="4" Grid.RowSpan="2"
+                                    Text="{Binding SearchLog}" />
+
+        <Grid Grid.Row="5" ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+            <TextBlock Grid.Column="0" Text="{Binding Summary}" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+            <CheckBox Grid.Column="1" Content="Dry run" IsChecked="{Binding DryRun}" Margin="6,0,0,0" />
+            <Button Grid.Column="2" Content="Delete non-keepers"
+                    Command="{Binding DeleteNonKeepersCommand}" Margin="6,0,0,0" />
+        </Grid>
+    </Grid>
+</UserControl>

@@ -38,4 +38,12 @@ public class HeadlessUiTests
             Assert.That(window.Content, Is.Not.Null);
         });
     }
+
+    [AvaloniaTest]
+    public void SimilarImageUserControl_Loads()
+    {
+        SimilarImageUserControl control = new();
+
+        Assert.That(control.Content, Is.Not.Null);
+    }
 }

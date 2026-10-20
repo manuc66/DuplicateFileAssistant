@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using DuplicateAssistant.Business;
 using FileCompare;
+using ImageCompare;
 using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
@@ -36,6 +37,16 @@ public class DuplicateCaseViewModel : ViewModelBase
         get => _keeper;
         private set => this.RaiseAndSetIfChanged(ref _keeper, value);
     }
+
+    public SimilarImageKind? Kind { get; private set; }
+
+    public string KindText { get; private set; } = string.Empty;
+
+    public string Detail { get; private set; } = string.Empty;
+
+    public string SimilarityText { get; private set; } = string.Empty;
+
+    public string KeeperQualityText { get; private set; } = string.Empty;
 
     public long ReclaimableSize
     {
@@ -83,6 +94,43 @@ public class DuplicateCaseViewModel : ViewModelBase
         Keeper = keeper;
         this.RaisePropertyChanged(nameof(KeeperText));
         RaiseReclaimableSizeChanged();
+    }
+
+    public void ApplySimilarImageDetails(SimilarImageKind kind, int maximumDistance,
+        double? minimumSimilarity, string keeperPath, double? keeperQuality)
+    {
+        Kind = kind;
+        KindText = kind == SimilarImageKind.Semantic ? "Semantic" : "Perceptual";
+        Detail = minimumSimilarity is double similarity
+            ? $"{KindText} | min similarity {similarity:F3} | dHash max {maximumDistance}"
+            : $"{KindText} | dHash max {maximumDistance}";
+        SimilarityText = minimumSimilarity is double minimum
+            ? $"Minimum similarity: {minimum:F3}"
+            : string.Empty;
+        KeeperQualityText = keeperQuality is double quality
+            ? $"Keeper quality: {quality:F3}"
+            : string.Empty;
+
+        // A perceptual match is not guaranteed to be byte-identical, so a hard
+        // link would silently replace a different picture with another one.
+        foreach (DuplicateCaseItemViewModel file in Files)
+        {
+            file.DisableHardlink();
+        }
+
+        DuplicateCaseItemViewModel? suggestedKeeper = Files.FirstOrDefault(file =>
+            PathUtilities.PathComparer.Equals(file.FilePath, keeperPath));
+
+        if (suggestedKeeper is not null)
+        {
+            SetKeeper(suggestedKeeper);
+        }
+
+        this.RaisePropertyChanged(nameof(Kind));
+        this.RaisePropertyChanged(nameof(KindText));
+        this.RaisePropertyChanged(nameof(Detail));
+        this.RaisePropertyChanged(nameof(SimilarityText));
+        this.RaisePropertyChanged(nameof(KeeperQualityText));
     }
 
     private void OnFilePropertyChanged(object? sender, PropertyChangedEventArgs args)

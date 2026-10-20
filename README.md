@@ -55,7 +55,8 @@ Common options: `--path`, `--json`, `--apply`, `--trash`, `--exclude`, `--max`,
 
 ## Similar images
 
-`similar-images` finds near-identical pictures, for example the same photo saved at
+The desktop app has a **Similar images** tab, and the `similar-images` command exposes the
+same finder. It finds near-identical pictures, for example the same photo saved at
 another resolution or compression level. Each image gets a 64-bit difference hash
 (dHash): it is decoded at a reduced scale, transparency is composited on white, EXIF
 orientation is applied, and a 9x8 grayscale grid is compared horizontally.

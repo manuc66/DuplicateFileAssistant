@@ -70,8 +70,8 @@ The trash is a safety net against manipulation errors, **not a backup**.
 
 - The tool is still under development. Use it at your own risk, and keep an independent
   backup of irreplaceable files.
-- Similar-image detection is **CLI-only** and **report-only**: it never deletes, even with
-  `--apply`.
+- Similar-image detection is available in the desktop app and in the CLI. The CLI command is
+  report-only; the desktop tab moves non-keepers to the trash after confirmation.
 - Image decoding covers JPEG, PNG, GIF, BMP, WebP and ICO. HEIC, AVIF and camera RAW are
   not decoded.
 - File enumeration, grouping and reports are rebuilt on every run. Only expensive results

@@ -1,5 +1,6 @@
 using DuplicateAssistant.Business;
 using DuplicateAssistant.ViewModels;
+using ImageCompare;
 using System.Reactive;
 using System.Reactive.Linq;
 
@@ -8,6 +9,62 @@ namespace FileCompare.Tests;
 [TestFixture]
 public class DuplicateViewModelTests
 {
+    [Test]
+    public void SimilarImageDetailsSelectKeeperAndDisableHardlink()
+    {
+        using TempDirectory temp = new();
+        string firstPath = temp.CreateFile("first.jpg", "first");
+        string secondPath = temp.CreateFile("second.jpg", "second");
+        FileInfo firstInfo = new(firstPath);
+        FileInfo secondInfo = new(secondPath);
+        FakeDeleteConfirmation confirmation = new();
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        TestDuplicateInFolderViewModel viewModel = new(
+            trash,
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker());
+
+        HashSet<DuplicateFile> files = new()
+        {
+            new DuplicateFile(firstPath, firstInfo.Length, firstInfo.LastWriteTimeUtc),
+            new DuplicateFile(secondPath, secondInfo.Length, secondInfo.LastWriteTimeUtc)
+        };
+
+        DuplicateCaseViewModel duplicateCase = new(
+            viewModel,
+            files,
+            trash,
+            new FileManagerHandler(),
+            confirmation);
+
+        duplicateCase.ApplySimilarImageDetails(
+            SimilarImageKind.Semantic,
+            maximumDistance: 14,
+            minimumSimilarity: 0.94,
+            keeperPath: secondPath,
+            keeperQuality: 0.8);
+
+        DuplicateCaseItemViewModel first = duplicateCase.Files.First(file => file.FilePath == firstPath);
+        DuplicateCaseItemViewModel second = duplicateCase.Files.First(file => file.FilePath == secondPath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(duplicateCase.Kind, Is.EqualTo(SimilarImageKind.Semantic));
+            Assert.That(duplicateCase.KindText, Is.EqualTo("Semantic"));
+            Assert.That(duplicateCase.Keeper, Is.SameAs(second));
+            Assert.That(second.IsKeeper, Is.True);
+            Assert.That(first.IsKeeper, Is.False);
+            Assert.That(first.CanHardlink, Is.False);
+            Assert.That(second.CanHardlink, Is.False);
+            Assert.That(duplicateCase.Detail, Does.Contain("min similarity"));
+            Assert.That(duplicateCase.Detail, Does.Contain("dHash max 14"));
+            Assert.That(duplicateCase.SimilarityText, Does.Contain("Minimum similarity"));
+            Assert.That(duplicateCase.KeeperQualityText, Does.Contain("Keeper quality"));
+        });
+    }
+
     [Test]
     public void DuplicateCase_DefaultsToFirstKeeperAndUpdatesReclaimableSize()
     {

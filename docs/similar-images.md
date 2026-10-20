@@ -6,13 +6,30 @@ nav_order: 5
 # Similar images
 
 `similar-images` finds near-identical pictures: the same photo saved at another
-resolution, another compression level, or with a small crop or edit. It is **report-only**
-and **CLI-only**; the desktop window has no tab for it, and the command never deletes a
-file, even with `--apply`.
+resolution, another compression level, or with a small crop or edit. It is available in the
+desktop app (**Similar images** tab) and as a CLI command. The CLI command is **report-only**
+and never deletes a file, even with `--apply`; the desktop tab uses the normal confirmed
+trash flow.
 
 ```bash
 dotnet run --project Cli -- similar-images --path ~/Pictures --json
 ```
+
+## Desktop tab
+
+The **Similar images** tab applies the same finder. The default pass is dHash; two optional
+passes refine it:
+
+- **Detect crops and edits (DINOv2)** enables the semantic pass. The model is downloaded on
+  first use unless **Allow model download** is unchecked.
+- **Suggest a keeper by quality** enables quality scoring. The default is the model-free
+  heuristic; **Use DBCNN quality model** selects the trained model instead.
+- The numeric field next to the semantic checkbox is the cosine threshold (0.80 by default).
+- **Dry run** is checked by default. **Delete non-keepers** moves the other copies to the
+  trash after confirmation.
+
+Perceptual matches are not byte-identical, so the **Hardlink** action is disabled for image
+groups in the desktop tab.
 
 ## The perceptual pass
 
@@ -124,12 +141,13 @@ Up to **5,000 images**, semantic candidates are compared exhaustively. Above tha
 finder uses an in-memory 128-bit SimHash index, which is approximate for borderline crops.
 
 The CLI pulls SkiaSharp (~11 MB) and ONNX Runtime (~15 MB) per runtime identifier, plus the
-models downloaded on demand. That is why similar-image support is in the CLI and the
-desktop app references it but does not yet expose it as a tab.
+models downloaded on demand. The desktop app references the same projects and exposes the
+feature in the **Similar images** tab.
 
 ## Limits
 
-- Report-only: there is no `--apply`, and passing it is an error.
+- **CLI report-only**: there is no `--apply`, and passing it is an error. The desktop tab can
+  move non-keepers to the trash, with a confirmation.
 - Not a classifier: dHash groups by visual structure, not by "the same subject". Landscape
   photos of the same beach can match; two portraits can match. The semantic pass narrows
   this, it does not remove the need to look.
