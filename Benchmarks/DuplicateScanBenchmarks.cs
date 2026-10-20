@@ -42,7 +42,7 @@ public class DuplicateScanBenchmarks
     [Benchmark]
     public int ScanForDuplicates()
     {
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temporaryDirectory,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -54,9 +54,9 @@ public class DuplicateScanBenchmarks
         return result.Count;
     }
 
-    private static string HashFile(string path)
+    private static byte[] HashFile(string path)
     {
         using FileStream stream = File.OpenRead(path);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
+        return SHA256.HashData(stream);
     }
 }

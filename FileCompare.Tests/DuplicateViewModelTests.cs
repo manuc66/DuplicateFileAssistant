@@ -158,9 +158,9 @@ public class DuplicateViewModelTests
         {
         }
 
-        protected override Dictionary<string, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
+        protected override Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
         {
-            return new Dictionary<string, HashSet<DuplicateFile>>();
+            return new Dictionary<HashKey, HashSet<DuplicateFile>>();
         }
     }
 }

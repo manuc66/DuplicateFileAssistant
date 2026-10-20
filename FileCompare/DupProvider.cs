@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using Directory = System.IO.Directory;
 using MatchType = System.IO.MatchType;
 using Path = System.IO.Path;
@@ -165,12 +166,12 @@ public class DupProvider
         return fileBySize.Where(x => x.Value.Count > 1).ToList();
     }
 
-    public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
+    public static Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, byte[]> hash,
         CancellationToken cancellationToken)
     {
-        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> candidates = FindDuplicate(a, searchOption, b, bSearchOption,
-            filter, hash, textDisplayProgress, cancellationToken);
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> candidates = FindDuplicate(a, searchOption, b, bSearchOption,
+            filter, path => HashKey.FromOwned(hash(path)), textDisplayProgress, cancellationToken);
 
         return VerifyCrossContentGroups(candidates);
     }
@@ -183,20 +184,22 @@ public class DupProvider
             NormalizeFileName, textDisplayProgress, cancellationToken);
     }
 
-    public static Dictionary<string, HashSet<DuplicateFile>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
+    public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, byte[]> hash, CancellationToken ct)
     {
-        Dictionary<string, HashSet<string>> candidates =
-            FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
+        Dictionary<HashKey, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter, p => HashKey.FromOwned(hash(p)), textDisplayProgress, updateProgress, ct);
 
         return VerifyContentGroups(candidates);
     }
 
-    public static Dictionary<string, HashSet<DuplicateFile>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+    public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
         TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
     {
-        Dictionary<string, HashSet<string>> candidates =
-            FindDuplicate(path, searchOption, filter, NormalizeFileName, textDisplayProgress, updateProgress, cancellationToken);
+        Dictionary<HashKey, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter,
+                p => HashKey.FromOwned(Encoding.UTF8.GetBytes(NormalizeFileName(p))),
+                textDisplayProgress, updateProgress, cancellationToken);
 
         return AttachMetadata(candidates);
     }
@@ -374,18 +377,18 @@ public class DupProvider
         return new Dictionary<string, T>(hashes, PathComparer);
     }
 
-    private static Dictionary<string, HashSet<DuplicateFile>> VerifyContentGroups(
-        Dictionary<string, HashSet<string>> candidates)
+    private static Dictionary<HashKey, HashSet<DuplicateFile>> VerifyContentGroups(
+        Dictionary<HashKey, HashSet<string>> candidates)
     {
-        Dictionary<string, HashSet<DuplicateFile>> verified = new(StringComparer.Ordinal);
+        Dictionary<HashKey, HashSet<DuplicateFile>> verified = new();
 
-        foreach ((string hash, HashSet<string> paths) in candidates)
+        foreach ((HashKey hash, HashSet<string> paths) in candidates)
         {
             int index = 0;
 
             foreach (HashSet<DuplicateFile> group in PartitionByContent(paths))
             {
-                string key = index == 0 ? hash : $"{hash}:{index}";
+                HashKey key = index == 0 ? hash : hash.WithDiscriminator(index);
                 verified[key] = group;
                 index++;
             }
@@ -394,12 +397,12 @@ public class DupProvider
         return verified;
     }
 
-    private static Dictionary<string, HashSet<DuplicateFile>> AttachMetadata(
-        Dictionary<string, HashSet<string>> candidates)
+    private static Dictionary<HashKey, HashSet<DuplicateFile>> AttachMetadata(
+        Dictionary<HashKey, HashSet<string>> candidates)
     {
-        Dictionary<string, HashSet<DuplicateFile>> verified = new(StringComparer.Ordinal);
+        Dictionary<HashKey, HashSet<DuplicateFile>> verified = new();
 
-        foreach ((string key, HashSet<string> paths) in candidates)
+        foreach ((HashKey key, HashSet<string> paths) in candidates)
         {
             HashSet<DuplicateFile> files = new(DuplicateFile.Comparer);
 
@@ -420,12 +423,12 @@ public class DupProvider
         return verified;
     }
 
-    private static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> VerifyCrossContentGroups(
-        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> candidates)
+    private static Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> VerifyCrossContentGroups(
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> candidates)
     {
-        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> verified = new(StringComparer.Ordinal);
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> verified = new();
 
-        foreach ((string hash, (HashSet<string> inA, HashSet<string> inB) paths) in candidates)
+        foreach ((HashKey hash, (HashSet<string> inA, HashSet<string> inB) paths) in candidates)
         {
             List<(string Representative, List<string> InA, List<string> InB)> groups = new();
 
@@ -444,7 +447,7 @@ public class DupProvider
             foreach ((_, List<string> groupInA, List<string> groupInB) in groups
                          .Where(group => group.InA.Count > 0 && group.InB.Count > 0))
             {
-                string key = index == 0 ? hash : $"{hash}:{index}";
+                HashKey key = index == 0 ? hash : hash.WithDiscriminator(index);
                 verified[key] = (
                     new HashSet<string>(groupInA, PathComparer),
                     new HashSet<string>(groupInB, PathComparer));

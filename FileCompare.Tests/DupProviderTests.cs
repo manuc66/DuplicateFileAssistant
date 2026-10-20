@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace FileCompare.Tests;
 
@@ -30,13 +31,13 @@ public class DupProviderTests
         _temp.CreateFile("a.txt", "same content");
         _temp.CreateFile("A.txt", "same content");
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
             TextWriter.Null,
             _ => { },
-            File.ReadAllText,
+            File.ReadAllBytes,
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -52,13 +53,13 @@ public class DupProviderTests
         string first = _temp.CreateFile("a.txt", "aaaa");
         string second = _temp.CreateFile("b.txt", "bbbb");
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
             TextWriter.Null,
             _ => { },
-            _ => "forced-collision",
+            _ => Encoding.UTF8.GetBytes("forced-collision"),
             CancellationToken.None);
 
         Assert.That(result, Is.Empty, $"Files must be byte-identical: {first}, {second}");
@@ -71,13 +72,13 @@ public class DupProviderTests
         string second = _temp.CreateFile("b.txt", "same");
         _temp.CreateFile("c.txt", "diff");
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
             TextWriter.Null,
             _ => { },
-            _ => "forced-collision",
+            _ => Encoding.UTF8.GetBytes("forced-collision"),
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -104,13 +105,13 @@ public class DupProviderTests
             Assert.That(process.ExitCode, Is.Zero);
         }
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
             TextWriter.Null,
             _ => { },
-            File.ReadAllText,
+            File.ReadAllBytes,
             CancellationToken.None);
 
         Assert.That(result, Is.Empty);
@@ -122,13 +123,13 @@ public class DupProviderTests
         string first = _temp.CreateFile("a.txt", "same");
         string second = _temp.CreateFile("b.txt", "same");
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
             TextWriter.Null,
             _ => { },
-            File.ReadAllText,
+            File.ReadAllBytes,
             CancellationToken.None);
 
         HashSet<DuplicateFile> files = result.Values.Single();
@@ -177,7 +178,7 @@ public class DupProviderTests
         _temp.CreateFile("second.bin", second);
         int fullHashCalls = 0;
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -186,7 +187,7 @@ public class DupProviderTests
             _ =>
             {
                 fullHashCalls++;
-                return "same";
+                return Encoding.UTF8.GetBytes("same");
             },
             CancellationToken.None);
 
@@ -207,7 +208,7 @@ public class DupProviderTests
         _temp.CreateFile("second.bin", content);
         int fullHashCalls = 0;
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -216,7 +217,7 @@ public class DupProviderTests
             _ =>
             {
                 Interlocked.Increment(ref fullHashCalls);
-                return "same";
+                return Encoding.UTF8.GetBytes("same");
             },
             CancellationToken.None);
 
@@ -252,7 +253,7 @@ public class DupProviderTests
                 Filter,
                 TextWriter.Null,
                 _ => { },
-                File.ReadAllText,
+                File.ReadAllBytes,
                 CancellationToken.None),
             Throws.Nothing);
     }
@@ -271,7 +272,7 @@ public class DupProviderTests
         using Barrier barrier = new(2);
         int calls = 0;
 
-        string Hash(string path)
+        byte[] Hash(string path)
         {
             if (Interlocked.Increment(ref calls) <= 2)
             {
@@ -281,10 +282,10 @@ public class DupProviderTests
                     "Hashing must run in parallel.");
             }
 
-            return File.ReadAllText(path);
+            return File.ReadAllBytes(path);
         }
 
-        Dictionary<string, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
             _temp.Root,
             SearchOption.TopDirectoryOnly,
             _ => true,
@@ -304,7 +305,7 @@ public class DupProviderTests
         _temp.CreateFile(Path.Combine("first", "a.txt"), "aaaa");
         _temp.CreateFile(Path.Combine("second", "b.txt"), "bbbb");
 
-        Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> result =
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> result =
             DupProvider.FindDuplicateByHash(
                 firstFolder,
                 SearchOption.TopDirectoryOnly,
@@ -312,7 +313,7 @@ public class DupProviderTests
                 SearchOption.TopDirectoryOnly,
                 _ => true,
                 TextWriter.Null,
-                _ => "forced-collision",
+                _ => Encoding.UTF8.GetBytes("forced-collision"),
                 CancellationToken.None);
 
         Assert.That(result, Is.Empty);

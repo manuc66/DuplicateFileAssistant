@@ -35,14 +35,14 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         HashAlgorithm = HashAlgorithms[1];
     }
 
-    protected override Dictionary<string, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
+    protected override Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
         using ControlWriter textDisplayProgress = new(this);
 
         IHashFile fileHashing = GetFileHashing();
 
-        Func<string, string> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
+        Func<string, byte[]> hash = p => Hash(p, fileHashing, textDisplayProgress, ct);
 
         return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => !fi.IsLink() && !fi.IsFifoFile(), textDisplayProgress,
             UpdateProgress, hash, ct);
@@ -70,12 +70,11 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
         return fileHashing;
     }
 
-    static string Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
+    static byte[] Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
     {
         textDisplayProgress.Write($"Hashing {path}... ");
         byte[] retVal = hashFile.Hash(path, cancellationToken);
-        string hash = HashFormatter.Format(retVal);
-        textDisplayProgress.WriteLine(hash);
-        return hash;
+        textDisplayProgress.WriteLine(HashFormatter.Format(retVal));
+        return retVal;
     }
 }

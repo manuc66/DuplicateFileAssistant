@@ -2,7 +2,6 @@
 
 
 using System.Security.Cryptography;
-using System.Text;
 using FileCompare;
 
 Trash trash = new(@"C:\PhotoTrash");
@@ -11,23 +10,16 @@ string from = @"c:\Deletre-from-here";
 
 string otherPlace = @"c:\If-present-here";
 
-static string Hash(string path)
+static byte[] Hash(string path)
 {
     using MD5 md5 = MD5.Create();
     Console.Write($"Hashing {path}... ");
     using FileStream fs = File.OpenRead(path);
     byte[] retVal = md5.ComputeHash(fs);
-    StringBuilder sb = new();
-    foreach (byte val in retVal)
-    {
-        sb.Append(val.ToString("x2"));
-    }
-
-    string hash = sb.ToString();
-    Console.WriteLine(hash);
-    return hash;
+    Console.WriteLine(Convert.ToHexStringLower(retVal));
+    return retVal;
 }
-Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> findDuplicateByHash =
+Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> findDuplicateByHash =
     DupProvider.FindDuplicateByHash(from, SearchOption.TopDirectoryOnly, otherPlace, SearchOption.AllDirectories, _ => true, Console.Out, Hash, new());
 
 int deleted = 0;

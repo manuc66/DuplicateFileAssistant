@@ -31,7 +31,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private bool _progressUpdateScheduled;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
-    public ReactiveCommand<Unit, Dictionary<string, HashSet<DuplicateFile>>> SearchCommand { get; }
+    public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
     public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
 
     private string _searchPath;
@@ -144,7 +144,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         _duplicateCaseItems = new();
     }
 
-    private async Task<Dictionary<string, HashSet<DuplicateFile>>> SearchDuplicate(CancellationToken ct)
+    private async Task<Dictionary<HashKey, HashSet<DuplicateFile>>> SearchDuplicate(CancellationToken ct)
     {
         _isSearching.OnNext(true);
 
@@ -163,12 +163,12 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }
         catch (OperationCanceledException)
         {
-            return new Dictionary<string, HashSet<DuplicateFile>>();
+            return new Dictionary<HashKey, HashSet<DuplicateFile>>();
         }
         catch (Exception ex)
         {
             OnUiThread(() => SearchLog = $"{SearchLog}{Environment.NewLine}{ex}");
-            return new Dictionary<string, HashSet<DuplicateFile>>();
+            return new Dictionary<HashKey, HashSet<DuplicateFile>>();
         }
         finally
         {
@@ -177,7 +177,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }
     }
 
-    protected abstract Dictionary<string, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
+    protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
 
     protected void UpdateProgress(int progress)
     {
