@@ -10,9 +10,13 @@ public partial class ConfirmDeleteWindow : Window
         InitializeComponent();
     }
 
-    public ConfirmDeleteWindow(string filePath) : this()
+    public ConfirmDeleteWindow(string filePath) : this(filePath, "Move this file to the trash?")
     {
-        MessageText.Text = $"Move this file to the trash?\n\n{filePath}";
+    }
+
+    public ConfirmDeleteWindow(string path, string message) : this()
+    {
+        MessageText.Text = $"{message}\n\n{path}";
     }
 
     private void OnConfirm(object? sender, RoutedEventArgs e)

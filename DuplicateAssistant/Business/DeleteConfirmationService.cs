@@ -7,7 +7,12 @@ namespace DuplicateAssistant.Business;
 
 public class DeleteConfirmationService : IDeleteConfirmation
 {
-    public async Task<bool> ConfirmAsync(string filePath)
+    public Task<bool> ConfirmAsync(string filePath)
+    {
+        return ConfirmAsync(filePath, "Move this file to the trash?");
+    }
+
+    public async Task<bool> ConfirmAsync(string path, string message)
     {
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime
             {
@@ -17,7 +22,7 @@ public class DeleteConfirmationService : IDeleteConfirmation
             return false;
         }
 
-        ConfirmDeleteWindow dialog = new(filePath);
+        ConfirmDeleteWindow dialog = new(path, message);
         return await dialog.ShowDialog<bool>(owner);
     }
 }

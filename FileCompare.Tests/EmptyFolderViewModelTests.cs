@@ -1,0 +1,49 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using Avalonia.Headless.NUnit;
+using Avalonia.Threading;
+using DuplicateAssistant.ViewModels;
+
+namespace FileCompare.Tests;
+
+[TestFixture]
+public class EmptyFolderViewModelTests
+{
+    [AvaloniaTest]
+    public async Task ScanThenDeleteRemovesReportedEmptyFolders()
+    {
+        using TempDirectory temp = new();
+        string root = temp.Root;
+        string empty = Directory.CreateDirectory(Path.Combine(root, "empty")).FullName;
+        string nested = Directory.CreateDirectory(Path.Combine(root, "nested")).FullName;
+        string leaf = Directory.CreateDirectory(Path.Combine(root, "nested", "leaf")).FullName;
+        string occupied = Directory.CreateDirectory(Path.Combine(root, "occupied")).FullName;
+        temp.CreateFile(Path.Combine("occupied", "file.txt"), "content");
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        EmptyFolderViewModel viewModel = new(root, confirmation);
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.EmptyDirectories, Is.EquivalentTo(new[] { empty, leaf, nested }));
+            Assert.That(viewModel.HasResults, Is.True);
+            Assert.That(viewModel.Status, Does.Contain("3"));
+        });
+
+        await viewModel.DeleteCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Directory.Exists(empty), Is.False);
+            Assert.That(Directory.Exists(leaf), Is.False);
+            Assert.That(Directory.Exists(nested), Is.False);
+            Assert.That(Directory.Exists(occupied), Is.True);
+            Assert.That(viewModel.EmptyDirectories, Is.Empty);
+            Assert.That(confirmation.LastPath, Is.EqualTo(root));
+        });
+    }
+}

@@ -38,7 +38,7 @@
             <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
         </TabItem>
         <TabItem Header="Remove empty folder" VerticalContentAlignment="Center">
-            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
         </TabItem>
     </TabControl>
 
