@@ -22,7 +22,7 @@ public class DeleteIfElsewhereViewModelTests
 
         Trash trash = new(Path.Combine(temp.Root, "trash"));
         FakeDeleteConfirmation confirmation = new() { Result = true };
-        DeleteIfElsewhereViewModel viewModel = new(trash, source, confirmation)
+        DeleteIfElsewhereViewModel viewModel = new(trash, source, confirmation, new FakeFolderPicker())
         {
             OtherPath = other
         };

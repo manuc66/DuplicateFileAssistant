@@ -4,12 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reactive;
-using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ReactiveUI.Reactive;
@@ -20,24 +15,38 @@ public class MergeToDestinationViewModel : ViewModelBase
 {
     private readonly Trash _trash;
     private readonly IDeleteConfirmation _deleteConfirmation;
-    private CancellationTokenSource? _cancellation;
+    private readonly IFolderPicker _folderPicker;
     private string _sourcePath;
     private string _destinationPath;
-    private string _status = "Ready.";
-    private bool _isBusy;
 
-    public MergeToDestinationViewModel(Trash trash, string sourcePath, IDeleteConfirmation deleteConfirmation)
+    public MergeToDestinationViewModel(Trash trash, string sourcePath, IDeleteConfirmation deleteConfirmation,
+        IFolderPicker folderPicker)
     {
         _trash = trash;
         _sourcePath = sourcePath;
         _destinationPath = string.Empty;
         _deleteConfirmation = deleteConfirmation;
+        _folderPicker = folderPicker;
         Plan = new ObservableCollection<MergePlanItem>();
 
-        BrowseSourceCommand = ReactiveCommand.CreateFromTask(() => BrowseAsync(path => SourcePath = path, SourcePath));
-        BrowseDestinationCommand = ReactiveCommand.CreateFromTask(() => BrowseAsync(path => DestinationPath = path, DestinationPath));
+        BrowseSourceCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            string? selectedPath = await _folderPicker.PickFolderAsync(SourcePath);
+            if (selectedPath != null)
+            {
+                SourcePath = selectedPath;
+            }
+        });
+        BrowseDestinationCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            string? selectedPath = await _folderPicker.PickFolderAsync(DestinationPath);
+            if (selectedPath != null)
+            {
+                DestinationPath = selectedPath;
+            }
+        });
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
-        StopCommand = ReactiveCommand.Create(Stop);
+        StopCommand = ReactiveCommand.Create(StopOperation);
         MergeCommand = ReactiveCommand.CreateFromTask(MergeAsync);
     }
 
@@ -51,18 +60,6 @@ public class MergeToDestinationViewModel : ViewModelBase
     {
         get => _destinationPath;
         set => this.RaiseAndSetIfChanged(ref _destinationPath, value);
-    }
-
-    public string Status
-    {
-        get => _status;
-        private set => this.RaiseAndSetIfChanged(ref _status, value);
-    }
-
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
 
     public ObservableCollection<MergePlanItem> Plan { get; }
@@ -80,31 +77,6 @@ public class MergeToDestinationViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> MergeCommand { get; }
 
-    private async Task BrowseAsync(Action<string> setPath, string currentPath)
-    {
-        Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
-                            ?? throw new InvalidCastException("MainWindow not found!");
-
-        IStorageFolder? suggestedStartLocation = Directory.Exists(currentPath)
-            ? await mainWindow.StorageProvider.TryGetFolderFromPathAsync(currentPath)
-            : null;
-
-        IReadOnlyList<IStorageFolder> folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(
-            new FolderPickerOpenOptions
-            {
-                Title = "Select a folder",
-                AllowMultiple = false,
-                SuggestedStartLocation = suggestedStartLocation
-            });
-
-        string? selectedPath = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-
-        if (selectedPath != null && Directory.Exists(selectedPath))
-        {
-            setPath(selectedPath);
-        }
-    }
-
     private async Task ScanAsync()
     {
         if (IsBusy)
@@ -118,17 +90,14 @@ public class MergeToDestinationViewModel : ViewModelBase
             return;
         }
 
-        IsBusy = true;
-        Status = "Scanning...";
         Plan.Clear();
         RaisePlanChanged();
-        _cancellation = new CancellationTokenSource();
 
-        try
+        await RunOperationAsync(async cancellationToken =>
         {
             IReadOnlyList<MergePlanItem> plan = await Task.Run(
-                () => MergePlanner.CreatePlan(SourcePath, DestinationPath, _cancellation.Token),
-                _cancellation.Token);
+                () => MergePlanner.CreatePlan(SourcePath, DestinationPath, cancellationToken),
+                cancellationToken);
 
             OnUiThread(() =>
             {
@@ -140,26 +109,7 @@ public class MergeToDestinationViewModel : ViewModelBase
                 Status = $"{plan.Count} file(s) planned.";
                 RaisePlanChanged();
             });
-        }
-        catch (OperationCanceledException)
-        {
-            OnUiThread(() => Status = "Stopped.");
-        }
-        catch (Exception ex)
-        {
-            OnUiThread(() => Status = ex.Message);
-        }
-        finally
-        {
-            _cancellation.Dispose();
-            _cancellation = null;
-            OnUiThread(() => IsBusy = false);
-        }
-    }
-
-    private void Stop()
-    {
-        _cancellation?.Cancel();
+        }, "Scanning...");
     }
 
     private async Task MergeAsync()
@@ -179,18 +129,15 @@ public class MergeToDestinationViewModel : ViewModelBase
         }
 
         List<MergePlanItem> plan = Plan.ToList();
-        IsBusy = true;
-        Status = "Merging...";
-        _cancellation = new CancellationTokenSource();
 
-        try
+        await RunOperationAsync(async cancellationToken =>
         {
-            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, _cancellation.Token);
+            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken);
 
             IReadOnlyList<string> emptyDirectories = await Task.Run(
-                () => EmptyDirectoryService.FindEmptyDirectories(SourcePath, _cancellation.Token),
-                _cancellation.Token);
-            int removedDirectories = EmptyDirectoryService.DeleteEmptyDirectories(emptyDirectories, _cancellation.Token);
+                () => EmptyDirectoryService.FindEmptyDirectories(SourcePath, cancellationToken),
+                cancellationToken);
+            int removedDirectories = EmptyDirectoryService.DeleteEmptyDirectories(emptyDirectories, cancellationToken);
 
             OnUiThread(() =>
             {
@@ -199,21 +146,7 @@ public class MergeToDestinationViewModel : ViewModelBase
                          $"failed {result.Failed}, removed {removedDirectories} empty folder(s).";
                 RaisePlanChanged();
             });
-        }
-        catch (OperationCanceledException)
-        {
-            OnUiThread(() => Status = "Stopped.");
-        }
-        catch (Exception ex)
-        {
-            OnUiThread(() => Status = ex.Message);
-        }
-        finally
-        {
-            _cancellation.Dispose();
-            _cancellation = null;
-            OnUiThread(() => IsBusy = false);
-        }
+        }, "Merging...");
     }
 
     private void RaisePlanChanged()
@@ -223,17 +156,5 @@ public class MergeToDestinationViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(ConflictCount));
         this.RaisePropertyChanged(nameof(HasPlan));
         this.RaisePropertyChanged(nameof(Summary));
-    }
-
-    private static void OnUiThread(Action action)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(action);
-        }
     }
 }

@@ -9,10 +9,6 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using DuplicateAssistant.Business;
 using FileCompare;
 using ReactiveUI.Reactive;
@@ -26,9 +22,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private readonly Subject<Unit> _stopSearch = new();
     private readonly BehaviorSubject<bool> _isSearching = new(false);
     private readonly IDeleteConfirmation _deleteConfirmation;
-    private readonly object _progressLock = new();
-    private int _pendingProgress;
-    private bool _progressUpdateScheduled;
+    private readonly IFolderPicker _folderPicker;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
@@ -56,14 +50,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     {
         get => _duplicateCase;
         set => this.RaiseAndSetIfChanged(ref _duplicateCase, value);
-    }
-
-    private int _progressValue;
-
-    public int ProgressValue
-    {
-        get => _progressValue;
-        set => this.RaiseAndSetIfChanged(ref _progressValue, value);
     }
 
     private bool _subFolder;
@@ -115,9 +101,10 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     }
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation)
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker)
     {
         _deleteConfirmation = deleteConfirmation;
+        _folderPicker = folderPicker;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         SubFolder = true;
@@ -136,29 +123,9 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         }));
         SelectFolderCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            Window mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
-                                ?? throw new InvalidCastException("MainWindow not found!");
+            string? selectedPath = await _folderPicker.PickFolderAsync(SearchPath);
 
-            IStorageFolder? suggestedStartLocation = Directory.Exists(SearchPath)
-                ? await mainWindow.StorageProvider.TryGetFolderFromPathAsync(SearchPath)
-                : null;
-
-            IReadOnlyList<IStorageFolder> folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(
-                new FolderPickerOpenOptions
-                {
-                    Title = "Select a folder",
-                    AllowMultiple = false,
-                    SuggestedStartLocation = suggestedStartLocation
-                });
-
-            string? selectedPath = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-
-            if (selectedPath != null && Directory.Exists(selectedPath))
-            {
-                return selectedPath;
-            }
-
-            return SearchPath;
+            return selectedPath != null && Directory.Exists(selectedPath) ? selectedPath : SearchPath;
         }, SearchCommand.IsExecuting.Select(x => !x));
         SelectFolderCommand.Subscribe(path => { SearchPath = path; });
         StopSearchCommand = ReactiveCommand.Create(
@@ -216,34 +183,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         return FileSearchFilter.FromText(minimumSize, FileExtensions, ExcludedFolders);
     }
 
-    protected void UpdateProgress(int progress)
-    {
-        lock (_progressLock)
-        {
-            _pendingProgress = progress;
-
-            if (_progressUpdateScheduled)
-            {
-                return;
-            }
-
-            _progressUpdateScheduled = true;
-        }
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            int value;
-
-            lock (_progressLock)
-            {
-                value = _pendingProgress;
-                _progressUpdateScheduled = false;
-            }
-
-            ProgressValue = value;
-        });
-    }
-
     public void Remove(DuplicateCaseViewModel duplicateCaseViewModel)
     {
         DuplicateCaseViewModel? currentSelection = DuplicateCase;
@@ -266,17 +205,5 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             : Math.Min(currentSelectedIndex, DuplicateCaseItems.Count - 1);
 
         DuplicateCase = DuplicateCaseItems[selectedIndex];
-    }
-
-    private static void OnUiThread(Action action)
-    {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            action();
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(action);
-        }
     }
 }

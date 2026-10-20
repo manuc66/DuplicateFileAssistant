@@ -28,8 +28,8 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
     }
 
     public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-        IDeleteConfirmation deleteConfirmation) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation)
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
     {
         HashAlgorithms = new List<string>(HashAlgorithmFactory.Names);
         HashAlgorithm = "Blake3";

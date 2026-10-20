@@ -21,7 +21,7 @@ public class EmptyFolderViewModelTests
         temp.CreateFile(Path.Combine("occupied", "file.txt"), "content");
 
         FakeDeleteConfirmation confirmation = new() { Result = true };
-        EmptyFolderViewModel viewModel = new(root, confirmation);
+        EmptyFolderViewModel viewModel = new(root, confirmation, new FakeFolderPicker());
 
         await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
         Dispatcher.UIThread.RunJobs();

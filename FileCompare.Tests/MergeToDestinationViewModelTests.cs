@@ -23,7 +23,7 @@ public class MergeToDestinationViewModelTests
 
         Trash trash = new(Path.Combine(temp.Root, "trash"));
         FakeDeleteConfirmation confirmation = new() { Result = true };
-        MergeToDestinationViewModel viewModel = new(trash, source, confirmation)
+        MergeToDestinationViewModel viewModel = new(trash, source, confirmation, new FakeFolderPicker())
         {
             DestinationPath = destination
         };

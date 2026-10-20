@@ -17,7 +17,8 @@ public class DuplicateViewModelTests
             new Trash(Path.Combine(temp.Root, "trash")),
             temp.Root,
             new FileManagerHandler(),
-            confirmation);
+            confirmation,
+            new FakeFolderPicker());
 
         HashSet<DuplicateFile> files = new()
         {
@@ -75,7 +76,8 @@ public class DuplicateViewModelTests
             trash,
             temp.Root,
             new FileManagerHandler(),
-            confirmation);
+            confirmation,
+            new FakeFolderPicker());
 
         DuplicateCaseViewModel duplicateCase = new(
             viewModel,
@@ -124,7 +126,8 @@ public class DuplicateViewModelTests
             new Trash(trashFolder),
             temp.Root,
             new FileManagerHandler(),
-            confirmation);
+            confirmation,
+            new FakeFolderPicker());
 
         HashSet<DuplicateFile> files = new()
         {
@@ -153,8 +156,8 @@ public class DuplicateViewModelTests
     private sealed class TestDuplicateInFolderViewModel : DuplicateInFolderViewModel
     {
         public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
-            IDeleteConfirmation deleteConfirmation)
-            : base(trash, searchPath, fileManagerHandler, deleteConfirmation)
+            IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker)
+            : base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker)
         {
         }
 
