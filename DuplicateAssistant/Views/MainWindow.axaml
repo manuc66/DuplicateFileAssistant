@@ -21,45 +21,108 @@
                 <Setter Property="Margin" Value="0 0 0 0"/>
                 <Setter Property="Padding" Value="10 0"/>
             </Style>
+            <Style Selector="TextBlock.tabDescription">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Opacity" Value="0.7"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Margin" Value="10,6,10,0"/>
+            </Style>
         </TabControl.Styles>
-        <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center">
-            <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
+        <TabItem Header="Duplicate in folder" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Finds files with identical content in one folder.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Finds files with identical content in one folder. Each group has one keeper; the other copies can be moved to the trash after confirmation." />
+                <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateContentInFolderViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Same name in folder" VerticalContentAlignment="Center">
-            <views:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
+        <TabItem Header="Same name in folder" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Finds files that share the same name, even when their content differs.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Finds files that share the same name, even when their content differs. Review each group before acting: files are only moved to the trash." />
+                <views:DuplicateNameInFolderUserControl DataContext="{Binding DuplicateNameInFolderViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Same size in folder" VerticalContentAlignment="Center">
-            <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateSizeInFolderViewModel}" />
+        <TabItem Header="Same size in folder" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Groups files by exact size only; same size does not mean same content.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Groups files by exact size only. Same size does not mean same content, so check the files before deleting anything." />
+                <views:DuplicateContentInFolderUserControl DataContext="{Binding DuplicateSizeInFolderViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Multi-folder duplicates" VerticalContentAlignment="Center">
-            <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}" />
+        <TabItem Header="Multi-folder duplicates" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Finds identical files across several folders.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Finds identical files across several folders. Add the folders to compare, then keep one copy per group; non-keepers go to the trash after confirmation." />
+                <views:MultiFolderDuplicateUserControl DataContext="{Binding MultiFolderDuplicateViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Remove renamed" VerticalContentAlignment="Center">
-            <TextBlock Text="Not yet implemented" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Trashes source files that also exist in another folder.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists files from the source folder that also exist in the other folder. Only the source copies are moved to the trash. Use Dry run to preview." />
+                <views:DeleteIfElsewhereUserControl DataContext="{Binding DeleteIfElsewhereViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Delete if elsewhere" VerticalContentAlignment="Center">
-            <views:DeleteIfElsewhereUserControl DataContext="{Binding DeleteIfElsewhereViewModel}" />
+        <TabItem Header="Merge to destination" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Moves a folder into another one without overwriting conflicts.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Moves the source folder into the destination: missing files are moved, identical duplicates are trashed, and conflicting files are left untouched. Use Dry run to preview." />
+                <views:MergeToDestinationUserControl DataContext="{Binding MergeToDestinationViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Merge to destination" VerticalContentAlignment="Center">
-            <views:MergeToDestinationUserControl DataContext="{Binding MergeToDestinationViewModel}" />
+        <TabItem Header="Remove empty folder" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Lists and deletes folders that contain no files.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists folders that no longer contain any file and deletes them. Only empty folders are removed, so no data is lost." />
+                <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Remove empty folder" VerticalContentAlignment="Center">
-            <views:EmptyFolderUserControl DataContext="{Binding EmptyFolderViewModel}" />
+        <TabItem Header="Empty files" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Lists zero-byte files.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists zero-byte files, often left by interrupted downloads or crashes. Deleted files go to the trash and can be restored." />
+                <views:FileListUserControl DataContext="{Binding EmptyFileViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Empty files" VerticalContentAlignment="Center">
-            <views:FileListUserControl DataContext="{Binding EmptyFileViewModel}" />
+        <TabItem Header="Big files" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Lists the largest files in a folder.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists the largest files in a folder to help free space. You choose what to move to the trash." />
+                <views:FileListUserControl DataContext="{Binding BigFileViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Big files" VerticalContentAlignment="Center">
-            <views:FileListUserControl DataContext="{Binding BigFileViewModel}" />
+        <TabItem Header="Temporary files" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Lists temporary, backup and cache files.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists temporary and cache files (*.tmp, *.bak, *.log, .DS_Store, Thumbs.db, ...). Review the list before moving anything to the trash." />
+                <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Temporary files" VerticalContentAlignment="Center">
-            <views:FileListUserControl DataContext="{Binding TemporaryFileViewModel}" />
+        <TabItem Header="Invalid symlinks" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Lists symbolic links whose target no longer exists.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Lists symbolic links whose target no longer exists. Deleting a link never deletes its target; the link itself goes to the trash." />
+                <views:InvalidLinkUserControl DataContext="{Binding InvalidLinkViewModel}" />
+            </DockPanel>
         </TabItem>
-        <TabItem Header="Invalid symlinks" VerticalContentAlignment="Center">
-            <views:InvalidLinkUserControl DataContext="{Binding InvalidLinkViewModel}" />
-        </TabItem>
-        <TabItem Header="Trash" VerticalContentAlignment="Center">
-            <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
+        <TabItem Header="Trash" VerticalContentAlignment="Center"
+                 ToolTip.Tip="Restores files moved to the trash.">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="tabDescription"
+                           Text="Every file moved to the trash is kept here with its original path. Select an entry and press Restore to put it back. The trash is a safety net, not a backup." />
+                <views:TrashUserControl DataContext="{Binding TrashViewModel}" />
+            </DockPanel>
         </TabItem>
     </TabControl>
 
