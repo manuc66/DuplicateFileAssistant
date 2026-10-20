@@ -12,6 +12,17 @@ public static class PathUtilities
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
 
+    public static bool IsUnder(string path, string folder)
+    {
+        string fullPath = Path.GetFullPath(path);
+        string fullFolder = Path.GetFullPath(folder)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        return fullPath.Equals(fullFolder, PathComparison) ||
+               fullPath.StartsWith(fullFolder + Path.DirectorySeparatorChar, PathComparison) ||
+               fullPath.StartsWith(fullFolder + Path.AltDirectorySeparatorChar, PathComparison);
+    }
+
     public static string ExpandPath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

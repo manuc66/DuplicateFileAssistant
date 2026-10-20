@@ -46,11 +46,13 @@ public class AppBootstrapper
         services.Register(() => new DuplicateNameInFolderViewModel(trash, searchPath, fileManagerHandler, deleteConfirmation));
         services.Register(() => new EmptyFolderViewModel(searchPath, deleteConfirmation));
         services.Register(() => new DeleteIfElsewhereViewModel(trash, searchPath, deleteConfirmation));
+        services.Register(() => new MergeToDestinationViewModel(trash, searchPath, deleteConfirmation));
         services.Register(() => new MainWindowViewModel(
             resolver.GetService<DuplicateContentInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateContentInFolderViewModel service is not registered."),
             resolver.GetService<DuplicateNameInFolderViewModel>() ?? throw new InvalidOperationException("DuplicateNameInFolderViewModel service is not registered."),
             resolver.GetService<EmptyFolderViewModel>() ?? throw new InvalidOperationException("EmptyFolderViewModel service is not registered."),
-            resolver.GetService<DeleteIfElsewhereViewModel>() ?? throw new InvalidOperationException("DeleteIfElsewhereViewModel service is not registered.")));
+            resolver.GetService<DeleteIfElsewhereViewModel>() ?? throw new InvalidOperationException("DeleteIfElsewhereViewModel service is not registered."),
+            resolver.GetService<MergeToDestinationViewModel>() ?? throw new InvalidOperationException("MergeToDestinationViewModel service is not registered.")));
     }
 
     private static string ResolvePath(string? configuredPath, string fallbackPath)
