@@ -32,15 +32,22 @@
     pointer-events: none;
   }
 
-  /* The mark is square, so keep it compact and align it with the wordmark. */
+  /* The theme sizes the title for a single line; this name is long enough to clip
+     at that size, so bring it down and let the wordmark share the row with the icon. */
+  .site-header .site-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
   .site-header .site-logo {
-    flex: 0 0 1.75rem;
-    width: 1.75rem;
-    height: 1.75rem;
-    margin-right: 0.55rem;
+    flex: 0 0 1.6rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-right: 0.5rem;
   }
 
   .site-header .site-title-text {
     line-height: 1.2;
+    white-space: nowrap;
   }
 </style>
