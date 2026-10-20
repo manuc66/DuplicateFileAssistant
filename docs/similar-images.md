@@ -41,6 +41,9 @@ The **Models and caches** expander at the bottom of the tab shows the size of th
 embedding, quality and model caches. It can refresh the summary, prune entries for deleted
 files, clear the computed caches (downloaded models are kept), and open the model folder.
 
+**Stop** cancels the scan or an in-progress model download. A partially downloaded model is
+removed; the next scan starts the download again.
+
 ## The perceptual pass
 
 Every image gets a 64-bit **difference hash** (dHash):

@@ -70,6 +70,37 @@ public class OnnxModelStoreTests
             CancellationToken.None));
     }
 
+    [Test]
+    public async Task CanceledDownloadRemovesThePartialFile()
+    {
+        byte[] payload = CreatePayload(1024);
+        OnnxImageEmbeddingModel model = CreateModel(payload.Length, ComputeSha256(payload));
+        using TempDirectory temp = new();
+        using BlockingHandler handler = new();
+        using HttpClient client = new(handler);
+        OnnxModelStore store = new(temp.Root, client);
+        using CancellationTokenSource cancellation = new();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+        await Assert.CatchAsync<OperationCanceledException>(() => store.EnsureFilesAsync(
+            model,
+            allowDownload: true,
+            log: null,
+            cancellation.Token));
+
+        string modelFolder = Path.Combine(temp.Root, "fake");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(Path.Combine(modelFolder, "model.bin")), Is.False);
+            Assert.That(
+                Directory.Exists(modelFolder)
+                    ? Directory.GetFiles(modelFolder, "*.download")
+                    : Array.Empty<string>(),
+                Is.Empty);
+        });
+    }
+
     private static OnnxImageEmbeddingModel CreateModel(long size, string sha256)
     {
         float[] channel = { 0.5f, 0.5f, 0.5f };
@@ -131,6 +162,69 @@ public class OnnxModelStoreTests
             {
                 Content = new ByteArrayContent(payload)
             });
+        }
+    }
+
+    private sealed class BlockingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StreamContent(new BlockingStream())
+            });
+        }
+    }
+
+    private sealed class BlockingStream : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return 0;
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return 0;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
         }
     }
 }

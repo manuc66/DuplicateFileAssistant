@@ -14,7 +14,8 @@
             <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}" Margin="6,0,0,0" />
             <ToggleSwitch Grid.Column="2" Content="Subfolder" IsChecked="{Binding SubFolder}" Margin="12,0,0,0" />
             <Button Grid.Column="3" Content="Search" Command="{Binding SearchCommand}" Margin="6,0,0,0" />
-            <Button Grid.Column="4" Content="Stop" Command="{Binding StopSearchCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="4" Content="Stop" Command="{Binding StopSearchCommand}" Margin="6,0,0,0"
+                    ToolTip.Tip="Stop the scan or the model download." />
         </Grid>
 
         <WrapPanel Grid.Row="1" Margin="0,0,0,4">

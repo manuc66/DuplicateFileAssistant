@@ -207,6 +207,11 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
 
             return ToGroups(result);
         }
+        catch (OperationCanceledException)
+        {
+            OnUiThread(() => Summary = "Canceled.");
+            throw;
+        }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             OnUiThread(() => Summary = exception.Message);
