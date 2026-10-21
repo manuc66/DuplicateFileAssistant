@@ -105,7 +105,7 @@ internal static class TestImages
         canvas.Clear(SKColors.White);
         canvas.Translate(result.Width, 0);
         canvas.RotateDegrees(90);
-        canvas.DrawBitmap(source, 0, 0);
+        canvas.DrawBitmap(source, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
         return result;
     }
 
@@ -116,7 +116,7 @@ internal static class TestImages
         canvas.Clear(SKColors.White);
         canvas.Translate(result.Width, 0);
         canvas.Scale(-1, 1);
-        canvas.DrawBitmap(source, 0, 0);
+        canvas.DrawBitmap(source, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
         return result;
     }
 
@@ -127,7 +127,7 @@ internal static class TestImages
         canvas.Clear(SKColors.White);
         canvas.Translate(0, result.Height);
         canvas.Scale(1, -1);
-        canvas.DrawBitmap(source, 0, 0);
+        canvas.DrawBitmap(source, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
         return result;
     }
 

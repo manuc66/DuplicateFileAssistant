@@ -138,7 +138,8 @@ internal static class OnnxImagePreprocessor
             canvas.DrawBitmap(
                 resized,
                 new SKRect(cropX, cropY, cropX + targetSize, cropY + targetSize),
-                new SKRect(0, 0, targetSize, targetSize));
+                new SKRect(0, 0, targetSize, targetSize),
+                new SKSamplingOptions(SKCubicResampler.Mitchell));
         }
 
         return destination;
