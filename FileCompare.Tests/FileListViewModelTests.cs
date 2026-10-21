@@ -10,6 +10,43 @@ namespace FileCompare.Tests;
 public class FileListViewModelTests
 {
     [AvaloniaTest]
+    public async Task FileListFiltersAreRestoredPerTab()
+    {
+        using TempDirectory temp = new();
+        string filtersFile = Path.Combine(temp.Root, "filters.json");
+        FilterSettingsStore store = new(filtersFile);
+        FileListViewModel first = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root,
+            filterSettingsStore: store)
+        {
+            MinimumSizeText = "5 KB",
+            MaximumSizeText = "50 KB"
+        };
+        first.ExtensionSelection.AddExtension("bin");
+
+        await first.ScanCommand.Execute(Unit.Default).FirstAsync();
+
+        FileListViewModel restored = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.BigFiles,
+            temp.Root,
+            filterSettingsStore: new FilterSettingsStore(filtersFile));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored.MinimumSizeText, Is.EqualTo("5 KB"));
+            Assert.That(restored.MaximumSizeText, Is.EqualTo("50 KB"));
+            Assert.That(restored.ExtensionSelection.ToFilterString(), Is.EqualTo(".bin"));
+        });
+    }
+
+    [AvaloniaTest]
     public async Task TemporaryFilesRespectTheExtensionFilter()
     {
         using TempDirectory temp = new();

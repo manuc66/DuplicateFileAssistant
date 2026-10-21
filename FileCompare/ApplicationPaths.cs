@@ -13,6 +13,8 @@ public static class ApplicationPaths
 
     public static string LastFolderFile => Path.Combine(RootDirectory, "last-folder.json");
 
+    public static string FilterSettingsFile => Path.Combine(RootDirectory, "filter-settings.json");
+
     public static string SystemTrashDirectory => Path.Combine(RootDirectory, "system-trash");
 
     private static string ResolveRootDirectory()

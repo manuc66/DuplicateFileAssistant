@@ -15,8 +15,9 @@ public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 
     public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
-        LastFolderStore? lastFolderStore = null) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
+        LastFolderStore? lastFolderStore = null, FilterSettingsStore? filterSettingsStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore,
+            filterSettingsStore, "duplicate-content")
     {
         _scanCache = scanCache;
     }

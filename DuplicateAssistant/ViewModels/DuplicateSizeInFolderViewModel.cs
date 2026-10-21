@@ -10,8 +10,9 @@ public class DuplicateSizeInFolderViewModel : DuplicateInFolderViewModel
 {
     public DuplicateSizeInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
-        LastFolderStore? lastFolderStore = null) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
+        LastFolderStore? lastFolderStore = null, FilterSettingsStore? filterSettingsStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore,
+            filterSettingsStore, "duplicate-size")
     {
         ShowHashOptions = false;
     }

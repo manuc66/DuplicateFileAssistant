@@ -9,7 +9,8 @@ nav_order: 3
 scan over one folder (or several, for the multi-folder tab). Most tabs show a path and a
 **Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
 report progress in the log below the list and can be stopped at any point. The last folder
-used by a scan is remembered and restored on the next launch.
+used by a scan is remembered and restored on the next launch, along with each tab's filters
+(extensions, size bounds, excluded folders and the similar-image options).
 
 ![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 

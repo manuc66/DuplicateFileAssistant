@@ -278,6 +278,48 @@ public class DuplicateViewModelTests
     }
 
     [Test]
+    public async Task FilterSettingsAreRestoredPerTab()
+    {
+        using TempDirectory temp = new();
+        string filtersFile = Path.Combine(temp.Root, "filters.json");
+        FilterSettingsStore store = new(filtersFile);
+        FakeDeleteConfirmation confirmation = new();
+        TestDuplicateInFolderViewModel first = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker(),
+            filterSettingsStore: store,
+            settingsKey: "test-tab")
+        {
+            FileExtensions = "jpg,png",
+            MinimumFileSizeText = "10 MB",
+            SubFolder = false,
+            ExcludedFolders = "tmp"
+        };
+
+        await first.SearchCommand.Execute(Unit.Default).LastAsync();
+
+        TestDuplicateInFolderViewModel restored = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            temp.Root,
+            new FileManagerHandler(),
+            confirmation,
+            new FakeFolderPicker(),
+            filterSettingsStore: new FilterSettingsStore(filtersFile),
+            settingsKey: "test-tab");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored.ExtensionSelection.ToFilterString(), Is.EqualTo(".jpg,.png"));
+            Assert.That(restored.MinimumFileSizeText, Is.EqualTo("10 MB"));
+            Assert.That(restored.SubFolder, Is.False);
+            Assert.That(restored.ExcludedFolders, Is.EqualTo("tmp"));
+        });
+    }
+
+    [Test]
     public async Task SearchRemembersTheLastUsedFolder()
     {
         using TempDirectory temp = new();
@@ -593,8 +635,10 @@ public class DuplicateViewModelTests
     {
         public TestDuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
             IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
-            LastFolderStore? lastFolderStore = null)
-            : base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
+            LastFolderStore? lastFolderStore = null, FilterSettingsStore? filterSettingsStore = null,
+            string settingsKey = "test-tab")
+            : base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore,
+                filterSettingsStore, settingsKey)
         {
         }
 

@@ -27,6 +27,8 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private readonly Trash _trash;
     private readonly FileManagerHandler _fileManagerHandler;
     private readonly LastFolderStore? _lastFolderStore;
+    private readonly FilterSettingsStore? _filterSettingsStore;
+    private readonly string _settingsKey;
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
@@ -137,19 +139,25 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     protected DuplicateInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
-        LastFolderStore? lastFolderStore = null)
+        LastFolderStore? lastFolderStore = null, FilterSettingsStore? filterSettingsStore = null,
+        string settingsKey = "duplicates", FilterSettings? defaultFilters = null)
     {
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
         _trash = trash;
         _fileManagerHandler = fileManagerHandler;
         _lastFolderStore = lastFolderStore;
+        _filterSettingsStore = filterSettingsStore;
+        _settingsKey = settingsKey;
         _searchPath = searchPath;
         _searchLog = string.Empty;
         ExtensionSelection = new ExtensionSelectionViewModel();
         ExtensionSelection.SelectionChanged += (_, _) => this.RaisePropertyChanged(nameof(FileExtensions));
+        FilterSettings filters = filterSettingsStore?.Get(
+            settingsKey,
+            defaultFilters ?? FilterSettings.Default) ?? defaultFilters ?? FilterSettings.Default;
+        ApplyFilterSettings(filters);
         HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
-        SubFolder = true;
         Finished = true;
         SearchCommand = ReactiveCommand.CreateFromObservable(
             () => Observable
@@ -185,6 +193,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     private async Task<Dictionary<HashKey, HashSet<DuplicateFile>>> SearchDuplicate(CancellationToken ct)
     {
         _lastFolderStore?.Save(SearchPath);
+        _filterSettingsStore?.Save(_settingsKey, CaptureFilterSettings());
         _isSearching.OnNext(true);
 
         try
@@ -219,6 +228,25 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     protected abstract Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct);
 
     protected IDeleteConfirmation DeleteConfirmation => _deleteConfirmation;
+
+    protected virtual FilterSettings CaptureFilterSettings()
+    {
+        return FilterSettings.Default with
+        {
+            Extensions = FileExtensions,
+            MinimumSizeText = MinimumFileSizeText,
+            SubFolder = SubFolder,
+            ExcludedFolders = ExcludedFolders
+        };
+    }
+
+    private void ApplyFilterSettings(FilterSettings settings)
+    {
+        FileExtensions = settings.Extensions;
+        MinimumFileSizeText = settings.MinimumSizeText;
+        SubFolder = settings.SubFolder;
+        ExcludedFolders = settings.ExcludedFolders;
+    }
 
     protected virtual DuplicateCaseViewModel CreateDuplicateCase(HashKey key, IEnumerable<DuplicateFile> files)
     {

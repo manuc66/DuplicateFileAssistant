@@ -249,6 +249,43 @@ public class SemanticImageTests
         });
     }
 
+    [Test]
+    public void SimilarImageOptionsAreRestored()
+    {
+        using TempDirectory temp = new();
+        string filtersFile = Path.Combine(temp.Root, "filters.json");
+        FilterSettingsStore store = new(filtersFile);
+        store.Save("similar-images", FilterSettings.Default with
+        {
+            Extensions = ".png",
+            MinimumSizeText = "20 KB",
+            UseSemantic = true,
+            UseKeeper = false,
+            UseKeeperModel = true,
+            SemanticThreshold = 0.9,
+            AllowModelDownload = false
+        });
+
+        SimilarImageViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            temp.Root,
+            new FileManagerHandler(),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            filterSettingsStore: store);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(viewModel.ExtensionSelection.ToFilterString(), Is.EqualTo(".png"));
+            Assert.That(viewModel.MinimumFileSizeText, Is.EqualTo("20 KB"));
+            Assert.That(viewModel.UseSemantic, Is.True);
+            Assert.That(viewModel.UseKeeper, Is.False);
+            Assert.That(viewModel.UseKeeperModel, Is.True);
+            Assert.That(viewModel.SemanticThreshold, Is.EqualTo(0.9m));
+            Assert.That(viewModel.AllowModelDownload, Is.False);
+        });
+    }
+
     [AvaloniaTest]
     public async Task GuiFindsVariantsAndSelectsTheLargestAsKeeper()
     {

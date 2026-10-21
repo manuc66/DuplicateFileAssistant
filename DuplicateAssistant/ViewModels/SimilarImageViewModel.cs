@@ -21,6 +21,12 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
     private readonly ModelSettingsStore? _modelSettings;
     private readonly Dictionary<HashKey, SimilarGroupMetadata> _metadata = new();
 
+    private static readonly FilterSettings SimilarDefaults = FilterSettings.Default with
+    {
+        Extensions = "jpg,jpeg,png,gif,bmp,webp,ico",
+        MinimumSizeText = "10240"
+    };
+
     private bool _useSemantic;
     private bool _useKeeper = true;
     private bool _useKeeperModel;
@@ -33,19 +39,37 @@ public class SimilarImageViewModel : DuplicateInFolderViewModel
 
     public SimilarImageViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
         IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
-        ModelSettingsStore? modelSettings = null, LastFolderStore? lastFolderStore = null) :
-        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
+        ModelSettingsStore? modelSettings = null, LastFolderStore? lastFolderStore = null,
+        FilterSettingsStore? filterSettingsStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore,
+            filterSettingsStore, "similar-images", SimilarDefaults)
     {
         _scanCache = scanCache;
         _modelSettings = modelSettings;
         ShowHashOptions = false;
         DryRun = true;
-        FileExtensions = "jpg,jpeg,png,gif,bmp,webp,ico";
-        MinimumFileSizeText = "10240";
+        FilterSettings settings = filterSettingsStore?.Get("similar-images", SimilarDefaults) ?? SimilarDefaults;
+        UseSemantic = settings.UseSemantic;
+        UseKeeper = settings.UseKeeper;
+        UseKeeperModel = settings.UseKeeperModel;
+        SemanticThreshold = (decimal)settings.SemanticThreshold;
+        AllowModelDownload = settings.AllowModelDownload;
         RefreshCacheSummaryCommand = ReactiveCommand.CreateFromTask(RefreshCacheSummaryAsync);
         PruneCachesCommand = ReactiveCommand.CreateFromTask(PruneCachesAsync);
         ClearCachesCommand = ReactiveCommand.CreateFromTask(ClearCachesAsync);
         OpenModelFolderCommand = ReactiveCommand.Create(OpenModelFolder);
+    }
+
+    protected override FilterSettings CaptureFilterSettings()
+    {
+        return base.CaptureFilterSettings() with
+        {
+            UseSemantic = UseSemantic,
+            UseKeeper = UseKeeper,
+            UseKeeperModel = UseKeeperModel,
+            SemanticThreshold = (double)SemanticThreshold,
+            AllowModelDownload = AllowModelDownload
+        };
     }
 
     public string ModelDirectory => _modelSettings?.Current.ModelsFolder ?? CachePaths.ModelsDirectory;

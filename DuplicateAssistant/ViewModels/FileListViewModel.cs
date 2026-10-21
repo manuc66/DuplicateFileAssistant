@@ -25,6 +25,8 @@ public class FileListViewModel : ViewModelBase
     private readonly IFolderPicker _folderPicker;
     private readonly FileListMode _mode;
     private readonly LastFolderStore? _lastFolderStore;
+    private readonly FilterSettingsStore? _filterSettingsStore;
+    private readonly string _settingsKey;
     private string _searchPath;
     private int _maximumFiles = 100;
     private bool _dryRun;
@@ -33,16 +35,29 @@ public class FileListViewModel : ViewModelBase
     private string _maximumSizeText = string.Empty;
 
     public FileListViewModel(Trash trash, IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker,
-        FileListMode mode, string searchPath, LastFolderStore? lastFolderStore = null)
+        FileListMode mode, string searchPath, LastFolderStore? lastFolderStore = null,
+        FilterSettingsStore? filterSettingsStore = null)
     {
         _trash = trash;
         _deleteConfirmation = deleteConfirmation;
         _folderPicker = folderPicker;
         _mode = mode;
         _lastFolderStore = lastFolderStore;
+        _filterSettingsStore = filterSettingsStore;
+        _settingsKey = mode switch
+        {
+            FileListMode.BigFiles => "big-files",
+            FileListMode.TemporaryFiles => "temporary",
+            _ => "empty-files"
+        };
         _searchPath = searchPath;
         ExtensionSelection = new ExtensionSelectionViewModel();
         ExtensionSelection.SelectionChanged += (_, _) => this.RaisePropertyChanged(nameof(FileExtensions));
+        FilterSettings settings = filterSettingsStore?.Get(_settingsKey, FilterSettings.Default)
+                                  ?? FilterSettings.Default;
+        MinimumSizeText = settings.MinimumSizeText;
+        MaximumSizeText = settings.MaximumSizeText;
+        FileExtensions = settings.Extensions;
         Files = new ObservableCollection<DuplicateFile>();
 
         SelectFolderCommand = ReactiveCommand.CreateFromTask(SelectFolderAsync);
@@ -160,6 +175,13 @@ public class FileListViewModel : ViewModelBase
                 return;
             }
         }
+
+        _filterSettingsStore?.Save(_settingsKey, FilterSettings.Default with
+        {
+            MinimumSizeText = MinimumSizeText,
+            MaximumSizeText = MaximumSizeText,
+            Extensions = FileExtensions
+        });
 
         Files.Clear();
         SelectedFile = null;
