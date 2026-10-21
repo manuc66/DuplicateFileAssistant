@@ -90,7 +90,7 @@ public class FileListViewModel : ViewModelBase
 
     public bool ShowSizeFilters => _mode is FileListMode.BigFiles or FileListMode.TemporaryFiles;
 
-    public bool ShowExtensionFilter => _mode == FileListMode.BigFiles;
+    public bool ShowExtensionFilter => _mode is FileListMode.BigFiles or FileListMode.TemporaryFiles;
 
     public ExtensionSelectionViewModel ExtensionSelection { get; }
 

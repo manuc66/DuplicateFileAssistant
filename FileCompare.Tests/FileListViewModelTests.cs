@@ -10,6 +10,27 @@ namespace FileCompare.Tests;
 public class FileListViewModelTests
 {
     [AvaloniaTest]
+    public async Task TemporaryFilesRespectTheExtensionFilter()
+    {
+        using TempDirectory temp = new();
+        temp.CreateFile("download.tmp", new string('a', 1024));
+        string backup = temp.CreateFile("document.bak", new string('b', 1024));
+
+        FileListViewModel viewModel = new(
+            new Trash(Path.Combine(temp.Root, "trash")),
+            new FakeDeleteConfirmation(),
+            new FakeFolderPicker(),
+            FileListMode.TemporaryFiles,
+            temp.Root);
+        viewModel.ExtensionSelection.AddExtension("bak");
+
+        await viewModel.ScanCommand.Execute(Unit.Default).FirstAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.That(viewModel.Files.Select(file => file.Path), Is.EquivalentTo(new[] { backup }));
+    }
+
+    [AvaloniaTest]
     public async Task BigFilesRespectTheExtensionFilter()
     {
         using TempDirectory temp = new();

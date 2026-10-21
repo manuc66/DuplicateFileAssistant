@@ -110,9 +110,9 @@ operation only starts when **Move to trash** or **Merge** is pressed.
 
 These four are list-and-delete tools rather than duplicate finders. **Big files** and
 **Temporary files** have **Min size** and **Max size** fields (for example `10 MB` or
-`1.5 GB`, blank means no bound). **Big files** also has a **Max files** field and the
-multi-select **Extensions** filter. All four have a **Dry run** mode and **Delete selected**
-/ **Delete all** buttons. **Invalid symlinks** only deletes the link, never the target.
+`1.5 GB`, blank means no bound), plus the multi-select **Extensions** filter. **Big files**
+also has a **Max files** field. All four have a **Dry run** mode and **Delete selected** /
+**Delete all** buttons. **Invalid symlinks** only deletes the link, never the target.
 
 ## Trash
 
