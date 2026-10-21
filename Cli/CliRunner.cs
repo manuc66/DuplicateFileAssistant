@@ -24,6 +24,7 @@ public static class CliRunner
             output.WriteLine("Options: --path <dir> [--json] [--apply] [--trash <dir>] [--exclude <dir>]... [--max <n>] [--algorithm sha256|md5]");
             output.WriteLine("similar-images: [--threshold <bits>] [--min-size <bytes>] [--extensions <ext,...>] [--semantic] [--embedding <id>] [--semantic-threshold <0..1>] [--semantic-margin <0..1>]");
             output.WriteLine("                [--keeper] [--keeper-model <id>] [--model-dir <dir>] [--no-download] [--no-cache] [--prune-cache] [--cache-path <file>] [--embedding-cache <file>] [--quality-cache <file>]");
+            output.WriteLine("big-files/temporary: [--min-size <size>] [--max-size <size>] [--extensions <ext,...>] [--max <n>]");
             output.WriteLine("cache: [--json] [--prune] [--clear --apply] [--cache-dir <dir>] [--model-dir <dir>]");
             return args.Length == 0 ? 1 : 0;
         }
@@ -85,10 +86,10 @@ public static class CliRunner
                 "empty-files" => await RunFileFinderAsync("empty-files", root, filter,
                     () => EmptyFileFinder.Find(root, filter, cancellationToken), apply, trashPath, json, output, cancellationToken),
                 "big-files" => await RunFileFinderAsync("big-files", root, filter,
-                    () => BigFileFinder.Find(root, options.GetInt("max", 100), filter, cancellationToken),
+                    () => FindBigFiles(root, options, excludedFolders, cancellationToken),
                     apply, trashPath, json, output, cancellationToken),
                 "temporary" => await RunFileFinderAsync("temporary", root, filter,
-                    () => TemporaryFileFinder.Find(root, filter, cancellationToken),
+                    () => FindTemporaryFiles(root, options, excludedFolders, cancellationToken),
                     apply, trashPath, json, output, cancellationToken),
                 "invalid-symlinks" => await RunInvalidLinksAsync(root, filter, apply, trashPath, json, output, cancellationToken),
                 "empty-folders" => await RunEmptyFoldersAsync(root, filter, apply, json, output, cancellationToken),
@@ -501,6 +502,61 @@ public static class CliRunner
         {
             // A read-only or missing cache location must not fail the scan.
         }
+    }
+
+    private static IReadOnlyList<DuplicateFile> FindBigFiles(string root, CliOptions options,
+        string[] excludedFolders, CancellationToken cancellationToken)
+    {
+        FileSearchFilter filter = CreateSizeFilter(options, excludedFolders);
+        long maximumSize = ParseSizeOption(options, "max-size", long.MaxValue);
+
+        if (maximumSize > 0 && maximumSize < filter.MinimumSize)
+        {
+            throw new ArgumentException("--max-size must be greater than or equal to --min-size.");
+        }
+
+        return BigFileFinder.Find(root, options.GetInt("max", 100), filter, maximumSize, cancellationToken);
+    }
+
+    private static IReadOnlyList<DuplicateFile> FindTemporaryFiles(string root, CliOptions options,
+        string[] excludedFolders, CancellationToken cancellationToken)
+    {
+        FileSearchFilter filter = CreateSizeFilter(options, excludedFolders);
+        long maximumSize = ParseSizeOption(options, "max-size", long.MaxValue);
+
+        if (maximumSize > 0 && maximumSize < filter.MinimumSize)
+        {
+            throw new ArgumentException("--max-size must be greater than or equal to --min-size.");
+        }
+
+        return TemporaryFileFinder.Find(root, filter, maximumSize, cancellationToken);
+    }
+
+    private static FileSearchFilter CreateSizeFilter(CliOptions options, string[] excludedFolders)
+    {
+        long minimumSize = ParseSizeOption(options, "min-size", 0);
+        return FileSearchFilter.FromText(
+            minimumSize,
+            options.GetSingle("extensions"),
+            string.Join(";", excludedFolders));
+    }
+
+    private static long ParseSizeOption(CliOptions options, string key, long fallback)
+    {
+        string? text = options.GetSingle(key);
+
+        if (text is null)
+        {
+            return fallback;
+        }
+
+        if (!FileSizeParser.TryParse(text, out long value))
+        {
+            throw new ArgumentException(
+                $"Invalid --{key}: expected a size such as 10 MB or a number of bytes.");
+        }
+
+        return value;
     }
 
     private static async Task<int> RunFileFinderAsync(string command, string root, FileSearchFilter filter,

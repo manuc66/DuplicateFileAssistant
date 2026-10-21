@@ -359,6 +359,76 @@ public class CliRunnerTests
     }
 
     [Test]
+    public async Task BigFilesCommandRespectsSizeAndExtensionFilters()
+    {
+        string largeBin = _temp.CreateFile("large.bin", new string('a', 100 * 1024));
+        _temp.CreateFile("large.log", new string('b', 100 * 1024));
+        _temp.CreateFile("small.bin", new string('c', 1024));
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[]
+            {
+                "big-files", "--path", _temp.Root, "--json",
+                "--min-size", "5 KB", "--max-size", "200 KB", "--extensions", "bin"
+            },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        JsonElement results = document.RootElement.GetProperty("results");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(results.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(results[0].GetProperty("path").GetString(), Is.EqualTo(largeBin));
+        });
+    }
+
+    [Test]
+    public async Task TemporaryCommandRespectsSizeAndExtensionFilters()
+    {
+        _temp.CreateFile("download.tmp", new string('a', 10 * 1024));
+        _temp.CreateFile("small.tmp", new string('b', 1024));
+        string backup = _temp.CreateFile("document.bak", new string('c', 10 * 1024));
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[]
+            {
+                "temporary", "--path", _temp.Root, "--json",
+                "--min-size", "5 KB", "--extensions", "bak"
+            },
+            output);
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        JsonElement results = document.RootElement.GetProperty("results");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(results.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(results[0].GetProperty("path").GetString(), Is.EqualTo(backup));
+        });
+    }
+
+    [Test]
+    public async Task BigFilesCommandRejectsAnInvalidMaximumSize()
+    {
+        StringWriter output = new();
+
+        int exitCode = await CliRunner.RunAsync(
+            new[] { "big-files", "--path", _temp.Root, "--max-size", "nonsense" },
+            output);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(2));
+            Assert.That(output.ToString(), Does.Contain("max-size"));
+        });
+    }
+
+    [Test]
     public async Task BigFilesCommandRespectsTheMaximum()
     {
         _temp.CreateFile("small.txt", "1");

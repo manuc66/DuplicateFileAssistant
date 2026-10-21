@@ -22,8 +22,8 @@ After publishing the CLI as a self-contained executable, the same command is
 | `duplicates` | Files with identical content. | Yes: keeps one file per group, trashes the rest. |
 | `similar-images` | Near-identical pictures by perceptual hash, optionally with a semantic pass. | **Never.** Report-only. |
 | `empty-files` | Zero-byte files. | Yes. |
-| `big-files` | The largest files below the root (`--max`, default 100). | Yes. |
-| `temporary` | Temporary and backup files. | Yes. |
+| `big-files` | The largest files below the root (`--max`, default 100), with optional size and extension bounds. | Yes. |
+| `temporary` | Temporary and backup files, with optional size and extension bounds. | Yes. |
 | `invalid-symlinks` | Links whose target does not resolve. | Yes: the link, not the target. |
 | `empty-folders` | Directories with no files. | Yes: removes the directories. |
 | `cache` | Inspect, prune or clear the caches. | Only with `cache --clear --apply`. |
@@ -38,6 +38,9 @@ After publishing the CLI as a self-contained executable, the same command is
 | `--trash <dir>` | Trash folder. Defaults to `~/DuplicateTrash` and is always excluded from the scan. |
 | `--exclude <dir>` | Exclude another folder. Repeatable. |
 | `--max <n>` | Maximum number of results for `big-files`. |
+| `--min-size <size>` | Lower size bound for `big-files` and `temporary`, e.g. `10 MB` or `1024`. |
+| `--max-size <size>` | Upper size bound for `big-files` and `temporary`. |
+| `--extensions <ext,...>` | Extension filter for `big-files` and `temporary` (also used by `similar-images`). |
 | `--algorithm sha256\|md5` | Content hash for `duplicates`. Defaults to `sha256`. |
 
 Every destructive command supports `--apply`; `similar-images` rejects it with a message
@@ -57,6 +60,9 @@ dotnet run --project Cli -- duplicates --path ~/Pictures --apply
 
 # Large files, 20 at a time
 dotnet run --project Cli -- big-files --path ~/Videos --max 20 --json
+
+# Videos between 100 MB and 2 GB
+dotnet run --project Cli -- big-files --path ~/Videos --min-size "100 MB" --max-size "2 GB" --extensions mp4,mkv
 
 # Preview a cleanup, then apply it
 dotnet run --project Cli -- temporary --path ~/Projects
