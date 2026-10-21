@@ -1,24 +1,85 @@
 using System;
 using System.IO;
-using Blake3;
+using System.Threading;
 using HashDepot;
 
 namespace DuplicateAssistant.Business.FileHashing;
 
 public class XXHashFileHashing : IHashFile
 {
-    private readonly int _bufferSize;
-
-    public XXHashFileHashing(int bufferSize = 4096 * 32)
+    public byte[] Hash(string path, CancellationToken cancellationToken = default)
     {
-        _bufferSize = bufferSize;
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+            FileOptions.SequentialScan);
+        using CancellationCheckingStream stream = new(fs, cancellationToken);
+
+        return BitConverter.GetBytes(XXHash.Hash64(stream));
     }
 
-    public byte[] Hash(string path)
+    private sealed class CancellationCheckingStream : Stream
     {
-        using Hasher hasher = Hasher.New();
-        using FileStream fs = File.OpenRead(path);
+        private readonly Stream _inner;
+        private readonly CancellationToken _cancellationToken;
 
-        return BitConverter.GetBytes(XXHash.Hash64(fs));
+        public CancellationCheckingStream(Stream inner, CancellationToken cancellationToken)
+        {
+            _inner = inner;
+            _cancellationToken = cancellationToken;
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => _inner.CanSeek;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => _inner.Position;
+            set => _inner.Position = value;
+        }
+
+        public override void Flush()
+        {
+            _inner.Flush();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            _cancellationToken.ThrowIfCancellationRequested();
+            return _inner.Read(buffer, offset, count);
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            _cancellationToken.ThrowIfCancellationRequested();
+            return _inner.Read(buffer);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            return _inner.Seek(offset, origin);
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

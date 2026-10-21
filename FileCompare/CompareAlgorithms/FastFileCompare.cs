@@ -6,6 +6,9 @@ namespace FileCompare;
 
 public static class FastFileCompare
 {
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     public static bool AreFilesEqual(FileInfo fileInfo1, FileInfo fileInfo2, int bufferSize = 4096 * 32)
     {
         if (fileInfo1.Exists == false)
@@ -23,7 +26,7 @@ public static class FastFileCompare
             return false;
         }
 
-        if (string.Equals(fileInfo1.FullName, fileInfo2.FullName, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fileInfo1.FullName, fileInfo2.FullName, PathComparison))
         {
             return true;
         }
@@ -33,24 +36,23 @@ public static class FastFileCompare
         ArrayPool<byte> sharedArrayPool = ArrayPool<byte>.Shared;
         byte[] buffer1 = sharedArrayPool.Rent(bufferSize);
         byte[] buffer2 = sharedArrayPool.Rent(bufferSize);
-        Array.Fill<byte>(buffer1, 0);
-        Array.Fill<byte>(buffer2, 0);
+        int usableBufferLength = Math.Min(buffer1.Length, buffer2.Length);
         try
         {
             while (true)
             {
                 int len1 = 0;
                 for (int read;
-                     len1 < buffer1.Length &&
-                     (read = fileStream01.Read(buffer1, len1, buffer1.Length - len1)) != 0;
+                     len1 < usableBufferLength &&
+                     (read = fileStream01.Read(buffer1, len1, usableBufferLength - len1)) != 0;
                      len1 += read)
                 {
                 }
 
                 int len2 = 0;
                 for (int read;
-                     len2 < buffer1.Length &&
-                     (read = fileStream02.Read(buffer2, len2, buffer2.Length - len2)) != 0;
+                     len2 < usableBufferLength &&
+                     (read = fileStream02.Read(buffer2, len2, usableBufferLength - len2)) != 0;
                      len2 += read)
                 {
                 }
@@ -65,23 +67,9 @@ public static class FastFileCompare
                     return true;
                 }
 
-                unsafe
+                if (!BuffersAreEqual(buffer1, buffer2, len1))
                 {
-                    fixed (byte* pb1 = buffer1)
-                    {
-                        fixed (byte* pb2 = buffer2)
-                        {
-                            int vectorSize = Vector256<byte>.Count;
-                            for (int processed = 0; processed < len1; processed += vectorSize)
-                            {
-                                Vector256<byte> result = Avx2.CompareEqual(Avx.LoadVector256(pb1 + processed), Avx.LoadVector256(pb2 + processed));
-                                if (Avx2.MoveMask(result) != -1)
-                                {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
+                    return false;
                 }
             }
         }
@@ -89,6 +77,36 @@ public static class FastFileCompare
         {
             sharedArrayPool.Return(buffer1);
             sharedArrayPool.Return(buffer2);
+        }
+    }
+
+    private static unsafe bool BuffersAreEqual(byte[] buffer1, byte[] buffer2, int length)
+    {
+        if (!Avx2.IsSupported)
+        {
+            return buffer1.AsSpan(0, length).SequenceEqual(buffer2.AsSpan(0, length));
+        }
+
+        fixed (byte* pb1 = buffer1)
+        fixed (byte* pb2 = buffer2)
+        {
+            int vectorSize = Vector256<byte>.Count;
+            int processed = 0;
+
+            for (; processed + vectorSize <= length; processed += vectorSize)
+            {
+                Vector256<byte> result = Avx2.CompareEqual(
+                    Avx.LoadVector256(pb1 + processed),
+                    Avx.LoadVector256(pb2 + processed));
+
+                if (Avx2.MoveMask(result) != -1)
+                {
+                    return false;
+                }
+            }
+
+            return buffer1.AsSpan(processed, length - processed)
+                .SequenceEqual(buffer2.AsSpan(processed, length - processed));
         }
     }
 }

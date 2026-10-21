@@ -1,0 +1,65 @@
+using System.Reactive;
+using System.Reactive.Linq;
+using Avalonia.Headless.NUnit;
+using Avalonia.Threading;
+using DuplicateAssistant.ViewModels;
+
+namespace FileCompare.Tests;
+
+[TestFixture]
+public class TrashViewModelTests
+{
+    [AvaloniaTest]
+    public async Task RestoresAnEntryLoadedFromDiskAfterRestart()
+    {
+        using TempDirectory temp = new();
+        string source = temp.CreateFile("photo.jpg", "content");
+        string trashFolder = Path.Combine(temp.Root, "trash");
+
+        Trash firstInstance = new(trashFolder);
+        await firstInstance.DeleteAsync(source);
+
+        Trash restartedInstance = new(trashFolder);
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        TrashViewModel viewModel = new(restartedInstance, confirmation);
+
+        Assert.That(viewModel.Entries, Has.Count.EqualTo(1));
+
+        viewModel.SelectedEntry = viewModel.Entries[0];
+        await viewModel.RestoreCommand.Execute(Unit.Default).FirstAsync();
+        await TestUi.WaitForAsync(
+            () => viewModel.Entries.Count == 0,
+            "the restored entry to leave the trash list");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(source), Is.True);
+            Assert.That(viewModel.Entries, Is.Empty);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task DiscardDeletesTheFileAndTheEntry()
+    {
+        using TempDirectory temp = new();
+        string source = temp.CreateFile("photo.jpg", "content");
+        Trash trash = new(Path.Combine(temp.Root, "trash"));
+        await trash.DeleteAsync(source);
+
+        FakeDeleteConfirmation confirmation = new() { Result = true };
+        TrashViewModel viewModel = new(trash, confirmation);
+        TrashEntry entry = viewModel.Entries[0];
+
+        viewModel.SelectedEntry = entry;
+        await viewModel.DiscardCommand.Execute(Unit.Default).FirstAsync();
+        await TestUi.WaitForAsync(
+            () => viewModel.Entries.Count == 0,
+            "the discarded entry to leave the trash list");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(entry.TrashedPath), Is.False);
+            Assert.That(viewModel.Entries, Is.Empty);
+        });
+    }
+}

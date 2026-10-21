@@ -1,4 +1,5 @@
-﻿using System.Runtime.Intrinsics;
+﻿using System.Buffers;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 public class ReadFileInChunksAndCompareAvx2 : ReadIntoByteBufferInChunks
@@ -20,42 +21,68 @@ public class ReadFileInChunksAndCompareAvx2 : ReadIntoByteBufferInChunks
         return StreamAreEqual(fileStream, openRead);
     }
 
-    private unsafe bool StreamAreEqual(in Stream stream1, in Stream stream2)
+    private static unsafe bool BuffersAreEqual(byte[] buffer1, byte[] buffer2, int length)
     {
-        byte[] buffer1 = new byte[ChunkSize];
-        byte[] buffer2 = new byte[ChunkSize];
-
-        while (true)
+        if (!Avx2.IsSupported)
         {
-            int count1 = ReadIntoBuffer(stream1, buffer1);
-            int count2 = ReadIntoBuffer(stream2, buffer2);
+            return buffer1.AsSpan(0, length).SequenceEqual(buffer2.AsSpan(0, length));
+        }
 
-            if (count1 != count2)
-            {
-                return false;
-            }
+        fixed (byte* oh1 = buffer1)
+        fixed (byte* oh2 = buffer2)
+        {
+            int vectorSize = Vector256<byte>.Count;
+            int totalProcessed = 0;
 
-            if (count1 == 0)
+            for (; totalProcessed + vectorSize <= length; totalProcessed += vectorSize)
             {
-                return true;
-            }
+                Vector256<byte> result = Avx2.CompareEqual(
+                    Avx.LoadVector256(oh1 + totalProcessed),
+                    Avx.LoadVector256(oh2 + totalProcessed));
 
-            fixed (byte* oh1 = buffer1)
-            {
-                fixed (byte* oh2 = buffer2)
+                if (Avx2.MoveMask(result) != -1)
                 {
-                    int totalProcessed = 0;
-                    while (totalProcessed < count1)
-                    {
-                        Vector256<byte> result = Avx2.CompareEqual(Avx.LoadVector256(oh1 + totalProcessed), Avx.LoadVector256(oh2 + totalProcessed));
-                        if (Avx2.MoveMask(result) != -1)
-                        {
-                            return false;
-                        }
-                        totalProcessed += Vector256<byte>.Count;
-                    }
+                    return false;
                 }
             }
+
+            return buffer1.AsSpan(totalProcessed, length - totalProcessed)
+                .SequenceEqual(buffer2.AsSpan(totalProcessed, length - totalProcessed));
+        }
+    }
+
+    private bool StreamAreEqual(in Stream stream1, in Stream stream2)
+    {
+        byte[] buffer1 = ArrayPool<byte>.Shared.Rent(ChunkSize);
+        byte[] buffer2 = ArrayPool<byte>.Shared.Rent(ChunkSize);
+
+        try
+        {
+            while (true)
+            {
+                int count1 = ReadIntoBuffer(stream1, buffer1);
+                int count2 = ReadIntoBuffer(stream2, buffer2);
+
+                if (count1 != count2)
+                {
+                    return false;
+                }
+
+                if (count1 == 0)
+                {
+                    return true;
+                }
+
+                if (!BuffersAreEqual(buffer1, buffer2, count1))
+                {
+                    return false;
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer1);
+            ArrayPool<byte>.Shared.Return(buffer2);
         }
     }
 }

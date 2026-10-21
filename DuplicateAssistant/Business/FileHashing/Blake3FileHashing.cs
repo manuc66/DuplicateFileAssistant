@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.IO;
+using System.Threading;
 using Blake3;
 
 namespace DuplicateAssistant.Business.FileHashing;
@@ -14,17 +15,20 @@ public class Blake3FileHashing : IHashFile
         _bufferSize = bufferSize;
     }
 
-    public byte[] Hash(string path)
+    public byte[] Hash(string path, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         using Hasher hasher = Hasher.New();
-        using FileStream fs = File.OpenRead(path);
+        using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+            FileOptions.SequentialScan);
         ArrayPool<byte> sharedArrayPool = ArrayPool<byte>.Shared;
         byte[] buffer = sharedArrayPool.Rent(_bufferSize);
-        Array.Fill<byte>(buffer, 0);
         try
         {
             for (int read; (read = fs.Read(buffer, 0, buffer.Length)) != 0;)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 hasher.Update(buffer.AsSpan(start: 0, read));
             }
 

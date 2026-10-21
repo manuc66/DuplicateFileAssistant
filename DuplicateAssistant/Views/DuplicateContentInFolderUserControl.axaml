@@ -3,8 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="DuplicateAssistant.Views.DuplicateContentInFolderUserControl">
+             x:Class="DuplicateAssistant.Views.DuplicateContentInFolderUserControl"
+             x:DataType="vm:DuplicateInFolderViewModel">
     <Design.DataContext>
         <vm:DuplicateContentInFolderViewModel/>
     </Design.DataContext>
@@ -13,6 +15,8 @@
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="Auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
@@ -33,10 +37,11 @@
             <TextBox Grid.Column="0" Name="FolderPath" VerticalAlignment="Center" Text="{Binding Path=SearchPath}" />
             <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}"
                     HorizontalAlignment="Right" />
-            <ComboBox Grid.Column="2" ItemsSource="{Binding HashAlgorithms}" SelectedItem="{Binding HashAlgorithm }" Width="100" VerticalAlignment="Center">
+            <ComboBox Grid.Column="2" ItemsSource="{Binding HashAlgorithms}" SelectedItem="{Binding HashAlgorithm }"
+                      IsVisible="{Binding ShowHashOptions}" Width="100" VerticalAlignment="Center">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding .}"/>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}"/>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
@@ -45,24 +50,56 @@
             <Button Grid.Column="5" Content="Stop" Command="{Binding StopSearchCommand}" HorizontalAlignment="Right" />
         </Grid>
 
-        <ProgressBar Grid.Row="1" Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        <Grid Grid.Row="1" Grid.Column="0" Margin="0,4" ColumnDefinitions="Auto,160,Auto,Auto,Auto,*">
+            <TextBlock Grid.Column="0" Text="Auto rule" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding AutoDeleteRules}" SelectedItem="{Binding AutoDeleteRule}" />
+            <Button Grid.Column="2" Content="Apply" Command="{Binding ApplyRuleCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="3" Content="Delete non-keepers" Command="{Binding DeleteNonKeepersCommand}" Margin="6,0,0,0" />
+            <CheckBox Grid.Column="4" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
+        </Grid>
 
-        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="2" Grid.Column="0" Name="DuplicateCases"
+        <Grid Grid.Row="2" Grid.Column="0" Margin="0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="120"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="2*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Min bytes" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Text="{Binding MinimumFileSizeText}" PlaceholderText="0" />
+            <TextBlock Grid.Column="2" Text="Extensions" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <controls:ExtensionPicker Grid.Column="3" DataContext="{Binding ExtensionSelection}" />
+            <TextBlock Grid.Column="4" Text="Exclude folders" VerticalAlignment="Center" Margin="12,0,6,0" />
+            <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
+        </Grid>
+
+        <ProgressBar Classes="pageProgress" Grid.Row="3" Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+
+        <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="4" Grid.Column="0" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
             <ListBox.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="vm:DuplicateCaseViewModel">
                     <TextBlock Text="{Binding Path=Name}"></TextBlock>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <ItemsControl IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="3" Grid.Column="0"
-                      Name="DuplicateItems"
-                      ItemsSource="{Binding DuplicateCase.Files}">
-        </ItemsControl>
-        <TextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace"
-                 IsVisible="{Binding !Finished}" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0"
-                 Text="{Binding SearchLog}">
+        <DockPanel IsVisible="{Binding Finished}" Grid.Row="5" Grid.Column="0">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="4">
+                <TextBlock Grid.Column="0" Text="{Binding DuplicateCase.ReclaimableSizeText}" />
+                <TextBlock Grid.Column="1" Text="{Binding DuplicateCase.KeeperText}" Margin="16,0,0,0"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DuplicateCase.KeeperText}" />
+            </Grid>
+            <ListBox BorderThickness="1"
+                     Name="DuplicateItems"
+                     ItemsSource="{Binding DuplicateCase.Files}">
+            </ListBox>
+        </DockPanel>
+        <controls:AutoScrollTextBox AcceptsReturn="True" IsReadOnly="True" TextWrapping="NoWrap" Name="SearchLog" FontFamily="monospace"
+                                    IsVisible="{Binding !Finished}" Grid.Row="4" Grid.RowSpan="2" Grid.Column="0"
+                                    Text="{Binding SearchLog}">
 
-        </TextBox>
+        </controls:AutoScrollTextBox>
     </Grid>
 </UserControl>

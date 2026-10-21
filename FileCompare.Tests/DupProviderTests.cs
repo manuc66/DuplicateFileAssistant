@@ -1,0 +1,369 @@
+using System.Diagnostics;
+using System.Text;
+
+namespace FileCompare.Tests;
+
+[TestFixture]
+public class DupProviderTests
+{
+    private TempDirectory _temp = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _temp = new TempDirectory();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _temp.Dispose();
+    }
+
+    [Test]
+    public void FindDuplicateByHash_KeepsCaseDifferentPathsDistinct_OnLinux()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Test requires a case-sensitive file system.");
+        }
+
+        _temp.CreateFile("a.txt", "same content");
+        _temp.CreateFile("A.txt", "same content");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result.Values.Single(), Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_DoesNotTrustHashCollisions()
+    {
+        string first = _temp.CreateFile("a.txt", "aaaa");
+        string second = _temp.CreateFile("b.txt", "bbbb");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ => Encoding.UTF8.GetBytes("forced-collision"),
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty, $"Files must be byte-identical: {first}, {second}");
+    }
+
+    [Test]
+    public void FindDuplicateByHash_KeepsOnlyByteIdenticalFilesInACollisionGroup()
+    {
+        string first = _temp.CreateFile("a.txt", "same");
+        string second = _temp.CreateFile("b.txt", "same");
+        _temp.CreateFile("c.txt", "diff");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ => Encoding.UTF8.GetBytes("forced-collision"),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result.Values.Single().Select(file => file.Path), Is.EquivalentTo(new[] { first, second }));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_IncludesHiddenFiles_OnLinux()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Hidden dotfiles are tested on Linux.");
+        }
+
+        _temp.CreateFile(".a", "same");
+        _temp.CreateFile(".b", "same");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void FindDuplicateByHash_DoesNotFollowDirectorySymlinks()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Directory symlink creation is tested on Linux.");
+        }
+
+        using TempDirectory outside = new();
+        outside.CreateFile("outside.txt", "same");
+        _temp.CreateFile("inside.txt", "same");
+        Directory.CreateSymbolicLink(Path.Combine(_temp.Root, "link"), outside.Root);
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.AllDirectories,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void FindDuplicateByHash_IgnoresHardLinks()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("Hard-link test currently uses the ln command.");
+        }
+
+        string original = _temp.CreateFile("original.txt", "same content");
+        string hardLink = Path.Combine(_temp.Root, "hard-link.txt");
+
+        using (Process process = Process.Start("ln", new[] { original, hardLink })!)
+        {
+            process.WaitForExit();
+            Assert.That(process.ExitCode, Is.Zero);
+        }
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void FindDuplicateByHash_ReturnsFileMetadata()
+    {
+        string first = _temp.CreateFile("a.txt", "same");
+        string second = _temp.CreateFile("b.txt", "same");
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            File.ReadAllBytes,
+            CancellationToken.None);
+
+        HashSet<DuplicateFile> files = result.Values.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(files.Select(file => file.Path), Is.EquivalentTo(new[] { first, second }));
+            Assert.That(files.Select(file => file.Length), Is.All.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_PropagatesCancellation()
+    {
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+        using CancellationTokenSource cancellation = new();
+
+        Assert.That(
+            () => DupProvider.FindDuplicateByHash(
+                _temp.Root,
+                SearchOption.TopDirectoryOnly,
+                _ => true,
+                TextWriter.Null,
+                _ => { },
+                _ =>
+                {
+                    cancellation.Cancel();
+                    throw new OperationCanceledException(cancellation.Token);
+                },
+                cancellation.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public void FindDuplicateByHash_SkipsFullHashWhenPartialHashesDiffer()
+    {
+        byte[] first = new byte[2 * 1024 * 1024];
+        byte[] second = new byte[first.Length];
+        first[0] = 1;
+        Array.Fill(first, (byte)7, 1, first.Length - 1);
+        second[0] = 2;
+        Array.Fill(second, (byte)7, 1, second.Length - 1);
+
+        _temp.CreateFile("first.bin", first);
+        _temp.CreateFile("second.bin", second);
+        int fullHashCalls = 0;
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ =>
+            {
+                fullHashCalls++;
+                return Encoding.UTF8.GetBytes("same");
+            },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fullHashCalls, Is.Zero);
+            Assert.That(result, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_StillHashesIdenticalLargeFiles()
+    {
+        byte[] content = new byte[2 * 1024 * 1024];
+        Array.Fill(content, (byte)7);
+
+        _temp.CreateFile("first.bin", content);
+        _temp.CreateFile("second.bin", content);
+        int fullHashCalls = 0;
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            _ =>
+            {
+                Interlocked.Increment(ref fullHashCalls);
+                return Encoding.UTF8.GetBytes("same");
+            },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fullHashCalls, Is.EqualTo(2));
+            Assert.That(result, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void FindDuplicateByHash_ContinuesWhenAFileCannotBeInspected()
+    {
+        _temp.CreateFile("a.txt", "1234567");
+        _temp.CreateFile("b.txt", "1234567");
+        bool failureInjected = false;
+
+        bool Filter(IFileInfo fileInfo)
+        {
+            if (!failureInjected && fileInfo.Length == 7)
+            {
+                failureInjected = true;
+                throw new IOException("File disappeared during the scan.");
+            }
+
+            return true;
+        }
+
+        Assert.That(
+            () => DupProvider.FindDuplicateByHash(
+                _temp.Root,
+                SearchOption.TopDirectoryOnly,
+                Filter,
+                TextWriter.Null,
+                _ => { },
+                File.ReadAllBytes,
+                CancellationToken.None),
+            Throws.Nothing);
+    }
+
+    [Test]
+    public void FindDuplicateByHash_HashesCandidatesInParallel()
+    {
+        if (Environment.ProcessorCount < 2)
+        {
+            Assert.Ignore("Parallel hashing requires at least two logical processors.");
+        }
+
+        _temp.CreateFile("a.txt", "same");
+        _temp.CreateFile("b.txt", "same");
+
+        using Barrier barrier = new(2);
+        int calls = 0;
+
+        byte[] Hash(string path)
+        {
+            if (Interlocked.Increment(ref calls) <= 2)
+            {
+                Assert.That(
+                    barrier.SignalAndWait(TimeSpan.FromSeconds(5)),
+                    Is.True,
+                    "Hashing must run in parallel.");
+            }
+
+            return File.ReadAllBytes(path);
+        }
+
+        Dictionary<HashKey, HashSet<DuplicateFile>> result = DupProvider.FindDuplicateByHash(
+            _temp.Root,
+            SearchOption.TopDirectoryOnly,
+            _ => true,
+            TextWriter.Null,
+            _ => { },
+            Hash,
+            CancellationToken.None);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void FindDuplicateByHash_TwoFolders_DoesNotTrustHashCollisions()
+    {
+        string firstFolder = Path.Combine(_temp.Root, "first");
+        string secondFolder = Path.Combine(_temp.Root, "second");
+        _temp.CreateFile(Path.Combine("first", "a.txt"), "aaaa");
+        _temp.CreateFile(Path.Combine("second", "b.txt"), "bbbb");
+
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> result =
+            DupProvider.FindDuplicateByHash(
+                firstFolder,
+                SearchOption.TopDirectoryOnly,
+                secondFolder,
+                SearchOption.TopDirectoryOnly,
+                _ => true,
+                TextWriter.Null,
+                _ => Encoding.UTF8.GetBytes("forced-collision"),
+                CancellationToken.None);
+
+        Assert.That(result, Is.Empty);
+    }
+}

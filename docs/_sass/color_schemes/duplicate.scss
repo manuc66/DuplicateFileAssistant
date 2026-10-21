@@ -1,0 +1,36 @@
+// A "duplicate" colour scheme for the DuplicateFileAssistant docs.
+//
+// The icon is two sheets on a blue-to-teal ground with a yellow magnifier. The site
+// uses the teal end of that gradient as its single accent on a light, paper-like
+// ground: this is a tool for looking at files, so the pages stay out of the way and
+// the code blocks and tables carry the content.
+//
+// Only scheme-level variables are overridden — the colour ramps ($grey-*, $blue-*, …)
+// are left alone, because the theme's utility classes and syntax highlighting are
+// built from them.
+
+@import "./color_schemes/light";
+
+// Ground and surfaces
+$body-background-color: #fbfaf7;
+$sidebar-color: #ffffff;
+$table-background-color: #ffffff;
+$search-background-color: #ffffff;
+$code-background-color: #f3f1ec;
+$border-color: #e6e2d8;
+
+// Type
+$body-text-color: #24211c;
+$body-heading-color: #16140f;
+$code-linenumber-color: #8a8478;
+
+// The one accent, used for links, the active nav entry and buttons.
+$link-color: #0f766e;
+$nav-child-link-color: #0f766e;
+$base-button-color: #0f766e;
+$btn-primary-color: #0f766e;
+$search-result-preview-color: #5f5a51;
+
+// Prose in these pages is mostly caveats and measurements; a little more leading
+// keeps the parenthetical qualifications readable.
+$content-line-height: 1.7;

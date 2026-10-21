@@ -44,8 +44,10 @@ public class LinuxFileInfo : IFileInfo
             internal long BirthTime;
             internal long BirthTimeNsec;
             internal long Dev;
+            internal long RDev;
             internal long Ino;
             internal uint UserFlags;
+            internal int HardLinkCount;
         }
 
         internal static class FileTypes

@@ -30,12 +30,10 @@ public static class DictionaryExtensions
         if (dict.TryGetValue(key, out TValue? existing))
         {
             updateValueFactory(existing);
-        }
-        else
-        {
-            dict.Add(key, addValue);
+            return existing;
         }
 
+        dict.Add(key, addValue);
         return addValue;
     }
 

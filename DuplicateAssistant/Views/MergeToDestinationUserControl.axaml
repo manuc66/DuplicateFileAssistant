@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:fileCompare="using:FileCompare"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="DuplicateAssistant.Views.MergeToDestinationUserControl"
+             x:DataType="vm:MergeToDestinationViewModel">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+        <Grid Grid.Row="0" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Source" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Text="{Binding SourcePath}" />
+            <Button Grid.Column="2" Content="Browse" Command="{Binding BrowseSourceCommand}" Margin="6,0,0,0" />
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Destination" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Text="{Binding DestinationPath}" />
+            <Button Grid.Column="2" Content="Browse" Command="{Binding BrowseDestinationCommand}" Margin="6,0,0,0" />
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,*" Margin="0,0,0,6">
+            <Button Grid.Column="0" Content="Scan" Command="{Binding ScanCommand}" />
+            <Button Grid.Column="1" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
+            <CheckBox Grid.Column="2" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
+            <TextBlock Grid.Column="3" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0"
+                       TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Summary}" />
+        </Grid>
+
+        <ProgressBar Classes="pageProgress" Grid.Row="3" IsIndeterminate="{Binding IsBusy}" />
+
+        <ListBox Grid.Row="4" BorderThickness="1" ItemsSource="{Binding Plan}" FontFamily="monospace">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="fileCompare:MergePlanItem">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Action}" Width="120" />
+                        <TextBlock Text="{Binding SourcePath}" />
+                        <TextBlock Text="{Binding Source.SizeText}" Opacity="0.6" />
+                        <TextBlock Text="=>" Opacity="0.6" />
+                        <TextBlock Text="{Binding DestinationPath}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid Grid.Row="5" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
+            <Button Grid.Column="1" Content="Merge" Command="{Binding MergeCommand}"
+                    IsEnabled="{Binding HasPlan}" />
+        </Grid>
+    </Grid>
+</UserControl>

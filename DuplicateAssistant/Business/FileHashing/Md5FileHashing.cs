@@ -1,14 +1,37 @@
+using System.Buffers;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace DuplicateAssistant.Business.FileHashing;
 
 public class Md5FileHashing : IHashFile
 {
-    public byte[] Hash(string path)
+    private const int BufferSize = 4096 * 32;
+
+    public byte[] Hash(string path, CancellationToken cancellationToken = default)
     {
-        using MD5 md5 = MD5.Create();
-        using FileStream fs = File.OpenRead(path);
-        return md5.ComputeHash(fs);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+            FileOptions.SequentialScan);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+
+        try
+        {
+            using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+
+            for (int read; (read = fs.Read(buffer, 0, buffer.Length)) != 0;)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                hash.AppendData(buffer, 0, read);
+            }
+
+            return hash.GetHashAndReset();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 }

@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:DuplicateAssistant.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
+        x:Class="DuplicateAssistant.Views.PreviewWindow"
+        x:DataType="vm:PreviewViewModel"
+        Title="{Binding Title}"
+        Width="1000" Height="800"
+        MinWidth="400" MinHeight="300"
+        WindowStartupLocation="CenterOwner">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6" Margin="8">
+            <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (-)" />
+            <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (+)" />
+            <Button Content="100%" Command="{Binding ResetZoomCommand}" ToolTip.Tip="Actual size (0)" />
+            <TextBlock Text="{Binding ZoomText}" VerticalAlignment="Center" Margin="6,0" MinWidth="48" />
+            <Button Content="Full screen" Click="ToggleFullScreen_Click" Margin="12,0,0,0"
+                    ToolTip.Tip="Toggle full screen (F11)" />
+            <TextBlock Text="{Binding ImagePath}" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Opacity="0.6" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="8,0,8,6"
+                    IsVisible="{Binding HasComparison}">
+            <CheckBox Content="Difference" IsChecked="{Binding ShowDifference}" VerticalAlignment="Center" />
+            <TextBlock Text="Overlay" VerticalAlignment="Center" />
+            <Slider Minimum="0" Maximum="1" Width="180" Value="{Binding Blend}"
+                    IsEnabled="{Binding !ShowDifference}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding DifferenceText}" VerticalAlignment="Center" Opacity="0.7" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2" Name="ImageScroll"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      PointerPressed="ImageScroll_PointerPressed"
+                      PointerMoved="ImageScroll_PointerMoved"
+                      PointerReleased="ImageScroll_PointerReleased"
+                      PointerCaptureLost="ImageScroll_PointerCaptureLost">
+            <LayoutTransformControl>
+                <LayoutTransformControl.LayoutTransform>
+                    <ScaleTransform ScaleX="{Binding Zoom, Mode=OneWay}"
+                                    ScaleY="{Binding Zoom, Mode=OneWay}" />
+                </LayoutTransformControl.LayoutTransform>
+                <Grid Width="1200" Height="900">
+                    <Image Source="{Binding Image}" Stretch="Uniform"
+                           IsVisible="{Binding !ShowDifference}" />
+                    <Image Source="{Binding ComparisonImage}" Stretch="Uniform"
+                           Opacity="{Binding Blend}" IsVisible="{Binding !ShowDifference}" />
+                    <Image Source="{Binding DifferenceImage}" Stretch="Fill"
+                           IsVisible="{Binding ShowDifference}" />
+                </Grid>
+            </LayoutTransformControl>
+        </ScrollViewer>
+    </Grid>
+</Window>

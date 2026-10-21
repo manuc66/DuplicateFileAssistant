@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:DuplicateAssistant.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="DuplicateAssistant.Views.DuplicateCaseItemView">
+             x:Class="DuplicateAssistant.Views.DuplicateCaseItemView"
+             x:DataType="viewModels:DuplicateCaseItemViewModel">
     <Design.DataContext>
         <viewModels:DuplicateCaseItemViewModel/>
     </Design.DataContext>
@@ -14,19 +15,47 @@
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" Text="{Binding Path=FilePath}"></TextBlock>
-        <Button Grid.Column="1" Content="Reveal in folder"
+        <Grid Grid.Column="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,0,8,0">
+            <TextBlock Grid.Column="0" Text="{Binding Path=FilePath}" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding Path=FilePath}" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Column="1" Text="{Binding Path=FileSizeText}" Margin="12,0,0,0"
+                       VerticalAlignment="Center" Opacity="0.7"></TextBlock>
+            <TextBlock Grid.Column="2" Text="{Binding MatchDetail}" Margin="12,0,0,0"
+                       VerticalAlignment="Center" FontSize="11" Opacity="0.6"></TextBlock>
+            <TextBlock Grid.Column="3" Text="Deleted" IsVisible="{Binding IsDeleted}" Margin="12,0,0,0"
+                       VerticalAlignment="Center" Opacity="0.7"></TextBlock>
+            <TextBlock Grid.Column="4" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Margin="12,0,0,0"
+                       TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ErrorMessage}"
+                       Foreground="Red" VerticalAlignment="Center"></TextBlock>
+        </Grid>
+        <Button Grid.Column="1" Content="Keep"
+                IsVisible="{Binding !IsKeeper}"
+                Command="{Binding MakeKeeperCommand}">
+        </Button>
+        <Button Grid.Column="2" Content="Reveal in folder"
                 Command="{Binding RevealInFolderCommand}"
                 CommandParameter="{Binding FilePath}">
         </Button>
-        <Button Grid.Column="2" Content="Open"
+        <Button Grid.Column="3" Content="Open"
                 Command="{Binding OpenCommand}"
                 CommandParameter="{Binding FilePath}">
         </Button>
-        <Button Grid.Column="3" Content="Delete"
+        <Button Grid.Column="4" Content="Hardlink"
+                IsVisible="{Binding CanHardlink}"
+                Command="{Binding HardlinkCommand}">
+        </Button>
+        <Button Grid.Column="5" Content="Delete"
+                IsVisible="{Binding CanDelete}"
                 Command="{Binding DeleteCommand}"
                 CommandParameter="{Binding FilePath}">
+        </Button>
+        <Button Grid.Column="6" Content="Restore"
+                IsVisible="{Binding IsDeleted}"
+                Command="{Binding RestoreCommand}">
         </Button>
     </Grid>
 </UserControl>

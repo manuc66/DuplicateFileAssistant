@@ -1,0 +1,8 @@
+{%- comment -%}
+  Local override of just-the-docs' title.html: the theme renders either the logo or
+  the site title, never both. This site wants the mark and the wordmark side by side.
+{%- endcomment -%}
+{% if site.logo %}
+  <span class="site-logo" role="img" aria-label="{{ site.title }}"></span>
+{% endif %}
+<span class="site-title-text">{{ site.title }}</span>

@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="240" d:DesignHeight="360"
+             x:Class="DuplicateAssistant.Controls.ExtensionPicker"
+             x:DataType="vm:ExtensionSelectionViewModel">
+    <Grid>
+        <ToggleButton Name="PickerButton" Content="{Binding Summary}"
+                      HorizontalContentAlignment="Left" MinWidth="140"
+                      IsChecked="{Binding IsOpen, Mode=TwoWay}" />
+
+        <Popup IsOpen="{Binding IsOpen}" PlacementTarget="{Binding #PickerButton}" Placement="Bottom">
+            <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1" CornerRadius="4" Padding="8" Width="240">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Content="All files" Command="{Binding ClearCommand}" />
+                            <Button Content="Close" Click="Close_Click" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding NewExtension}" PlaceholderText=".psd" />
+                            <Button Grid.Column="1" Content="Add" Command="{Binding AddExtensionCommand}"
+                                    Margin="6,0,0,0" />
+                        </Grid>
+                    </StackPanel>
+                    <ScrollViewer MaxHeight="320">
+                        <ItemsControl ItemsSource="{Binding Options}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ExtensionOption">
+                                    <CheckBox Content="{Binding Extension}" IsChecked="{Binding IsSelected}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

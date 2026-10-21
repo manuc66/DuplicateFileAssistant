@@ -1,92 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using DuplicateAssistant.Business;
 using DuplicateAssistant.Business.FileHashing;
 using FileCompare;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 namespace DuplicateAssistant.ViewModels;
 
 public class DuplicateContentInFolderViewModel : DuplicateInFolderViewModel
 {
-    private List<string> _hashAlgorithms = null!;
+    private readonly ScanCache? _scanCache;
 
-    public List<string> HashAlgorithms
+    public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler,
+        IDeleteConfirmation deleteConfirmation, IFolderPicker folderPicker, ScanCache? scanCache = null,
+        LastFolderStore? lastFolderStore = null) :
+        base(trash, searchPath, fileManagerHandler, deleteConfirmation, folderPicker, lastFolderStore)
     {
-        get => _hashAlgorithms;
-        set => this.RaiseAndSetIfChanged(ref _hashAlgorithms, value);
+        _scanCache = scanCache;
     }
 
-    private string _hashAlgorithm = null!;
-
-    public string HashAlgorithm
-    {
-        get => _hashAlgorithm;
-        set => this.RaiseAndSetIfChanged(ref _hashAlgorithm, value);
-    }
-
-    public DuplicateContentInFolderViewModel(Trash trash, string searchPath, FileManagerHandler fileManagerHandler) :
-        base(trash, searchPath, fileManagerHandler)
-    {
-        HashAlgorithms = new List<string> { "MD5", "Blake3", "XXHash" };
-        HashAlgorithm = HashAlgorithms[1];
-    }
-
-    protected override Dictionary<string, HashSet<string>> SearchFunction(CancellationToken ct)
+    protected override Dictionary<HashKey, HashSet<DuplicateFile>> SearchFunction(CancellationToken ct)
     {
         SearchOption searchOption = SubFolder ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        ControlWriter textDisplayProgress = new(this);
+        using ControlWriter textDisplayProgress = new(this);
 
-        IHashFile fileHashing = GetFileHashing();
+        IHashFile fileHashing = HashAlgorithmFactory.Create(HashAlgorithm);
+        FileSearchFilter searchFilter = CreateSearchFilter();
 
-        Func<string, string> hash = p => Hash(p, fileHashing, textDisplayProgress);
+        Func<string, byte[]> compute = p => Hash(p, fileHashing, textDisplayProgress, ct);
+        Func<string, byte[]> hash = _scanCache is null
+            ? compute
+            : p => _scanCache.GetOrCompute(HashAlgorithm, p, compute);
 
-        return DupProvider.FindDuplicateByHash(SearchPath, searchOption, fi => !fi.IsLink() && !fi.IsFifoFile(), textDisplayProgress,
-            progress => { ProgressValue = progress; }, hash, ct);
-    }
-
-    private IHashFile GetFileHashing()
-    {
-        IHashFile fileHashing;
-        switch (HashAlgorithm)
+        try
         {
-            case "MD5":
-                fileHashing = new Md5FileHashing();
-                break;
-            case "Blake3":
-                fileHashing = new Blake3FileHashing();
-                break;
-            case "XXHash":
-                fileHashing = new XXHashFileHashing();
-                break;
-            default:
-                fileHashing = new XXHashFileHashing();
-                break;
+            return DupProvider.FindDuplicateByHash(SearchPath, searchOption, searchFilter.MatchesFile,
+                textDisplayProgress, UpdateProgress, hash, ct,
+                path => searchFilter.MatchesPath(path) && !IsInTrash(path));
         }
-
-        return fileHashing;
+        finally
+        {
+            _scanCache?.Save();
+        }
     }
 
-    static string Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress)
+    static byte[] Hash(string path, IHashFile hashFile, TextWriter textDisplayProgress, CancellationToken cancellationToken)
     {
         textDisplayProgress.Write($"Hashing {path}... ");
-        byte[] retVal = hashFile.Hash(path);
-        textDisplayProgress.WriteLine(FormatHash(retVal));
-        return FormatHash(retVal);
-    }
-
-    private static string FormatHash(byte[] retVal)
-    {
-        StringBuilder sb = new();
-        foreach (byte val in retVal)
-        {
-            sb.Append(val.ToString("x2"));
-        }
-
-        string hash = sb.ToString();
-        return hash;
+        byte[] retVal = hashFile.Hash(path, cancellationToken);
+        textDisplayProgress.WriteLine(HashFormatter.Format(retVal));
+        return retVal;
     }
 }

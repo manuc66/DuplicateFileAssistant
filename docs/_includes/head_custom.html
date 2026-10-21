@@ -1,0 +1,53 @@
+<!-- Included at the end of <head> by just-the-docs' own head.html. -->
+<!-- The square icon (the two sheets and the magnifier), matching the desktop app's
+     window icon and the README. The wide `icon.svg` stays as the header logo; this is
+     the browser tab / bookmark / pinned-tile image. -->
+<link rel="icon" href="{{ '/assets/images/icon.svg' | relative_url }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ '/assets/images/icon-512.png' | relative_url }}">
+
+<style>
+  /* A blue-to-teal rule under the site header, a quiet echo of the icon's gradient.
+     It sits behind the header's own bottom border rather than replacing it, so a
+     browser without `background-clip: text` still gets a plain rule. */
+  .site-header {
+    position: relative;
+  }
+
+  .site-header::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      #3b82f6 0%,
+      #3b82f6 18%,
+      rgba(59, 130, 246, 0.35) 38%,
+      rgba(15, 118, 110, 0.20) 58%,
+      rgba(15, 118, 110, 0.55) 78%,
+      #0f766e 100%
+    );
+    pointer-events: none;
+  }
+
+  /* The theme sizes the title for a single line; this name is long enough to clip
+     at that size, so bring it down and let the wordmark share the row with the icon. */
+  .site-header .site-title {
+    font-size: 1.1rem !important;
+    font-weight: 600;
+  }
+
+  .site-header .site-logo {
+    flex: 0 0 1.6rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-right: 0.5rem;
+  }
+
+  .site-header .site-title-text {
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+</style>

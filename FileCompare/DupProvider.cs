@@ -1,10 +1,9 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
-using Microsoft.IO;
 using Directory = System.IO.Directory;
-using MatchType = Microsoft.IO.MatchType;
+using MatchType = System.IO.MatchType;
 using Path = System.IO.Path;
 using SearchOption = System.IO.SearchOption;
 
@@ -12,117 +11,151 @@ namespace FileCompare;
 
 public class DupProvider
 {
+    private const int MaxHashDegreeOfParallelism = 8;
+    private const int PartialHashChunkSize = 64 * 1024;
+    private const long PartialHashMinimumFileSize = 1024 * 1024;
+    private const ulong FnvOffsetBasis = 14695981039346656037UL;
+    private const ulong FnvPrime = 1099511628211UL;
+
+    private static readonly StringComparer PathComparer = PathUtilities.PathComparer;
+
     private static Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> FindDuplicate<T>(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, Func<string, T> getHash,
         TextWriter textDisplayProgress,
-        CancellationToken ct) where T : notnull
+        CancellationToken ct, Func<string, bool>? pathFilter) where T : notnull
     {
-        Dictionary<long, HashSet<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct);
+        HashSet<FileIdentity> seenIdentities = new();
+
+        Dictionary<long, List<string>> fileInA = GetElementByFileSize(a, searchOption, filter, textDisplayProgress, ct, seenIdentities, pathFilter);
         if (ct.IsCancellationRequested)
         {
             return new(0);
         }
 
-        Dictionary<long, HashSet<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct);
+        Dictionary<long, List<string>> fileInB = GetElementByFileSize(b, bSearchOption, filter, textDisplayProgress, ct, seenIdentities, pathFilter);
         if (ct.IsCancellationRequested)
         {
             return new(0);
         }
 
-        HashSet<string> toHash = new(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> toHash = new(PathComparer);
+        Dictionary<string, long> sizeByPath = new(PathComparer);
+
         foreach (long commonSize in fileInA.Keys.Intersect(fileInB.Keys))
         {
-            foreach (string s in fileInA[commonSize])
+            foreach (string path in fileInA[commonSize])
             {
-                toHash.Add(s);
+                toHash.Add(path);
+                sizeByPath[path] = commonSize;
             }
 
-            foreach (string s in fileInB[commonSize])
+            foreach (string path in fileInB[commonSize])
             {
-                toHash.Add(s);
+                toHash.Add(path);
+                sizeByPath[path] = commonSize;
             }
         }
 
-        int nbToCompare = toHash.Count;
-        HashSet<string> hashed = new(nbToCompare, StringComparer.OrdinalIgnoreCase);
-        int i = 0;
-        Dictionary<T, (HashSet<string> inA, HashSet<string> inB)> duplicates = new();
-        foreach ((long fileSize, HashSet<string> pathsA) in fileInA.TakeWhile(_ => !ct.IsCancellationRequested))
+        List<string> candidates = RefineByPartialHash(toHash, textDisplayProgress, ct);
+        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress: null,
+            sizeByPath, ct);
+
+        Dictionary<T, (List<string> inA, List<string> inB)> duplicates = new();
+        foreach ((long fileSize, List<string> pathsA) in fileInA)
         {
-            if (fileInB.TryGetValue(fileSize, out HashSet<string>? pathsB))
+            if (!fileInB.TryGetValue(fileSize, out List<string>? pathsB))
             {
-                foreach (string path1 in pathsA
-                             .TakeWhile(_ => !ct.IsCancellationRequested)
-                             .Where(path1 => !hashed.Contains(path1)))
+                continue;
+            }
+
+            foreach (string path1 in pathsA)
+            {
+                if (!hashByPath.TryGetValue(path1, out T? hash) || hash is null)
                 {
-                    i++;
-                    textDisplayProgress.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
-                    T hash = getHash(path1);
-                    textDisplayProgress.WriteLine(hash);
-                    duplicates.AddOrUpdate(hash,
-                        (new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path1 },
-                            new HashSet<string>(StringComparer.OrdinalIgnoreCase)),
-                        tuple => tuple.Item1.Add(path1));
-                    hashed.Add(path1);
+                    continue;
                 }
 
-                foreach (string path2 in pathsB
-                             .TakeWhile(_ => !ct.IsCancellationRequested)
-                             .Where(path2 => !hashed.Contains(path2)))
+                if (duplicates.TryGetValue(hash, out (List<string> inA, List<string> inB) group))
                 {
-                    i++;
-                    textDisplayProgress.Write($"{(int)(i / (decimal)nbToCompare * 100)}/100 - {i}/{nbToCompare} - ");
-                    T hash = getHash(path2);
-                    textDisplayProgress.WriteLine(hash);
-                    duplicates.AddOrUpdate(hash,
-                        (new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path2 }),
-                        tuple => tuple.Item2.Add(path2));
-                    hashed.Add(path2);
+                    group.inA.Add(path1);
+                }
+                else
+                {
+                    duplicates[hash] = (new List<string>(1) { path1 }, new List<string>());
+                }
+            }
+
+            foreach (string path2 in pathsB)
+            {
+                if (!hashByPath.TryGetValue(path2, out T? hash) || hash is null)
+                {
+                    continue;
+                }
+
+                if (duplicates.TryGetValue(hash, out (List<string> inA, List<string> inB) group))
+                {
+                    group.inB.Add(path2);
+                }
+                else
+                {
+                    duplicates[hash] = (new List<string>(), new List<string>(1) { path2 });
                 }
             }
         }
 
-        return duplicates.Where(x => x.Value.inA.Count > 0 && x.Value.inB.Count > 0)
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        return duplicates
+            .Where(x => x.Value.inA.Count > 0 && x.Value.inB.Count > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => (
+                    new HashSet<string>(kvp.Value.inA, PathComparer),
+                    new HashSet<string>(kvp.Value.inB, PathComparer)));
     }
 
     private static Dictionary<T, HashSet<string>> FindDuplicate<T>(string inputPath, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress, 
-        CancellationToken ct) where T : notnull
+        Func<string, T> getHash, TextWriter textDisplayProgress, Action<int> updateProgress,
+        CancellationToken ct, Func<string, bool>? pathFilter) where T : notnull
     {
-        List<KeyValuePair<long, HashSet<string>>> potentialDup = GetFileGroupThatHaveSameSize<T>(inputPath, searchOption, filter, textDisplayProgress, ct, out int totalToHash);
+        List<KeyValuePair<long, List<string>>> potentialDup =
+            GetFileGroupThatHaveSameSize(inputPath, searchOption, filter, textDisplayProgress, ct, pathFilter);
 
         if (ct.IsCancellationRequested)
         {
             return new();
         }
 
-        HashSet<string> hashed = new(totalToHash, StringComparer.OrdinalIgnoreCase);
-        int i = 0;
-        Dictionary<T, HashSet<string>> duplicates = new(totalToHash);
-        foreach ((_, HashSet<string> paths) in potentialDup
-                     .TakeWhile(_ => !ct.IsCancellationRequested))
+        List<string> candidates = new();
+        Dictionary<string, long> sizeByPath = new(PathComparer);
+
+        foreach ((long size, List<string> paths) in potentialDup)
         {
-            foreach (string path in paths
-                         .TakeWhile(_ => !ct.IsCancellationRequested)
-                         .Where(path => !hashed.Contains(path)))
+            foreach (string path in paths)
             {
-                i++;
-                int percent = (int)(i / (decimal)totalToHash * 100);
-                updateProgress(percent);
-                textDisplayProgress.Write($"{percent}/100 - {i}/{totalToHash} - ");
-                try
-                {
-                    T hash = getHash(path);
-                    duplicates.AddOrUpdate(hash, new(StringComparer.OrdinalIgnoreCase) { path },
-                        tuple => tuple.Add(path));
-                    hashed.Add(path);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                candidates.Add(path);
+                sizeByPath[path] = size;
+            }
+        }
+
+        candidates = RefineByPartialHash(candidates, textDisplayProgress, ct);
+
+        Dictionary<string, T> hashByPath = HashPaths(candidates, getHash, textDisplayProgress, updateProgress,
+            sizeByPath, ct);
+        Dictionary<T, List<string>> duplicates = new();
+
+        foreach (string path in candidates)
+        {
+            if (!hashByPath.TryGetValue(path, out T? hash) || hash is null)
+            {
+                continue;
+            }
+
+            if (duplicates.TryGetValue(hash, out List<string>? paths))
+            {
+                paths.Add(path);
+            }
+            else
+            {
+                duplicates[hash] = new List<string>(1) { path };
             }
         }
 
@@ -131,96 +164,461 @@ public class DupProvider
             updateProgress(100);
         }
 
-        return duplicates.Where(x => x.Value.Count > 1)
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        return duplicates
+            .Where(x => x.Value.Count > 1)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => new HashSet<string>(kvp.Value, PathComparer));
     }
 
-    private static List<KeyValuePair<long, HashSet<string>>> GetFileGroupThatHaveSameSize<T>(string inputPath, SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct, out int totalToHash)
-        where T : notnull
+    private static List<KeyValuePair<long, List<string>>> GetFileGroupThatHaveSameSize(string inputPath,
+        SearchOption searchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, CancellationToken ct,
+        Func<string, bool>? pathFilter)
     {
-        Dictionary<long, HashSet<string>> fileBySize =
-            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct);
-        
+        Dictionary<long, List<string>> fileBySize =
+            GetElementByFileSize(inputPath, searchOption, filter, textDisplayProgress, ct,
+                new HashSet<FileIdentity>(), pathFilter);
+
         if (ct.IsCancellationRequested)
         {
-            totalToHash = 0;
             return new();
         }
 
-        List<KeyValuePair<long, HashSet<string>>> potentialDup = fileBySize.Where(x => x.Value.Count > 1).ToList();
-        
-        if (ct.IsCancellationRequested)
-        {
-            totalToHash = 0;
-            return new();
-        }
-        
-        totalToHash = potentialDup.Aggregate(new HashSet<string>(), (set, pair) =>
-        {
-            foreach (string path in pair.Value)
-            {
-                set.Add(path);
-            }
-
-            return set;
-        }).Count;
-        
-        return potentialDup;
+        return fileBySize.Where(x => x.Value.Count > 1).ToList();
     }
 
-    public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
-        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, string> hash,
-        CancellationToken cancellationToken)
+    public static Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByHash(string a,
+        SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress, Func<string, byte[]> hash,
+        CancellationToken cancellationToken, Func<string, bool>? pathFilter = null)
     {
-        return FindDuplicate(a, searchOption, b, bSearchOption, filter, hash,
-            textDisplayProgress, cancellationToken);
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> candidates = FindDuplicate(a, searchOption, b, bSearchOption,
+            filter, path => HashKey.FromOwned(hash(path)), textDisplayProgress, cancellationToken, pathFilter);
+
+        return VerifyCrossContentGroups(candidates);
     }
 
     public static Dictionary<string, (HashSet<string> inA, HashSet<string> inB)> FindDuplicateByFileName(string a,
         SearchOption searchOption, string b, SearchOption bSearchOption, Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Func<string, bool>? pathFilter = null)
     {
         return FindDuplicate(a, searchOption, b, bSearchOption, filter,
-            path => Path.GetFileName(path) ?? throw new FileNotFoundException("No file name", path)
-            ,textDisplayProgress, cancellationToken);
+            NormalizeFileName, textDisplayProgress, cancellationToken, pathFilter);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, string> hash, CancellationToken ct)
+    public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByHash(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+        TextWriter textDisplayProgress, Action<int> updateProgress, Func<string, byte[]> hash, CancellationToken ct,
+        Func<string, bool>? pathFilter = null)
     {
-        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, ct);
+        Dictionary<HashKey, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter, p => HashKey.FromOwned(hash(p)), textDisplayProgress, updateProgress, ct, pathFilter);
+
+        return VerifyContentGroups(candidates);
     }
 
-    public static Dictionary<string, HashSet<string>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
-        TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken)
+    public static Dictionary<HashKey, HashSet<DuplicateFile>> FindDuplicateByFileName(string path, SearchOption searchOption, Func<IFileInfo, bool> filter,
+        TextWriter textDisplayProgress, Action<int> updateProgress, CancellationToken cancellationToken,
+        Func<string, bool>? pathFilter = null)
     {
-        Func<string, string> hash = p => Path.GetFileName(p) ?? throw new FileNotFoundException("No file name", path);
-        return FindDuplicate(path, searchOption, filter, hash, textDisplayProgress, updateProgress, cancellationToken);
+        Dictionary<HashKey, HashSet<string>> candidates =
+            FindDuplicate(path, searchOption, filter,
+                p => HashKey.FromOwned(Encoding.UTF8.GetBytes(NormalizeFileName(p))),
+                textDisplayProgress, updateProgress, cancellationToken, pathFilter);
+
+        return AttachMetadata(candidates);
     }
 
-    private static Dictionary<long, HashSet<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
-        Func<IFileInfo, bool> filter,TextWriter textDisplayProgress,
+    private static List<string> RefineByPartialHash(IReadOnlyCollection<string> paths, TextWriter textDisplayProgress,
         CancellationToken ct)
     {
-        Dictionary<long, HashSet<string>> afileWithSameSize = new();
+        if (paths.Count < 2)
+        {
+            return paths.ToList();
+        }
+
+        List<string> alwaysKeep = new();
+        Dictionary<(long Size, ulong Hash), List<string>> groups = new();
+
+        foreach (string path in paths)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                long size = new FileInfo(path).Length;
+
+                if (size <= PartialHashMinimumFileSize)
+                {
+                    alwaysKeep.Add(path);
+                    continue;
+                }
+
+                (long Size, ulong Hash) key = (size, ComputePartialHash(path, size));
+
+                if (groups.TryGetValue(key, out List<string>? group))
+                {
+                    group.Add(path);
+                }
+                else
+                {
+                    groups[key] = new List<string>(1) { path };
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                textDisplayProgress.WriteLine(ex);
+            }
+        }
+
+        List<string> retained = new(alwaysKeep);
+        foreach (List<string> group in groups.Values)
+        {
+            if (group.Count > 1)
+            {
+                retained.AddRange(group);
+            }
+        }
+
+        return retained;
+    }
+
+    private static ulong ComputePartialHash(string path, long size)
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(PartialHashChunkSize);
+
+        try
+        {
+            using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+                FileOptions.SequentialScan);
+
+            int read = ReadUpTo(stream, buffer.AsSpan(0, PartialHashChunkSize));
+            ulong hash = ComputeFnv1a(buffer.AsSpan(0, read));
+
+            if (size > PartialHashChunkSize)
+            {
+                stream.Position = Math.Max(PartialHashChunkSize, size - PartialHashChunkSize);
+                int tailRead = ReadUpTo(stream, buffer.AsSpan(0, PartialHashChunkSize));
+                hash = ComputeFnv1a(buffer.AsSpan(0, tailRead), hash);
+            }
+
+            return hash;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static int ReadUpTo(Stream stream, Span<byte> buffer)
+    {
+        int readTotal = 0;
+
+        while (readTotal < buffer.Length)
+        {
+            int read = stream.Read(buffer[readTotal..]);
+            if (read == 0)
+            {
+                break;
+            }
+
+            readTotal += read;
+        }
+
+        return readTotal;
+    }
+
+    private static ulong ComputeFnv1a(ReadOnlySpan<byte> data, ulong hash = FnvOffsetBasis)
+    {
+        foreach (byte value in data)
+        {
+            hash ^= value;
+            hash *= FnvPrime;
+        }
+
+        return hash;
+    }
+
+    private static Dictionary<string, T> HashPaths<T>(IEnumerable<string> paths, Func<string, T> getHash,
+        TextWriter textDisplayProgress, Action<int>? updateProgress, IReadOnlyDictionary<string, long> sizes,
+        CancellationToken ct) where T : notnull
+    {
+        List<string> pathList = paths as List<string> ?? paths.ToList();
+        int total = pathList.Count;
+
+        if (total == 0)
+        {
+            updateProgress?.Invoke(100);
+            return new Dictionary<string, T>(PathComparer);
+        }
+
+        long totalBytes = 0;
+        foreach (string path in pathList)
+        {
+            if (sizes.TryGetValue(path, out long size))
+            {
+                totalBytes += size;
+            }
+        }
+
+        ConcurrentDictionary<string, T> hashes = new(PathComparer);
+        object progressLock = new();
+        int completed = 0;
+        long processedBytes = 0;
+
+        ParallelOptions options = new()
+        {
+            CancellationToken = ct,
+            MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount, 1, MaxHashDegreeOfParallelism)
+        };
+
+        try
+        {
+            Parallel.ForEach(pathList, options, path =>
+            {
+                try
+                {
+                    hashes[path] = getHash(path);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    lock (progressLock)
+                    {
+                        textDisplayProgress.WriteLine(ex);
+                    }
+                }
+                finally
+                {
+                    int done = Interlocked.Increment(ref completed);
+                    long size = sizes.TryGetValue(path, out long pathSize) ? pathSize : 0;
+                    long processed = Interlocked.Add(ref processedBytes, size);
+                    int percent = totalBytes > 0
+                        ? (int)Math.Clamp(processed * 100 / totalBytes, 0, 100)
+                        : (int)((long)done * 100 / total);
+
+                    lock (progressLock)
+                    {
+                        updateProgress?.Invoke(percent);
+                    }
+                }
+            });
+        }
+        catch (AggregateException ex) when (ex.Flatten().InnerExceptions.All(e => e is OperationCanceledException))
+        {
+            ct.ThrowIfCancellationRequested();
+            throw;
+        }
+
+        updateProgress?.Invoke(100);
+        return new Dictionary<string, T>(hashes, PathComparer);
+    }
+
+    private static Dictionary<HashKey, HashSet<DuplicateFile>> VerifyContentGroups(
+        Dictionary<HashKey, HashSet<string>> candidates)
+    {
+        Dictionary<HashKey, HashSet<DuplicateFile>> verified = new();
+
+        foreach ((HashKey hash, HashSet<string> paths) in candidates)
+        {
+            int index = 0;
+
+            foreach (HashSet<DuplicateFile> group in PartitionByContent(paths))
+            {
+                HashKey key = index == 0 ? hash : hash.WithDiscriminator(index);
+                verified[key] = group;
+                index++;
+            }
+        }
+
+        return verified;
+    }
+
+    private static Dictionary<HashKey, HashSet<DuplicateFile>> AttachMetadata(
+        Dictionary<HashKey, HashSet<string>> candidates)
+    {
+        Dictionary<HashKey, HashSet<DuplicateFile>> verified = new();
+
+        foreach ((HashKey key, HashSet<string> paths) in candidates)
+        {
+            HashSet<DuplicateFile> files = new(DuplicateFile.Comparer);
+
+            foreach (string path in paths)
+            {
+                if (DuplicateFile.TryCreate(path, out DuplicateFile? file) && file is not null)
+                {
+                    files.Add(file);
+                }
+            }
+
+            if (files.Count > 1)
+            {
+                verified[key] = files;
+            }
+        }
+
+        return verified;
+    }
+
+    private static Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> VerifyCrossContentGroups(
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> candidates)
+    {
+        Dictionary<HashKey, (HashSet<string> inA, HashSet<string> inB)> verified = new();
+
+        foreach ((HashKey hash, (HashSet<string> inA, HashSet<string> inB) paths) in candidates)
+        {
+            List<(string Representative, List<string> InA, List<string> InB)> groups = new();
+
+            foreach (string path in paths.inA)
+            {
+                AddToContentGroup(groups, path, isInA: true);
+            }
+
+            foreach (string path in paths.inB.Where(path => !paths.inA.Contains(path)))
+            {
+                AddToContentGroup(groups, path, isInA: false);
+            }
+
+            int index = 0;
+
+            foreach ((_, List<string> groupInA, List<string> groupInB) in groups
+                         .Where(group => group.InA.Count > 0 && group.InB.Count > 0))
+            {
+                HashKey key = index == 0 ? hash : hash.WithDiscriminator(index);
+                verified[key] = (
+                    new HashSet<string>(groupInA, PathComparer),
+                    new HashSet<string>(groupInB, PathComparer));
+                index++;
+            }
+        }
+
+        return verified;
+    }
+
+    private static void AddToContentGroup(
+        List<(string Representative, List<string> InA, List<string> InB)> groups,
+        string path,
+        bool isInA)
+    {
+        foreach ((string representative, List<string> inA, List<string> inB) in groups)
+        {
+            if (FilesAreEqual(representative, path))
+            {
+                (isInA ? inA : inB).Add(path);
+                return;
+            }
+        }
+
+        List<string> newInA = new();
+        List<string> newInB = new();
+        (isInA ? newInA : newInB).Add(path);
+        groups.Add((path, newInA, newInB));
+    }
+
+    private static List<HashSet<DuplicateFile>> PartitionByContent(IEnumerable<string> paths)
+    {
+        List<(DuplicateFile Representative, List<DuplicateFile> Files)> groups = new();
+
+        foreach (string path in paths)
+        {
+            if (!DuplicateFile.TryCreate(path, out DuplicateFile? file) || file is null)
+            {
+                continue;
+            }
+
+            bool added = false;
+
+            foreach ((DuplicateFile representative, List<DuplicateFile> groupFiles) in groups)
+            {
+                if (FilesAreEqual(representative.Path, file.Path))
+                {
+                    groupFiles.Add(file);
+                    added = true;
+                    break;
+                }
+            }
+
+            if (!added)
+            {
+                groups.Add((file, new List<DuplicateFile>(1) { file }));
+            }
+        }
+
+        return groups
+            .Where(group => group.Files.Count > 1)
+            .Select(group => new HashSet<DuplicateFile>(group.Files, DuplicateFile.Comparer))
+            .ToList();
+    }
+
+    private static bool FilesAreEqual(string first, string second)
+    {
+        try
+        {
+            return FastFileCompare.AreFilesEqual(new FileInfo(first), new FileInfo(second));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static string NormalizeFileName(string path)
+    {
+        string fileName = Path.GetFileName(path);
+        if (string.IsNullOrEmpty(fileName))
+        {
+            throw new FileNotFoundException("No file name", path);
+        }
+
+        return OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? fileName.ToUpperInvariant()
+            : fileName;
+    }
+
+    private static Dictionary<long, List<string>> GetElementByFileSize(string a, SearchOption aSearchOption,
+        Func<IFileInfo, bool> filter, TextWriter textDisplayProgress,
+        CancellationToken ct, ISet<FileIdentity> seenIdentities, Func<string, bool>? pathFilter)
+    {
+        Dictionary<long, List<string>> afileWithSameSize = new();
 
         int itemCrawled = 0;
         Stopwatch estimateElapsedTime = Stopwatch.StartNew();
         foreach (string entryPath in EnumeratePath(a, aSearchOption, ct))
         {
+            if (pathFilter != null && !pathFilter(entryPath))
+            {
+                itemCrawled++;
+                continue;
+            }
+
             if (estimateElapsedTime.ElapsedMilliseconds > 1000)
             {
                 estimateElapsedTime = Stopwatch.StartNew();
                 textDisplayProgress.WriteLine($"Discovered files so far: {itemCrawled}");
             }
-            
-            IFileInfo fileInfo = CustomFileInfo.Create(entryPath);
-            if (filter(fileInfo))
-            {
-                long fileSize = fileInfo.Length;
 
-                afileWithSameSize.AddOrUpdate(fileSize, new(StringComparer.OrdinalIgnoreCase) { entryPath },
-                    val => val.Add(entryPath));
+            try
+            {
+                IFileInfo fileInfo = CustomFileInfo.Create(entryPath);
+                if (filter(fileInfo) &&
+                    (!FileIdentity.TryGet(entryPath, out FileIdentity identity) || seenIdentities.Add(identity)))
+                {
+                    long fileSize = fileInfo.Length;
+
+                    if (afileWithSameSize.TryGetValue(fileSize, out List<string>? paths))
+                    {
+                        paths.Add(entryPath);
+                    }
+                    else
+                    {
+                        afileWithSameSize[fileSize] = new List<string>(1) { entryPath };
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                textDisplayProgress.WriteLine(ex);
             }
 
             itemCrawled++;
@@ -233,19 +631,14 @@ public class DupProvider
 
     private static IEnumerable<string> EnumeratePath(string a, SearchOption aSearchOption, CancellationToken ct)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        return Directory.EnumerateFiles(a, "*", new EnumerationOptions
         {
-            
-           return Microsoft.IO.Directory.EnumerateFiles(a, "*", new  Microsoft.IO.EnumerationOptions()
-               {
-                   RecurseSubdirectories = aSearchOption ==  SearchOption.AllDirectories,
-                   IgnoreInaccessible = true,
-                   MatchType = MatchType.Win32,
-                   ReturnSpecialDirectories = false,
-               })
-               .TakeWhile(_ => !ct.IsCancellationRequested);
-        }
-        return Directory.EnumerateFiles(a, "*",
-            aSearchOption).TakeWhile(_ => !ct.IsCancellationRequested);
+            RecurseSubdirectories = aSearchOption == SearchOption.AllDirectories,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+            MatchType = OperatingSystem.IsWindows() ? MatchType.Win32 : MatchType.Simple,
+            ReturnSpecialDirectories = false,
+        })
+            .TakeWhile(_ => !ct.IsCancellationRequested);
     }
 }

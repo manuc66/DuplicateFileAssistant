@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:fileCompare="using:FileCompare"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="DuplicateAssistant.Views.FileListUserControl"
+             x:DataType="vm:FileListViewModel">
+    <Grid Margin="8" RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <Grid Grid.Row="0" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding SearchPath}" />
+            <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="2" Content="Scan" Command="{Binding ScanCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="3" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
+        </Grid>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
+            <TextBlock Text="Min size" IsVisible="{Binding ShowSizeFilters}" VerticalAlignment="Center" />
+            <TextBox Text="{Binding MinimumSizeText}" Width="100" PlaceholderText="0"
+                     IsVisible="{Binding ShowSizeFilters}" />
+            <TextBlock Text="Max size" IsVisible="{Binding ShowSizeFilters}" VerticalAlignment="Center" />
+            <TextBox Text="{Binding MaximumSizeText}" Width="100" PlaceholderText="no limit"
+                     IsVisible="{Binding ShowSizeFilters}" />
+            <TextBlock Text="Extensions" IsVisible="{Binding ShowExtensionFilter}" VerticalAlignment="Center" />
+            <Border IsVisible="{Binding ShowExtensionFilter}">
+                <controls:ExtensionPicker DataContext="{Binding ExtensionSelection}" Width="160" />
+            </Border>
+            <TextBlock Text="Max files" IsVisible="{Binding ShowMaximumFiles}" VerticalAlignment="Center" />
+            <TextBox Text="{Binding MaximumFiles}" Width="100" IsVisible="{Binding ShowMaximumFiles}" />
+            <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" />
+        </StackPanel>
+
+        <ProgressBar Classes="pageProgress" Grid.Row="2" IsIndeterminate="{Binding IsBusy}" />
+
+        <ListBox Grid.Row="3" BorderThickness="1" ItemsSource="{Binding Files}"
+                 SelectedItem="{Binding SelectedFile}" FontFamily="monospace">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="fileCompare:DuplicateFile">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="{Binding Path}" />
+                        <TextBlock Text="{Binding SizeText}" Opacity="0.7" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid Grid.Row="4" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Status}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
+            <Button Grid.Column="1" Content="Delete selected" Command="{Binding DeleteSelectedCommand}" Margin="6,0,0,0" />
+            <Button Grid.Column="2" Content="Delete all" Command="{Binding DeleteAllCommand}" Margin="6,0,0,0" />
+        </Grid>
+    </Grid>
+</UserControl>

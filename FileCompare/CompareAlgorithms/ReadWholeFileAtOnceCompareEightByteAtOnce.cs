@@ -28,6 +28,7 @@
             totalProcessed += sizeof(ulong);
         }
 
-        return true;
+        return fileContents01.AsSpan(totalProcessed)
+            .SequenceEqual(fileContents02.AsSpan(totalProcessed));
     }
 }

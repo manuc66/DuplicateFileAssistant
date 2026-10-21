@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Buffers;
+using System.Numerics;
 
 public class ReadFileInChunksAndCompareVector : ReadIntoByteBufferInChunks
 {
@@ -20,35 +21,49 @@ public class ReadFileInChunksAndCompareVector : ReadIntoByteBufferInChunks
 
     private bool StreamAreEqual(in Stream stream1, in Stream stream2)
     {
-        byte[] buffer1 = new byte[ChunkSize];
-        byte[] buffer2 = new byte[ChunkSize];
+        byte[] buffer1 = ArrayPool<byte>.Shared.Rent(ChunkSize);
+        byte[] buffer2 = ArrayPool<byte>.Shared.Rent(ChunkSize);
 
-        while (true)
+        try
         {
-            int count1 = ReadIntoBuffer(stream1, buffer1);
-            int count2 = ReadIntoBuffer(stream2, buffer2);
-
-            if (count1 != count2)
+            while (true)
             {
-                return false;
-            }
+                int count1 = ReadIntoBuffer(stream1, buffer1);
+                int count2 = ReadIntoBuffer(stream2, buffer2);
 
-            if (count1 == 0)
-            {
-                return true;
-            }
-
-            int totalProcessed = 0;
-            while (totalProcessed < buffer1.Length)
-            {
-                if (Vector.EqualsAll(new(buffer1, totalProcessed),
-                        new Vector<byte>(buffer2, totalProcessed)) == false)
+                if (count1 != count2)
                 {
                     return false;
                 }
 
-                totalProcessed += Vector<byte>.Count;
+                if (count1 == 0)
+                {
+                    return true;
+                }
+
+                int totalProcessed = 0;
+                while (totalProcessed + Vector<byte>.Count <= count1)
+                {
+                    if (Vector.EqualsAll(new(buffer1, totalProcessed),
+                            new Vector<byte>(buffer2, totalProcessed)) == false)
+                    {
+                        return false;
+                    }
+
+                    totalProcessed += Vector<byte>.Count;
+                }
+
+                if (!buffer1.AsSpan(totalProcessed, count1 - totalProcessed)
+                        .SequenceEqual(buffer2.AsSpan(totalProcessed, count1 - totalProcessed)))
+                {
+                    return false;
+                }
             }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer1);
+            ArrayPool<byte>.Shared.Return(buffer2);
         }
     }
 }
