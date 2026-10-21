@@ -225,7 +225,7 @@ public class FileListViewModelTests
 
     [TestCase(FileListMode.EmptyFiles, false, false, false)]
     [TestCase(FileListMode.BigFiles, true, true, true)]
-    [TestCase(FileListMode.TemporaryFiles, true, false, false)]
+    [TestCase(FileListMode.TemporaryFiles, true, true, false)]
     public void FilterVisibilityMatchesTheMode(FileListMode mode, bool sizeFilters, bool extensionFilter,
         bool maximumFiles)
     {
