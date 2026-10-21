@@ -205,7 +205,7 @@ public class SemanticImageTests
         using (SKCanvas canvas = new(blurred))
         using (SKPaint paint = new() { ImageFilter = SKImageFilter.CreateBlur(6, 6) })
         {
-            canvas.DrawBitmap(original, 0, 0, paint);
+            canvas.DrawBitmap(original, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest), paint);
         }
 
         using SKBitmap small = TestImages.Resize(original, 200, 150);
