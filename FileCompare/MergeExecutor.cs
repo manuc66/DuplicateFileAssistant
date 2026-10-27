@@ -5,16 +5,25 @@ public sealed record MergeResult(int Moved, int TrashedDuplicates, int Conflicts
 public static class MergeExecutor
 {
     public static async Task<MergeResult> ExecuteAsync(IReadOnlyList<MergePlanItem> plan, Trash trash,
-        CancellationToken cancellationToken, OperationJournal? journal = null)
+        CancellationToken cancellationToken, OperationJournal? journal = null, PauseToken? pauseToken = null,
+        Action<int, int, string?>? progress = null)
     {
         int moved = 0;
         int trashed = 0;
         int conflicts = 0;
         int failed = 0;
+        int processed = 0;
 
         foreach (MergePlanItem item in plan)
         {
+            if (pauseToken != null)
+            {
+                await pauseToken.WaitWhilePausedAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
+            progress?.Invoke(processed, plan.Count, item.SourcePath);
+            processed++;
 
             try
             {
@@ -65,6 +74,7 @@ public static class MergeExecutor
             }
         }
 
+        progress?.Invoke(processed, plan.Count, null);
         return new MergeResult(moved, trashed, conflicts, failed);
     }
 }

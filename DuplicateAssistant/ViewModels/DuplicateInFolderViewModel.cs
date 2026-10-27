@@ -32,7 +32,6 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
     public ReactiveCommand<Unit, string> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Dictionary<HashKey, HashSet<DuplicateFile>>> SearchCommand { get; }
-    public ReactiveCommand<Unit, Unit> StopSearchCommand { get; }
     public ReactiveCommand<Unit, Unit> ApplyRuleCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteNonKeepersCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteSelectedNonKeepersCommand { get; }
@@ -159,11 +158,15 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         ApplyFilterSettings(filters);
         HashAlgorithms = Business.FileHashing.HashAlgorithmFactory.Names;
         Finished = true;
+        IObservable<bool> canStartOperation = _isSearching.CombineLatest(
+            BusyObservable,
+            (searching, busy) => !searching && !busy);
+
         SearchCommand = ReactiveCommand.CreateFromObservable(
             () => Observable
                 .StartAsync(SearchDuplicate)
                 .TakeUntil(_stopSearch),
-            _isSearching.Select(x => !x));
+            canStartOperation);
         SearchCommand.Subscribe(x => OnUiThread(() =>
         {
             DuplicateCaseItems =
@@ -176,16 +179,12 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
             string? selectedPath = await _folderPicker.PickFolderAsync(SearchPath);
 
             return selectedPath != null && Directory.Exists(selectedPath) ? selectedPath : SearchPath;
-        }, SearchCommand.IsExecuting.Select(x => !x));
+        }, canStartOperation);
         SelectFolderCommand.Subscribe(path => { SearchPath = path; });
-        StopSearchCommand = ReactiveCommand.Create(
-            () => _stopSearch.OnNext(Unit.Default),
-            _isSearching);
-        ApplyRuleCommand = ReactiveCommand.Create(ApplyRule, _isSearching.Select(x => !x));
-        DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync,
-            _isSearching.Select(x => !x));
+        ApplyRuleCommand = ReactiveCommand.Create(ApplyRule, canStartOperation);
+        DeleteNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteNonKeepersAsync, canStartOperation);
         DeleteSelectedNonKeepersCommand = ReactiveCommand.CreateFromTask(DeleteSelectedNonKeepersAsync,
-            _isSearching.Select(x => !x));
+            canStartOperation);
 
         _duplicateCaseItems = new();
     }
@@ -200,7 +199,7 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
         {
             OnUiThread(() =>
             {
-                ProgressValue = 0;
+                UpdateProgress(0);
                 SearchLog = string.Empty;
                 Finished = false;
                 DuplicateCase = null;
@@ -256,6 +255,12 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
     protected bool IsInTrash(string path)
     {
         return _trash.IsInTrash(path);
+    }
+
+    protected override void StopOperation()
+    {
+        base.StopOperation();
+        _stopSearch.OnNext(Unit.Default);
     }
 
     protected Task<string?> PickFolderAsync()
@@ -365,33 +370,46 @@ public abstract class DuplicateInFolderViewModel : ViewModelBase, IHaveSearchLog
 
         try
         {
-            int deleted = 0;
-            int failed = 0;
-
-            foreach (DuplicateCaseItemViewModel item in items)
+            await RunOperationAsync(async cancellationToken =>
             {
-                if (item.IsKeeper || !item.CanDelete)
+                int deleted = 0;
+                int failed = 0;
+                int processed = 0;
+
+                foreach (DuplicateCaseItemViewModel item in items)
                 {
-                    continue;
+                    await PauseSignal.WaitWhilePausedAsync(cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ReportProgress(processed, items.Count, item.FilePath);
+                    processed++;
+
+                    if (item.IsKeeper || !item.CanDelete)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        await _trash.DeleteAsync(
+                            item.FilePath,
+                            item.FileLength,
+                            item.LastWriteTimeUtc,
+                            cancellationToken);
+                        OnUiThread(() => item.SetDeleted(true));
+                        deleted++;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        failed++;
+                        OnUiThread(() => SearchLog = $"{SearchLog}{Environment.NewLine}{ex.Message}");
+                    }
                 }
 
-                try
-                {
-                    await _trash.DeleteAsync(
-                        item.FilePath,
-                        item.FileLength,
-                        item.LastWriteTimeUtc);
-                    item.SetDeleted(true);
-                    deleted++;
-                }
-                catch (Exception ex)
-                {
-                    failed++;
-                    SearchLog = $"{SearchLog}{Environment.NewLine}{ex.Message}";
-                }
-            }
-
-            SearchLog = $"{SearchLog}{Environment.NewLine}Moved {deleted} file(s); {failed} failed.";
+                ReportProgress(items.Count, items.Count);
+                OnUiThread(() => SearchLog =
+                    $"{SearchLog}{Environment.NewLine}Moved {deleted} file(s); {failed} failed.");
+            }, "Moving files to the trash...", canPause: true);
         }
         finally
         {

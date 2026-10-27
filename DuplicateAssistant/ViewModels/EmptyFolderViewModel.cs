@@ -29,7 +29,6 @@ public class EmptyFolderViewModel : ViewModelBase
 
         SelectFolderCommand = ReactiveCommand.CreateFromTask(SelectFolderAsync);
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
-        StopCommand = ReactiveCommand.Create(StopOperation);
         DeleteCommand = ReactiveCommand.CreateFromTask(DeleteAsync);
     }
 
@@ -45,7 +44,6 @@ public class EmptyFolderViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
-    public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteCommand { get; }
 
     private async Task SelectFolderAsync()
@@ -111,7 +109,7 @@ public class EmptyFolderViewModel : ViewModelBase
         await RunOperationAsync(async cancellationToken =>
         {
             int deleted = await Task.Run(
-                () => EmptyDirectoryService.DeleteEmptyDirectories(
+                () => EmptyDirectoryService.DeleteEmptyDirectoriesAsync(
                     directories,
                     cancellationToken,
                     (directory, success) => _trash.Journal.Write(
@@ -119,8 +117,12 @@ public class EmptyFolderViewModel : ViewModelBase
                         directory,
                         null,
                         success ? "ok" : "failed",
-                        null)),
+                        null),
+                    PauseSignal,
+                    ReportProgress),
                 cancellationToken);
+
+            ReportProgress(directories.Count, directories.Count);
 
             OnUiThread(() =>
             {
@@ -128,7 +130,7 @@ public class EmptyFolderViewModel : ViewModelBase
                 Status = $"Deleted {deleted} empty folder(s).";
                 RaiseHasResultsChanged();
             });
-        }, "Deleting...");
+        }, "Deleting...", canPause: true);
     }
 
     private void RaiseHasResultsChanged()

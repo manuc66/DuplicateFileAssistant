@@ -18,6 +18,29 @@ public class XamlStructureTests
         });
     }
 
+    [TestCase("DeleteIfElsewhereUserControl.axaml")]
+    [TestCase("DuplicateContentInFolderUserControl.axaml")]
+    [TestCase("DuplicateNameInFolderUserControl.axaml")]
+    [TestCase("SimilarImageUserControl.axaml")]
+    [TestCase("MultiFolderDuplicateUserControl.axaml")]
+    [TestCase("MergeToDestinationUserControl.axaml")]
+    [TestCase("EmptyFolderUserControl.axaml")]
+    [TestCase("FileListUserControl.axaml")]
+    [TestCase("InvalidLinkUserControl.axaml")]
+    [TestCase("TrashUserControl.axaml")]
+    public void TabsWithLongOperationsUseTheSharedOperationBar(string fileName)
+    {
+        string viewsDirectory = Path.Combine(FindRepositoryRoot(), "DuplicateAssistant", "Views");
+        string xaml = File.ReadAllText(Path.Combine(viewsDirectory, fileName));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(xaml, Does.Contain("<controls:OperationBar"),
+                "Long operations must show progress, percentage, pause and stop.");
+            Assert.That(xaml, Does.Not.Contain("StopSearchCommand"));
+        });
+    }
+
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

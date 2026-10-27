@@ -52,7 +52,6 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
             }
         });
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
-        StopCommand = ReactiveCommand.Create(StopOperation);
         DeleteCommand = ReactiveCommand.CreateFromTask(DeleteAsync);
     }
 
@@ -89,7 +88,6 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseSourceCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseOtherCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
-    public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteCommand { get; }
 
     private async Task ScanAsync()
@@ -147,7 +145,7 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
                     Duplicates.Add(duplicate);
                 }
 
-                ProgressValue = 100;
+                UpdateProgress(100);
                 Status = $"{results.Count} file(s) in the source folder also exist elsewhere.";
                 RaiseHasResultsChanged();
             });
@@ -182,25 +180,49 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
         {
             int deleted = 0;
             int failed = 0;
+            int processed = 0;
+            List<CrossFolderDuplicate> deletedDuplicates = new();
 
-            foreach (CrossFolderDuplicate duplicate in duplicates)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                foreach (CrossFolderDuplicate duplicate in duplicates)
+                {
+                    await PauseSignal.WaitWhilePausedAsync(cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                try
-                {
-                    await _trash.DeleteAsync(
-                        duplicate.Source.Path,
-                        duplicate.Source.Length,
-                        duplicate.Source.LastWriteTimeUtc,
-                        cancellationToken);
-                    deleted++;
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    failed++;
+                    ReportProgress(processed, duplicates.Count, duplicate.Source.Path);
+                    processed++;
+
+                    try
+                    {
+                        await _trash.DeleteAsync(
+                            duplicate.Source.Path,
+                            duplicate.Source.Length,
+                            duplicate.Source.LastWriteTimeUtc,
+                            cancellationToken);
+                        deleted++;
+                        deletedDuplicates.Add(duplicate);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        failed++;
+                    }
                 }
             }
+            finally
+            {
+                OnUiThread(() =>
+                {
+                    foreach (CrossFolderDuplicate duplicate in deletedDuplicates)
+                    {
+                        Duplicates.Remove(duplicate);
+                    }
+
+                    RaiseHasResultsChanged();
+                });
+            }
+
+            ReportProgress(duplicates.Count, duplicates.Count);
 
             OnUiThread(() =>
             {
@@ -210,7 +232,7 @@ public class DeleteIfElsewhereViewModel : ViewModelBase
                     : $"Moved {deleted} file(s); {failed} could not be moved.";
                 RaiseHasResultsChanged();
             });
-        }, "Moving files to the trash...");
+        }, "Moving files to the trash...", canPause: true);
     }
 
     private void RaiseHasResultsChanged()

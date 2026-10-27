@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.EmptyFolderUserControl"
              x:DataType="vm:EmptyFolderViewModel">
@@ -12,15 +13,13 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
-                <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Text="{Binding SearchPath}" VerticalAlignment="Center" />
             <Button Grid.Column="1" Content="Browse" Command="{Binding SelectFolderCommand}" Margin="6,0,0,0" />
             <Button Grid.Column="2" Content="Scan" Command="{Binding ScanCommand}" Margin="6,0,0,0" />
-            <Button Grid.Column="3" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
         </Grid>
 
-        <ProgressBar Classes="pageProgress" Grid.Row="1" IsIndeterminate="{Binding IsBusy}" />
+        <controls:OperationBar Grid.Row="1" />
 
         <ListBox Grid.Row="2" BorderThickness="1" ItemsSource="{Binding EmptyDirectories}" FontFamily="monospace" />
 

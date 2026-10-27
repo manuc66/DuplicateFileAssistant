@@ -15,13 +15,12 @@
             <Button Grid.Column="2" Content="Remove" Command="{Binding RemoveFolderCommand}" Margin="6,0,0,0" />
         </Grid>
 
-        <Grid Grid.Row="1" Margin="0,0,0,4" ColumnDefinitions="Auto,120,Auto,Auto,Auto,*">
+        <Grid Grid.Row="1" Margin="0,0,0,4" ColumnDefinitions="Auto,120,Auto,Auto,*">
             <TextBlock Grid.Column="0" Text="Hash" VerticalAlignment="Center" Margin="0,0,6,0" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding HashAlgorithms}" SelectedItem="{Binding HashAlgorithm}"
                       IsVisible="{Binding ShowHashOptions}" />
             <ToggleSwitch Grid.Column="2" Content="Subfolder" IsChecked="{Binding SubFolder}" Margin="12,0,0,0" />
             <Button Grid.Column="3" Content="Search" Command="{Binding SearchCommand}" Margin="6,0,0,0" />
-            <Button Grid.Column="4" Content="Stop" Command="{Binding StopSearchCommand}" Margin="6,0,0,0" />
         </Grid>
 
         <Grid Grid.Row="2" Margin="0,0,0,4" ColumnDefinitions="Auto,160,Auto,Auto,Auto,*">
@@ -41,7 +40,7 @@
             <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
         </Grid>
 
-        <ProgressBar Classes="pageProgress" Grid.Row="4" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        <controls:OperationBar Grid.Row="4" />
 
         <ListBox Grid.Row="5" IsVisible="{Binding Finished}" BorderThickness="1"
                  SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">

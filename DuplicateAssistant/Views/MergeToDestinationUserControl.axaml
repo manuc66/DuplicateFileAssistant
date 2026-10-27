@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
              xmlns:fileCompare="using:FileCompare"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.MergeToDestinationUserControl"
              x:DataType="vm:MergeToDestinationViewModel">
@@ -30,15 +31,14 @@
             <Button Grid.Column="2" Content="Browse" Command="{Binding BrowseDestinationCommand}" Margin="6,0,0,0" />
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,*" Margin="0,0,0,6">
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,6">
             <Button Grid.Column="0" Content="Scan" Command="{Binding ScanCommand}" />
-            <Button Grid.Column="1" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
-            <CheckBox Grid.Column="2" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
-            <TextBlock Grid.Column="3" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0"
+            <CheckBox Grid.Column="1" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
+            <TextBlock Grid.Column="2" Text="{Binding Summary}" VerticalAlignment="Center" Margin="12,0,0,0"
                        TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Summary}" />
         </Grid>
 
-        <ProgressBar Classes="pageProgress" Grid.Row="3" IsIndeterminate="{Binding IsBusy}" />
+        <controls:OperationBar Grid.Row="3" />
 
         <ListBox Grid.Row="4" BorderThickness="1" ItemsSource="{Binding Plan}" FontFamily="monospace">
             <ListBox.ItemTemplate>

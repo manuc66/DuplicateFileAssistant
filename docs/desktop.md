@@ -7,10 +7,18 @@ nav_order: 3
 
 `DuplicateAssistant` is the Avalonia front end. It has fourteen tabs, each a self-contained
 scan over one folder (or several, for the multi-folder tab). Most tabs show a path and a
-**Search** / **Stop** pair; the content-based tabs add a **Subfolder** switch. Long scans
-report progress in the log below the list and can be stopped at any point. The last folder
+**Search** button; the content-based tabs add a **Subfolder** switch. Long scans report
+progress in the operation bar and can be stopped at any point. The last folder
 used by a scan is remembered and restored on the next launch, along with each tab's filters
 (extensions, size bounds, excluded folders and the similar-image options).
+
+Every tab that scans or modifies files uses the same operation bar: a progress bar, the
+percentage and the file or folder currently handled, **Pause** / **Resume**, and **Stop**.
+Pause takes effect between files, so the file being moved is always completed before the
+operation suspends; it is offered for moves, deletions and merges but not for scans, because
+the finders cannot suspend themselves safely. **Stop** cancels scans and file operations at
+the next safe point, and the bar keeps showing how many files were processed.
+
 
 ![The Duplicate in folder tab after a scan, in an earlier build.]({{ '/assets/images/screenshot.png' | relative_url }})
 

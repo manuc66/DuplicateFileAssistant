@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:DuplicateAssistant.ViewModels"
              xmlns:fileCompare="using:FileCompare"
+             xmlns:controls="clr-namespace:DuplicateAssistant.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="DuplicateAssistant.Views.DeleteIfElsewhereUserControl"
              x:DataType="vm:DeleteIfElsewhereViewModel">
@@ -35,17 +36,15 @@
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="120"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
-                <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="Hash" VerticalAlignment="Center" Margin="0,0,6,0" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding HashAlgorithms}" SelectedItem="{Binding HashAlgorithm}" />
             <Button Grid.Column="2" Content="Scan" Command="{Binding ScanCommand}" Margin="12,0,0,0" />
-            <Button Grid.Column="3" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" />
-            <CheckBox Grid.Column="4" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
+            <CheckBox Grid.Column="3" Content="Dry run" IsChecked="{Binding DryRun}" Margin="12,0,0,0" />
         </Grid>
 
-        <ProgressBar Classes="pageProgress" Grid.Row="3" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        <controls:OperationBar Grid.Row="3" />
 
         <ListBox Grid.Row="4" BorderThickness="1" ItemsSource="{Binding Duplicates}" FontFamily="monospace">
             <ListBox.ItemTemplate>

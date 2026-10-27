@@ -47,7 +47,6 @@ public class MergeToDestinationViewModel : ViewModelBase
             }
         });
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
-        StopCommand = ReactiveCommand.Create(StopOperation);
         MergeCommand = ReactiveCommand.CreateFromTask(MergeAsync);
     }
 
@@ -81,7 +80,6 @@ public class MergeToDestinationViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseSourceCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseDestinationCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
-    public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> MergeCommand { get; }
 
     private async Task ScanAsync()
@@ -149,7 +147,8 @@ public class MergeToDestinationViewModel : ViewModelBase
 
         await RunOperationAsync(async cancellationToken =>
         {
-            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken, _trash.Journal);
+            MergeResult result = await MergeExecutor.ExecuteAsync(plan, _trash, cancellationToken, _trash.Journal,
+                PauseSignal, ReportProgress);
 
             IReadOnlyList<string> emptyDirectories = await Task.Run(
                 () => EmptyDirectoryService.FindEmptyDirectories(
@@ -159,6 +158,8 @@ public class MergeToDestinationViewModel : ViewModelBase
                 cancellationToken);
             int removedDirectories = EmptyDirectoryService.DeleteEmptyDirectories(emptyDirectories, cancellationToken);
 
+            ReportProgress(plan.Count, plan.Count);
+
             OnUiThread(() =>
             {
                 Plan.Clear();
@@ -166,7 +167,7 @@ public class MergeToDestinationViewModel : ViewModelBase
                          $"failed {result.Failed}, removed {removedDirectories} empty folder(s).";
                 RaisePlanChanged();
             });
-        }, "Merging...");
+        }, "Merging...", canPause: true);
     }
 
     private void RaisePlanChanged()

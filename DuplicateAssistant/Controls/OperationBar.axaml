@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:DuplicateAssistant.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="30"
+             x:Class="DuplicateAssistant.Controls.OperationBar"
+             x:DataType="vm:ViewModelBase">
+    <Grid ColumnDefinitions="*,240,Auto,Auto" Margin="0,6">
+        <ProgressBar Grid.Column="0" Minimum="0" Maximum="100"
+                     Value="{Binding ProgressValue}"
+                     IsIndeterminate="{Binding IsProgressIndeterminate}"
+                     VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Width="240" Text="{Binding ProgressText}" Margin="8,0,0,0"
+                   TextAlignment="Right" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ProgressText}" />
+        <Button Grid.Column="2" Content="{Binding PauseButtonText}" Command="{Binding PauseResumeCommand}"
+                IsEnabled="{Binding CanPause}" Margin="8,0,0,0" MinWidth="70"
+                ToolTip.Tip="Pause or resume between files." />
+        <Button Grid.Column="3" Content="Stop" Command="{Binding StopCommand}" Margin="6,0,0,0" MinWidth="56"
+                ToolTip.Tip="Stop the current scan or file operation." />
+    </Grid>
+</UserControl>

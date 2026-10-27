@@ -62,7 +62,6 @@ public class FileListViewModel : ViewModelBase
 
         SelectFolderCommand = ReactiveCommand.CreateFromTask(SelectFolderAsync);
         ScanCommand = ReactiveCommand.CreateFromTask(ScanAsync);
-        StopCommand = ReactiveCommand.Create(StopOperation);
         DeleteSelectedCommand = ReactiveCommand.CreateFromTask(() => DeleteAsync(all: false));
         DeleteAllCommand = ReactiveCommand.CreateFromTask(() => DeleteAsync(all: true));
     }
@@ -121,7 +120,6 @@ public class FileListViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> SelectFolderCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
-    public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteSelectedCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteAllCommand { get; }
 
@@ -250,38 +248,55 @@ public class FileListViewModel : ViewModelBase
         {
             int deleted = 0;
             int failed = 0;
+            int processed = 0;
             List<DuplicateFile> deletedFiles = new();
 
-            foreach (DuplicateFile file in targets)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                foreach (DuplicateFile file in targets)
+                {
+                    await PauseSignal.WaitWhilePausedAsync(cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                try
-                {
-                    await _trash.DeleteAsync(file.Path, file.Length, file.LastWriteTimeUtc, cancellationToken);
-                    deletedFiles.Add(file);
-                    deleted++;
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    failed++;
+                    ReportProgress(processed, targets.Count, file.Path);
+                    processed++;
+
+                    try
+                    {
+                        await _trash.DeleteAsync(file.Path, file.Length, file.LastWriteTimeUtc, cancellationToken);
+                        deletedFiles.Add(file);
+                        deleted++;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        failed++;
+                    }
                 }
             }
+            finally
+            {
+                OnUiThread(() =>
+                {
+                    foreach (DuplicateFile file in deletedFiles)
+                    {
+                        Files.Remove(file);
+                    }
+
+                    RaiseFilesChanged();
+                });
+            }
+
+            ReportProgress(targets.Count, targets.Count);
 
             OnUiThread(() =>
             {
-                foreach (DuplicateFile file in deletedFiles)
-                {
-                    Files.Remove(file);
-                }
-
                 SelectedFile = null;
                 Status = failed == 0
                     ? $"Moved {deleted} file(s) to the trash."
                     : $"Moved {deleted} file(s); {failed} failed.";
                 RaiseFilesChanged();
             });
-        }, "Moving files to the trash...");
+        }, "Moving files to the trash...", canPause: true);
     }
 
     private void RaiseFilesChanged()

@@ -67,11 +67,29 @@ public static class EmptyDirectoryService
     public static int DeleteEmptyDirectories(IReadOnlyList<string> directories, CancellationToken cancellationToken,
         Action<string, bool>? result = null)
     {
+        return DeleteEmptyDirectoriesAsync(directories, cancellationToken, result)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    public static async Task<int> DeleteEmptyDirectoriesAsync(IReadOnlyList<string> directories,
+        CancellationToken cancellationToken, Action<string, bool>? result = null, PauseToken? pauseToken = null,
+        Action<int, int, string?>? progress = null)
+    {
         int deleted = 0;
+        int processed = 0;
 
         foreach (string directory in directories)
         {
+            if (pauseToken != null)
+            {
+                await pauseToken.WaitWhilePausedAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
+            progress?.Invoke(processed, directories.Count, directory);
+            processed++;
 
             try
             {
@@ -89,6 +107,7 @@ public static class EmptyDirectoryService
             }
         }
 
+        progress?.Invoke(processed, directories.Count, null);
         return deleted;
     }
 

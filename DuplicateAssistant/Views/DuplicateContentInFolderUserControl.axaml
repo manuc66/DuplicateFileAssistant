@@ -29,7 +29,6 @@
                 <ColumnDefinition Width="100"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
                 <ColumnDefinition Width="Auto"></ColumnDefinition>
-                <ColumnDefinition Width="Auto"></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"></RowDefinition>
@@ -47,7 +46,6 @@
             </ComboBox>
             <ToggleSwitch Grid.Column="3" Content="Subfolder" IsChecked="{Binding SubFolder}"></ToggleSwitch>
             <Button Grid.Column="4" Content="Search" Command="{Binding SearchCommand}" HorizontalAlignment="Right" />
-            <Button Grid.Column="5" Content="Stop" Command="{Binding StopSearchCommand}" HorizontalAlignment="Right" />
         </Grid>
 
         <Grid Grid.Row="1" Grid.Column="0" Margin="0,4" ColumnDefinitions="Auto,160,Auto,Auto,Auto,*">
@@ -75,7 +73,7 @@
             <TextBox Grid.Column="5" Text="{Binding ExcludedFolders}" PlaceholderText="C:\Temp" />
         </Grid>
 
-        <ProgressBar Classes="pageProgress" Grid.Row="3" Grid.Column="0" Minimum="0" Maximum="100" Value="{Binding ProgressValue}" />
+        <controls:OperationBar Grid.Row="3" Grid.Column="0" />
 
         <ListBox IsVisible="{Binding Finished}" BorderThickness="1" Grid.Row="4" Grid.Column="0" Name="DuplicateCases"
                  x:Name="DuplicateCases" SelectedItem="{Binding DuplicateCase}" ItemsSource="{Binding DuplicateCaseItems}">
